@@ -1,0 +1,179 @@
+package com.samyang.winplus.sis.market.controller;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.samyang.winplus.common.system.base.controller.BaseController;
+import com.samyang.winplus.sis.market.service.PaymentService;
+
+@RestController
+@RequestMapping("/sis/market/payment")
+public class PaymentController extends BaseController{
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
+	private final static String DEFAULT_PATH = "sis/market/payment";
+	
+	@Autowired
+	private PaymentService paymentservice;
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @param mav
+	 * @return Map<String,Object>
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 외상매출매입현황 페이지 리턴
+	 */
+	@RequestMapping(value="trustPurchaseStatus.sis", method=RequestMethod.POST)
+	public ModelAndView trustPurchaseStatus(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+		mav.setViewName(DEFAULT_PATH + "/" + "trustPurchaseStatus");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 마감관리
+	  * @author 최지민
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="addTimeDeadline.sis", method=RequestMethod.POST)
+	public ModelAndView addTimeDeadline(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "addTimeDeadline");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 마감관리 - 시제마감입력
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="addTimeDeadlineList.do", method=RequestMethod.POST)
+	public Map<String, Object> addTimeDeadlineList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> gridDataList = paymentservice.addTimeDeadlineList(paramMap);
+		resultMap.put("gridDataList", gridDataList);
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 결제관리 - 외상매출현황
+	  * @author 한정훈
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="trustSalesStatus.sis", method=RequestMethod.POST)
+	public ModelAndView trustSalesStatus(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+		mav.setViewName(DEFAULT_PATH + "/" + "trustSalesStatus");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 결제관리 - 외상매출현황조회
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@ResponseBody
+	@RequestMapping(value="getTrustSalesStatus.do", method=RequestMethod.POST)
+	public Map<String, Object> getTrustSalesStatusList(HttpServletRequest request, @RequestBody Map<String, Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		//logger.debug("getTrustSalesStatus paramMap >>>> " + paramMap );
+		List<Map<String, Object>> getTrustSalesStatusList = paymentservice.getTrustSalesStatusList(paramMap);
+		resultMap.put("gridDataList", getTrustSalesStatusList);
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 결제관리 - 외상매입현황조회
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@ResponseBody
+	@RequestMapping(value="getTrustPurchaseStatus.do", method=RequestMethod.POST)
+	public Map<String, Object> getTrustPurchaseStatusList(HttpServletRequest request, @RequestBody Map<String, Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		//logger.debug("getTrustPurchaseStatus paramMap >>>> " + paramMap );
+		List<Map<String, Object>> getTrustPurchaseStatusList = paymentservice.getTrustPurchaseStatusList(paramMap);
+		//logger.debug("paramMap >>>> " + getTrustPurchaseStatusList);
+		resultMap.put("gridDataList", getTrustPurchaseStatusList);
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 결제관리 - 외상매출현황 - 팝업
+	  * @author 한정훈
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="openTrustSalesStatusDetail.sis", method=RequestMethod.POST)
+	public ModelAndView openTrustSalesStatusDetail(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+		mav.setViewName(DEFAULT_PATH + "/" + "openTrustSalesStatusDetail");
+		return mav;
+	}
+	/**
+	  * 점포업무관리 - 결제관리 - 외상매출현황 - 팝업 리스트 조회
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getTrustSalesStatusDetailList.do", method=RequestMethod.POST)
+	public Map<String, Object> getTrustSalesStatusDetailList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		//logger.debug("getTrustSalesStatusDetailList paramMap >>>> " + paramMap );
+		List<Map<String, Object>> getTrustSalesStatusDetailList = paymentservice.getTrustSalesStatusDetailList(paramMap);
+		resultMap.put("gridDataList", getTrustSalesStatusDetailList);
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 결제관리 - 외상매입현황 - 팝업 리스트 조회
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getTrustPurchaseStatusDetailList.do", method=RequestMethod.POST)
+	public Map<String, Object> getTrustPurchaseStatusDetailList(HttpServletRequest request, @RequestParam Map<String, String> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		//logger.debug("getTrustPurchaseStatus paramMap >>>> " + paramMap );
+		List<Map<String, Object>> getTrustPurchaseStatusDetailList = paymentservice.getTrustPurchaseStatusDetailList(paramMap);
+		//logger.debug("paramMap >>>> " + getTrustPurchaseStatusDetailList);
+		resultMap.put("gridDataList", getTrustPurchaseStatusDetailList);
+		
+		return resultMap;
+	}
+	
+}

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.pos.dao.PosChangeManagementDao">
+
+	<select id="getPosPreferences" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPosChangeList */
+		SELECT ORGN_DIV_CD
+			, ORGN_CD
+			, CORP_NM
+			, (
+				SELECT TOP 1 COUNT(TRML_NO) 
+				FROM T_STD_TRML
+				WHERE 1=1
+					<if test='ORGN_CD != ""'>
+						AND ORGN_CD = #{ORGN_CD}
+					</if>
+					AND TRML_TYPE = '1'
+			) AS POS_CNT
+			, VAT_TYPE
+			, CONVERT(NVARCHAR(23), CDATE, 21) AS CDATE
+		FROM T_STD_DMS_INFO
+		<if test='ORGN_CD != ""'>
+			WHERE ORGN_CD = #{ORGN_CD}
+		</if>
+	</select>
+	
+	<select id="getPosPreferencesInfo" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT 
+			ORGN_DIV_CD,
+			ORGN_CD,
+			CORP_NM,
+			CEO_NM,
+			CORP_NO,
+			TEL_NO,
+			FAX_NO,
+			ZIP_NO,
+			ADDR,
+			ADDR_DETL,
+			MSG_HEAD,
+			MSG_FOOTER,
+			MSG_CUSTMR,
+			RESV_AMT,
+			POINT_SAVE_CASH,
+			POINT_SAVE_CARD,
+			POINT_SAVE_GIFT,
+			POINT_SAVE_TRUST,
+			VAT_TYPE,
+			ROUND_POSITION_TYPE,
+			ROUND_TYPE,
+			USE_YN,
+			MEMO,
+			CPROGRM,
+			CUSER,
+			CDATE,
+			MPROGRM,
+			MUSER,
+			MDATE
+			FROM T_STD_DMS_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+	</select>
+	
+	<update id="savePosPreferencesInfo" parameterType="java.util.Map">
+		/* savePosPreferencesInfo */
+		UPDATE T_STD_DMS_INFO
+		SET CORP_NM = #{CORP_NM},
+			CEO_NM = #{CEO_NM},
+			CORP_NO = #{CORP_NO},
+			TEL_NO = #{TEL_NO},
+			ADDR = #{ADDR},
+			ADDR_DETL = #{ADDR_DETL},
+			POINT_SAVE_CASH = #{POINT_SAVE_CASH},
+			POINT_SAVE_CARD = #{POINT_SAVE_CARD},
+			POINT_SAVE_GIFT = #{POINT_SAVE_GIFT},
+			POINT_SAVE_TRUST = #{POINT_SAVE_TRUST},
+			MSG_HEAD = #{MSG_HEAD},
+			MSG_FOOTER = #{MSG_FOOTER},
+			MSG_CUSTMR = #{MSG_CUSTMR},
+			MUSER = #{EMP_NO},
+			MDATE = NOW(),
+			MPROGRM = #{MPROGRM}
+		WHERE ORGN_CD = #{ORGN_CD}
+	</update>
+</mapper>

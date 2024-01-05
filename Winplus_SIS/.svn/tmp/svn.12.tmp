@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.basic.dao.CustomerGoodsManagementDao">
+
+    <insert id="insertStdCustomrGoods" parameterType="java.util.Map">
+        /* insertStdCustomrGoods [CustomerGoodsManagement.xml 거래처별상품 ]*/
+        INSERT INTO T_STD_CUSTMR_GOODS (
+               ORGN_DIV_CD
+             , ORGN_CD
+             , CUSTMR_CD
+             , BCD_CD
+             , GOODS_NO
+             , ORD_TYPE
+             , USE_YN
+             , CPROGRM
+             , CUSER
+             , CDATE
+        ) VALUES (
+               #{ORGN_DIV_CD}
+             , #{ORGN_CD}
+             , #{CUSTMR_CD}
+             , #{BCD_CD}
+             , #{GOODS_NO}
+             , #{ORD_TYPE}
+             , #{USE_YN}
+             , #{PARAM_PROGRM}
+             , #{REG_ID}
+             , GETDATE()
+        )
+    </insert>
+    
+    <update id="updateStdCustomrGoods" parameterType="java.util.Map">
+        /* updateStdCustomrGoods [CustomerGoodsManagement.xml 거래처별상품]*/
+        UPDATE T_STD_CUSTMR_GOODS
+        SET  , USE_YN      = #{use_yn}
+             , MPROGRM     = #{PARAM_PROGRM}
+             , MUSER       = #{REG_ID}
+             , MDATE       = GETDATE()
+         WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+           AND ORGN_CD     = #{ORGN_CD}
+           AND CUSTMR_CD   = #{CUSTMR_CD}
+           AND BCD_CD      = #{BCD_CD}
+    </update>
+    
+    <delete id="deleteStdCustomrGoods" parameterType="java.util.Map">
+        /* deleteStdCustomrGoods [CustomerGoodsManagement.xml 거래처별상품] */
+        DELETE T_STD_CUSTMR_GOODS
+         WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+           AND ORGN_CD     = #{ORGN_CD}
+           AND CUSTMR_CD   = #{CUSTMR_CD}
+           AND BCD_CD      = #{BCD_CD}
+    </delete>
+
+    <select id="getSearchMasterBarcodeList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchMasterBarcodeList [ CustomerGoodsManagement.xml 분류별바코드 LIST 가져오기] */
+        SELECT  BB.GOODS_NO      /* 상품코드 */
+              , BB.BCD_CD        /* 자바코드 */
+              , BB.BCD_M_CD      /* 모바코드 */
+              , BB.BCD_NM        /* 상품이름 */
+              , BB.DIMEN_NM      /* 규격     */
+              , BB.UNIT_CD       /* 단위코드 */
+              , BB.USE_YN        /* 사용여부 */
+              , BB.GOODS_NO      /* 상품번호 */
+              , CONVERT(CHAR(19), BB.CDATE, 120) CDATE
+        FROM   T_STD_MAST_GOODS    AA
+               JOIN T_STD_MAST_BCD BB  ON AA.GOODS_NO = BB.GOODS_NO
+        WHERE  1 =  1
+        <if test='PARAM_GRUP_TOP_CD != null and PARAM_GRUP_TOP_CD != ""'>
+          AND  AA.GRUP_TOP_CD  =  #{PARAM_GRUP_TOP_CD}
+          AND  AA.GRUP_MID_CD  =  #{PARAM_GRUP_MID_CD}
+          AND  AA.GRUP_BOT_CD  =  #{PARAM_GRUP_BOT_CD}
+        </if> 
+        <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+          AND  BB.BCD_NM LIKE #{PARAM_BCD_NM}
+        </if> 
+        ORDER  BY AA.GRUP_TOP_CD, AA.GRUP_MID_CD, AA.GRUP_BOT_CD
+    </select>
+    
+    <select id="getSearchTstdCustomerGoodsList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchTstdCustomerGoodsList [CustomerGoodsManagement.xml 거래처별상품가져오기 ] */
+        SELECT  AA.GOODS_NO      /* 상품코드 */
+              , AA.BCD_CD        /* 자바코드 */
+              , AA.BCD_M_CD      /* 모바코드 */
+              , AA.BCD_NM        /* 상품이름 */
+              , AA.DIMEN_NM      /* 규격     */
+              , AA.UNIT_CD       /* 단위코드 */
+              , BB.USE_YN        /* 사용여부 */
+              , BB.GOODS_NO      /* 상품번호 */
+              , BB.CUSTMR_CD     /* 거래처코드 */
+              , BB.ORGN_CD       /* 매장번호  */
+              , BB.ORGN_DIV_CD   /* 조직코드  */
+              , CONVERT(CHAR(19), BB.CDATE, 120) CDATE
+        FROM   T_STD_MAST_BCD     AA
+               JOIN T_STD_CUSTMR_GOODS BB ON AA.GOODS_NO = BB.GOODS_NO AND AA.BCD_CD = BB.BCD_CD
+        WHERE  1 =  1
+         AND   BB.CUSTMR_CD    = #{PARAM_CUSTMR_CD}
+        /* AND   BB.ORGN_CD      = {PARAM_ORGN_CD}       2017-11-17 */
+        /* AND   BB.ORGN_DIV_CD  = {PARAM_ORGN_DIV_CD}   2017-11-17 */
+        <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+         AND   AA.BCD_NM  LIKE #{PARAM_BCD_NM}
+        </if> 
+    </select>
+
+    <select id="getSearchMasterBarcodePriceList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchMasterBarcodePriceList [CustomerGoodsManagement.xml 상품기준 구매가격 가져오기] */
+        SELECT  B.GOODS_NO      /* 상품코드 */
+              , B.BCD_CD        /* 자바코드 */
+              , B.BCD_M_CD      /* 모바코드 */
+              , B.BCD_NM        /* 상품이름 */
+              , B.DIMEN_NM      /* 규격     */
+              , B.UNIT_CD       /* 단위코드 */
+              , ( SELECT CMMN_DETAIL_CD_NM 
+                    FROM COM_CMMN_CODE_DETAIL
+                   WHERE  CMMN_CD = 'DSCD_TYPE' AND CMMN_DETAIL_CD =  A.PUR_DSCD_TYPE
+                 )  DSCD_TYPE               /* 반품가능여부 */   
+              , C.PUR_PRICE     /* 구매단가 */
+              , E.CUSTMR_NM     /* 협력사명 */
+              , C.CUSTMR_CD
+        FROM   T_STD_MAST_GOODS          A
+               JOIN T_STD_MAST_BCD       B ON A.GOODS_NO  = B.GOODS_NO  AND B.USE_YN      = 'Y'
+               JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD    = B.BCD_CD    AND C.GOODS_NO    = B.GOODS_NO
+               JOIN T_STD_MAST_CUSTMR    E ON E.CUSTMR_CD = C.CUSTMR_CD 
+        WHERE  1 =  1
+          AND  C.CUSTMR_CD NOT IN  
+               (
+                  SELECT ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+                    FROM COM_CMMN_CODE_DETAIL
+                   WHERE CMMN_CD='ORGN_CD'
+                     AND DIV1 = 'CT'
+               )
+        <if test='PARAM_GRUP_TOP_CD != null and PARAM_GRUP_TOP_CD != ""'>
+          AND  A.GRUP_TOP_CD  =   #{PARAM_GRUP_TOP_CD}
+          AND  A.GRUP_MID_CD  =   #{PARAM_GRUP_MID_CD}
+          AND  A.GRUP_BOT_CD  =   #{PARAM_GRUP_BOT_CD}
+        </if> 
+        <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+          AND  B.BCD_NM      LIKE #{PARAM_BCD_NM}
+        </if> 
+        <if test='PARAM_CUST_CD != null and PARAM_CUST_CD != ""'>
+          AND  C.CUSTMR_CD =  #{PARAM_CUST_CD}
+        </if> 
+
+        ORDER  BY A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD		  
+    </select>
+            
+    <select id="getSearchMasterBarcodeLowestPriceList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchMasterBarcodeLowestPriceList [CustomerGoodsManagement.xml 직영점->센터(팜)/협력사, 센터->협력사 발주시 최저구매가격 가져오기] */
+        SELECT  B.GOODS_NO                 /* 상품코드 */
+              , B.BCD_CD                   /* 자바코드 */
+              , B.BCD_M_CD                 /* 모바코드 */
+              , B.BCD_NM                   /* 상품이름 */
+              , B.DIMEN_NM                 /* 규격     */
+              , B.UNIT_CD                  /* 단위코드 */
+              , ( SELECT CMMN_DETAIL_CD_NM UNIT_NM  
+                    FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'UNIT_CD' AND  CMMN_DETAIL_CD = B.UNIT_CD
+                ) UNIT_NM
+              , ( SELECT CMMN_DETAIL_CD_NM 
+                    FROM COM_CMMN_CODE_DETAIL
+                   WHERE  CMMN_CD = 'DSCD_TYPE' AND CMMN_DETAIL_CD =  A.PUR_DSCD_TYPE
+                 )  DSCD_TYPE               /* 반품가능여부 */   
+              , C.PUR_PRICE   GOODS_PRICE   /* 구매단가   */
+              , D.CUSTMR_CD   SUPR_CD       /* 협력사코드   */
+              , D.CUSTMR_NM   SUPR_NM       /* 협력사명     */
+              , F.WARE_CD                   /* 창고코드     */
+              , F.WARE_NM                   /* 창고이름     */
+              , B.UNIT_QTY                  /* 입수량       */
+              , A.TAX_TYPE                  /* 과세구분     */
+              , A.MIN_PUR_QTY               /* CS최소주문수량 */
+              , ( SELECT CMMN_DETAIL_CD_NM UNIT_NM  
+                    FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'UNIT_CD' AND  CMMN_DETAIL_CD = A.MIN_PUR_UNIT
+                ) MIN_PUR_UNIT              /* CS최소주문단위 */
+              , A.MIN_ORD_QTY  MIN_LMT_QTY  /* 주문제한수량   */              
+        FROM   T_STD_MAST_GOODS    A
+               JOIN T_STD_MAST_BCD B  ON B.GOODS_NO = A.GOODS_NO AND B.USE_YN = 'Y'
+               JOIN ( 
+                      SELECT  BCD_CD,  PUR_PRICE, CUSTMR_CD 
+                      FROM  ( 
+                              SELECT ROW_NUMBER() OVER (PARTITION BY BCD_CD  ORDER BY BCD_CD,PUR_PRICE, PRIOR_ITY) AS ROWNUM,
+                                     BCD_CD,  PUR_PRICE, CUSTMR_CD
+                                FROM (
+                                     <if test='PARAM_CUST_DIV_CD == "OUT"'>  
+                                     /* 외부협력사로 직발주인경우 */
+                                     SELECT B.BCD_CD , C.PUR_PRICE ,  C.CUSTMR_CD,  2 PRIOR_ITY  /* 공급사기준 매입단가 */
+                                     FROM   T_STD_MAST_GOODS A
+                                            JOIN T_STD_MAST_BCD       B ON B.GOODS_NO  = A.GOODS_NO AND B.USE_YN = 'Y'
+                                            JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD    = B.BCD_CD   AND C.GOODS_NO = B.GOODS_NO
+                                            JOIN T_STD_MAST_CUSTMR    D ON D.CUSTMR_CD = C.CUSTMR_CD 
+                                     WHERE  1 = 1
+                                       AND  C.CUSTMR_CD NOT IN  /* 센터는 제외한다 */  
+                                            ( 
+                                              SELECT ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+                                                FROM COM_CMMN_CODE_DETAIL
+                                               WHERE CMMN_CD ='ORGN_CD'
+                                                 AND DIV1 IN ( 'CT','PM')
+                                            )
+                                       <if test='PARAM_CUST_CD != null and PARAM_CUST_CD != ""'>
+                                       AND  C.CUSTMR_CD = #{PARAM_CUST_CD}  /* 공급사(협력사) */
+                                       </if>
+                                       <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+                                       AND  B.BCD_NM LIKE #{PARAM_BCD_NM}
+                                       </if>
+                                     </if>
+                                     <if test='PARAM_CUST_DIV_CD == "B01"'>  
+                                         /*  협력사조직구분코드가  B01이면 센터로의 발주이고 판매가격마스터의 조직이 공급사(협력사)임 */
+                                         SELECT B.BCD_CD , C.PUR_PRICE ,  C.CUSTMR_CD,  2 PRIOR_ITY  /* 센타기준 판매단가 */
+                                         FROM   T_STD_MAST_GOODS A
+                                                JOIN T_STD_MAST_BCD       B ON B.GOODS_NO  = A.GOODS_NO AND B.USE_YN = 'Y' <if test='PARAM_ORD_TYPE == "5"'> AND  B.DELI_DD_YN = 'Y' /* 일배발주 */ </if>
+                                                JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD    = B.BCD_CD   AND C.GOODS_NO = B.GOODS_NO
+                                                JOIN T_STD_MAST_CUSTMR    D ON D.CUSTMR_CD = C.CUSTMR_CD 
+                                         WHERE  1 = 1
+	                                       AND  C.CUSTMR_CD  IN  /* 센터Only */  
+	                                            ( 
+	                                              SELECT ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+	                                                FROM COM_CMMN_CODE_DETAIL
+	                                               WHERE CMMN_CD ='ORGN_CD'
+	                                                 AND DIV1 = 'CT'
+	                                            )
+                                           <if test='PARAM_CUST_CD != null and PARAM_CUST_CD != ""'>
+                                           /* 꼭 협력사 단위로봐야하는 경우 */
+                                           AND  C.CUSTMR_CD =  #{PARAM_CUST_CD}
+                                           </if>
+                                           <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+                                           AND  B.BCD_NM LIKE #{PARAM_BCD_NM}
+                                           </if>
+                                         UNION  ALL
+                                         SELECT  C.BCD_CD, MIN(CENT_SALE_PRICE) SALE_PRICE, G.CUSTMR_CD, 1 PRIOR_ITY /* 센터 우선순위빠르게하기위해 */
+                                           FROM  T_CENT_EVENT_PRICE             A
+                                                 JOIN T_CENT_EVENT_PRICE_CUSTMR B ON B.EVENT_GRUP_CD =  A.EVENT_GRUP_CD AND B.CUSTMR_CD = #{PARAM_ORGN_CD}
+                                                 JOIN T_CENT_EVENT_PRICE_GOODS  C ON C.EVENT_GRUP_CD =  A.EVENT_GRUP_CD
+                                                 JOIN T_STD_MAST_BCD            D ON D.BCD_CD      = C.BCD_CD      AND D.USE_YN = 'Y'
+                                                 JOIN T_STD_MAST_GOODS          E ON E.GOODS_NO    = D.GOODS_NO
+                                                 JOIN (
+                                                        SELECT CMMN_DETAIL_CD ORGN_CD, ISNULL(RM, CMMN_DETAIL_CD) CUSTMR_CD
+                                                          FROM COM_CMMN_CODE_DETAIL
+                                                         WHERE CMMN_CD='ORGN_CD'
+                                                           AND DIV1 = 'CT' /* 물류센타로주문 */
+                                                     ) G ON G.ORGN_CD = A.ORGN_CD
+                                         WHERE  1 = 1 /* A.ORGN_DIV_CD = 'B01' */
+                                           AND  CONVERT(CHAR(8), GETDATE(), 112)  BETWEEN STRT_DATE AND  END_DATE
+                                           AND  B.USE_YN = 'Y'
+                                           AND  C.USE_YN = 'Y'
+                                           AND  C.CENT_SALE_PRICE IS NOT NULL
+                                           <if test='PARAM_CUST_CD != null and PARAM_CUST_CD != ""'>
+                                           /* 꼭 협력사 단위로봐야하는 경우 */
+                                           AND  B.CUSTMR_CD =  #{PARAM_CUST_CD}
+                                           </if>
+                                           <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+                                           AND  D.BCD_NM LIKE #{PARAM_BCD_NM}
+                                           </if>
+                                         GROUP  BY G.CUSTMR_CD, C.BCD_CD                                           
+                                     </if>
+                                     <if test='PARAM_CUST_DIV_CD == "A06"'>  
+                                         /*  협력사조직구분코드가 A06 팜이면 팜센터로의 발주이고 가격마스트의 가격을 가져온다 */
+                                         SELECT B.BCD_CD , C.PUR_PRICE ,  C.CUSTMR_CD,  2 PRIOR_ITY  /* 팜 기준 판매단가 */
+                                         FROM   T_STD_MAST_GOODS A
+                                                JOIN T_STD_MAST_BCD       B ON B.GOODS_NO  = A.GOODS_NO AND B.USE_YN = 'Y'
+                                                JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD    = B.BCD_CD   AND C.GOODS_NO = B.GOODS_NO
+                                                JOIN T_STD_MAST_CUSTMR    D ON D.CUSTMR_CD = C.CUSTMR_CD 
+                                         WHERE  1 = 1
+                                           AND  C.CUSTMR_CD IN  /* 팜 센터만 대상이다  */
+                                                (
+                                                  SELECT ISNULL(RM, CMMN_DETAIL_CD) CUSTMR_CD
+                                                    FROM COM_CMMN_CODE_DETAIL
+                                                   WHERE CMMN_CD='ORGN_CD'
+                                                     AND DIV1 = 'PM'
+                                                 )                    
+                                           <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+                                           AND  B.BCD_NM LIKE '%%'
+                                           </if>
+                                     </if>
+                                     ) B
+                            ) D	   
+                      WHERE  D.ROWNUM  <![CDATA[<=]]> 1 /* 최저가 하나만 가져오는 조건 */
+                    ) C ON C.BCD_CD = B.BCD_CD
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR D ON D.CUSTMR_CD = C.CUSTMR_CD
+               LEFT OUTER JOIN (
+                                SELECT CMMN_DETAIL_CD WARE_CD, CMMN_DETAIL_CD_NM WARE_NM, RM
+                                  FROM COM_CMMN_CODE_DETAIL
+                                 WHERE CMMN_CD ='ORGN_CD'
+                                   AND DIV1 IN ( 'CT', 'MK')
+                                ) F ON F.RM = C.CUSTMR_CD
+        WHERE  1 =  1
+        ORDER  BY A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD
+    </select>
+                
+    <select id="getSearchMasterBarcodeFreshPriceList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchMasterBarcodeFreshPriceList [CustomerGoodsManagement.xml 팜센터->협력사 발주시 최저구매가격 가져오기] */
+        SELECT  B.GOODS_NO                 /* 상품코드 */
+              , B.BCD_CD                   /* 자바코드 */
+              , B.BCD_M_CD                 /* 모바코드 */
+              , B.BCD_NM                   /* 상품이름 */
+              , B.DIMEN_NM                 /* 규격     */
+              , B.UNIT_CD                  /* 단위코드 */
+              , ( SELECT CMMN_DETAIL_CD_NM UNIT_NM
+                    FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'UNIT_CD' AND  CMMN_DETAIL_CD = B.UNIT_CD
+                ) UNIT_NM
+              , ( SELECT CMMN_DETAIL_CD_NM 
+                    FROM COM_CMMN_CODE_DETAIL
+                   WHERE  CMMN_CD = 'DSCD_TYPE' AND CMMN_DETAIL_CD =  A.PUR_DSCD_TYPE
+                 )  DSCD_TYPE               /* 반품가능여부 */   
+              , C.PUR_PRICE   GOODS_PRICE   /* 구매단가   */
+              , D.CUSTMR_CD   SUPR_CD       /* 협력사코드   */
+              , D.CUSTMR_NM   SUPR_NM       /* 협력사명     */
+              , NULL WARE_CD                /* 창고코드     */
+              , NULL WARE_NM                /* 창고이름     */
+              , B.UNIT_QTY                  /* 입수량       */
+              , A.TAX_TYPE                  /* 과세구분     */
+              , A.MIN_PUR_QTY               /* CS최소주문수량 */
+              , ( SELECT CMMN_DETAIL_CD_NM UNIT_NM
+                    FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'UNIT_CD' AND  CMMN_DETAIL_CD = A.MIN_PUR_UNIT
+                ) MIN_PUR_UNIT              /* CS최소주문단위 */
+              , A.MIN_ORD_QTY  MIN_LMT_QTY  /* 주문제한수량   */
+        FROM   T_STD_MAST_GOODS    A
+               JOIN T_STD_MAST_BCD B  ON B.GOODS_NO = A.GOODS_NO AND B.USE_YN = 'Y'
+               JOIN (
+                      SELECT  BCD_CD,  PUR_PRICE, CUSTMR_CD
+                      FROM  (
+                              SELECT ROW_NUMBER() OVER (PARTITION BY BCD_CD  ORDER BY BCD_CD,PUR_PRICE, PRIOR_ITY) AS ROWNUM,
+                                     BCD_CD,  PUR_PRICE, CUSTMR_CD
+                                FROM ( /* 1. 윈플러스 팜에서 취급하고 있는 상품을 구한다음  T_STD_MAST_PUR_PRICE에서 공급사 및 단가를 구한다 */  
+                                     SELECT B.BCD_CD , C.PUR_PRICE ,  C.CUSTMR_CD,  2 PRIOR_ITY  /* 공급사기준 매입단가 */
+                                     FROM   T_STD_MAST_GOODS A
+                                            JOIN T_STD_MAST_BCD       B ON B.GOODS_NO  = A.GOODS_NO AND B.USE_YN = 'Y'
+                                            JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD    = B.BCD_CD   AND C.GOODS_NO = B.GOODS_NO
+                                            JOIN (  /* 윈플러스 팜에서 취급하고 있는 상품 */
+                                                  SELECT  B.BCD_CD, A.GOODS_NO
+                                                    FROM  T_STD_MAST_GOODS A
+                                                          JOIN T_STD_MAST_BCD       B ON B.GOODS_NO  = A.GOODS_NO AND B.USE_YN = 'Y'
+                                                          JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD    = B.BCD_CD   AND C.GOODS_NO = B.GOODS_NO
+                                                   WHERE  C.CUSTMR_CD IN  /* 팜 센터에서 취급하는 상품을 구한다  */
+                                                          (
+                                                            SELECT ISNULL(RM, CMMN_DETAIL_CD) CUSTMR_CD
+                                                              FROM COM_CMMN_CODE_DETAIL
+                                                             WHERE CMMN_CD='ORGN_CD'
+                                                               AND DIV1 = 'PM'
+                                                           )
+                                                  ) D ON D.BCD_CD = C.BCD_CD AND D.GOODS_NO = C.GOODS_NO
+                                     WHERE  1 = 1
+                                       AND  C.CUSTMR_CD NOT IN /* 센터는 제외한 외부공급사를 구한다 */
+                                            (
+                                              SELECT ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+                                                FROM COM_CMMN_CODE_DETAIL
+                                               WHERE CMMN_CD ='ORGN_CD'
+                                                 AND DIV1 IN ( 'CT','PM')
+                                            )
+                                       <if test='PARAM_CUST_CD != null and PARAM_CUST_CD != ""'>AND  C.CUSTMR_CD = #{PARAM_CUST_CD}  /* 공급사(협력사) */</if>
+                                       <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>AND  B.BCD_NM LIKE #{PARAM_BCD_NM}</if>
+                                     ) B
+                            ) D
+                      WHERE  D.ROWNUM  <![CDATA[<=]]> 1 /* 최저가 하나만 가져오는 조건 */
+                    ) C ON C.BCD_CD = B.BCD_CD
+               JOIN T_STD_MAST_CUSTMR D ON D.CUSTMR_CD = C.CUSTMR_CD
+        WHERE  1 =  1
+        ORDER  BY A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD                
+    </select>
+            
+</mapper>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.order.dao.OrderParmSearchDao">
+    <select id="getOrderParmSearchList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getOrderParmSearchList [ OrderParmSearch.xml 직영점에서 WINPLUS팜으로 발주한List조회] */
+        SELECT   A.ORGN_DIV_CD                             /* 조직영역코드   */
+                ,K.CMMN_DETAIL_CD_NM ORGN_DIV_NM           /* 조직영역이름   */
+                ,SUBSTRING(A.ORGN_DIV_CD,1,1) ORGN_DIV_TYP /* 조직영역유형   */
+                ,A.ORGN_CD                                 /* 조직코드       */
+                ,L.ORGN_NM                                 /* 조직명         */
+                ,A.ORD_NO                                  /* 발주번호       */
+                ,A.OUT_WARE_CD                             /* 출하창고코드   */
+                ,A.IN_WARE_CD                              /* 입고창고코드   */
+                ,F.CMMN_DETAIL_CD_NM  IN_WARE_NM           /* 입고창고명     */
+                ,A.CUSTMR_CD SUPR_CD                       /* 협력사코드     */
+                ,J.CUSTMR_NM SUPR_NM                       /* 협력사명       */
+                ,SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.RESV_DATE, 7, 2) RESV_DATE    /* 납기일자      */
+                ,SUBSTRING(A.REQ_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.REQ_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.REQ_DATE, 7, 2) REQ_DATE      /* 발주일자      */                
+                ,A.ORD_TYPE                                /* 발주유형       */
+                ,G.CMMN_DETAIL_CD_NM ORD_TYPE_NM           /* 발주유형명     */
+                ,A.ORD_STATE                               /* 발주상태       */
+                ,E.CMMN_DETAIL_CD_NM ORD_STATE_NM          /* 발주상태명     */
+                ,A.RETN_YN                                 /* 반품여부       */ 
+                ,A.SEND_FAX_STATE                          /* FAX발송상태    */
+                ,A.SEND_EMAIL_STATE                        /* 이메일발송상태 */
+                ,A.SUPR_AMT                                /* 공급가액       */
+                ,A.VAT_AMT                                 /* 부가세         */
+                ,A.TOT_AMT                                 /* 합계금액       */
+                ,A.RESP_USER                               /* 담당자코드     */
+                ,H.EMP_NM                                  /* 담당자명       */
+                ,(
+                     SELECT TOP 1 C.BCD_NM
+                       FROM T_PUR_ORD_GOODS B JOIN T_STD_MAST_BCD  C ON C.BCD_CD  = B.BCD_CD
+                      WHERE A.ORD_NO        = B.ORD_NO
+                 ) + ' 등 ' +
+                 (
+                     SELECT CONVERT(NVARCHAR, COUNT(BCD_CD)) CNT
+                       FROM T_PUR_ORD_GOODS B
+                      WHERE A.ORD_NO  = B.ORD_NO
+                 ) + ' 건' GOODS_NM
+         FROM   T_PUR_ORD A
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD   = 'ORD_STATE' AND E.CMMN_DETAIL_CD = A.ORD_STATE
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'ORGN_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD   = 'ORD_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_TYPE
+                LEFT OUTER JOIN COM_EMP_INFO         H ON  H.EMP_NO    = A.RESP_USER
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    J ON  J.CUSTMR_CD = A.CUSTMR_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL K ON  A.ORGN_DIV_CD = K.CMMN_DETAIL_CD AND K.CMMN_CD = 'ORGN_DIV_CD'	
+                LEFT OUTER JOIN COM_ORGN_INFO        L ON  A.ORGN_CD  = L.ORGN_CD
+         WHERE  1 = 1
+           AND  A.IN_WARE_CD  IN 
+                (
+                   SELECT CMMN_DETAIL_CD ORGN_CD
+                     FROM COM_CMMN_CODE_DETAIL
+                    WHERE CMMN_CD='ORGN_CD'
+                      AND DIV1 = 'PM'
+                )
+           <if test='PARAM_ORD_STR_YYYYMMDD != null and PARAM_ORD_STR_YYYYMMDD != ""'>
+           AND  A.REQ_DATE  BETWEEN #{PARAM_ORD_STR_YYYYMMDD} AND #{PARAM_ORD_STR_YYYYMMDD}
+           </if> 
+           <if test='PARAM_ORD_STATE != null and PARAM_ORD_STATE != ""'>
+           AND  A.ORD_STATE = #{PARAM_ORD_STATE}
+           </if> 
+         ORDER BY  A.REQ_DATE DESC, A.RESV_DATE DESC		 
+    </select>
+    
+    <insert id="InsertPurOrdGoodsTemp" parameterType="java.util.Map">
+        /* InsertPurOrdGoodsTemp  [OrderParmSearch.xml 팜 발주서집계]  */
+        INSERT INTO T_PUR_ORD_GOODS_TEMP
+               ( ORD_DATE,  GOODS_CD,   BCD_CD,    DIMEN_UNIT_QTY,  UNIT_CD,  
+                 BOX_QTY,   ORD_QTY,    STATUS_CD, CPROGRM,         CUSER,      CDATE
+               )
+        SELECT  #{PARAM_ORD_DATE }
+               , B.GOODS_CD, B.BCD_CD, B.DIMEN_UNIT_QTY, B.UNIT_CD
+               , SUM(B.BOX_QTY)  BOX_QTY
+               , SUM(B.ORD_QTY)  ORD_QTY
+               , '1' STATUS_CD              /* 1:집계,  2:발주 */ 
+               , #{PARAM_PROGRM}
+               , #{REG_ID}
+               , GETDATE()
+         FROM   T_PUR_ORD A
+                JOIN T_PUR_ORD_GOODS B ON A.ORGN_DIV_CD = B.ORGN_DIV_CD 
+                                      AND A.ORGN_CD    =  B.ORGN_CD  
+                                      AND A.ORD_NO     =  B.ORD_NO
+        WHERE   A.ORGN_DIV_CD  LIKE 'C%'  /* 직영점 조직 */
+          AND   A.ORD_TYPE  = '2' 
+          AND   A.ORD_STATE IN ( '3','4')
+          AND   CONVERT(char(8), a.ORD_DATE,112) = #{PARAM_ORD_DATE}
+          AND   A.SUPR_CD  = 
+                (
+                   SELECT ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+                     FROM COM_CMMN_CODE_DETAIL
+                    WHERE CMMN_CD='ORGN_CD'
+                      AND DIV1 = 'PM'
+                )
+         GROUP BY B.GOODS_CD, B.BCD_CD, B.DIMEN_UNIT_QTY, B.UNIT_CD
+    </insert>
+    
+    <select id="getPurTempCount" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getPurTempCount [OrderParmSearch.xml 팜센터에서 당일집계한 Data가 존재하는지확인 */
+        SELECT  COUNT(GOODS_CD) ORD_CNT
+         FROM   T_PUR_ORD_GOODS_TEMP
+        WHERE   ORD_DATE = #{PARAM_ORD_DATE }
+    </select>
+    
+    <delete id="DeletePurOrdGoodsTemp"  parameterType="java.util.Map">
+        /* DeletePurOrdGoodsTemp [OrderParmSearch.xml 팜센터에서 당일집계건 삭제처리 */
+        DELETE  T_PUR_ORD_GOODS_TEMP
+        WHERE   ORD_DATE  = #{PARAM_ORD_DATE }
+    </delete>
+
+    <update id="UpdatePurOrdGoodsTemp" parameterType="java.util.Map">
+        /* UpdatePurOrdGoodsTemp */
+        UPDATE  T_PUR_ORD_GOODS_TEMP
+        SET     STATUS_CD  = '2'          /* 1:집계, 2:발주 */ 
+         WHERE  ORD_DATE   =  #{PARAM_ORD_DATE }
+           AND BCD_CD      =  #{PARAM_BCD_CD}
+    </update>
+            
+    <select id="getParmPurCount" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getParmPurCount [OrderParmSearch.xml 팜센터에서 외부공급사로의 당일발주확인] */
+        SELECT   COUNT(ORD_NO) proces_cnt
+         FROM    T_PUR_ORD
+        WHERE    ORGN_DIV_CD  = 'A06'  /* 팜조직 */
+          AND    ORD_TYPE     = '1'    /* 외부공급사로 발주 */
+          AND    CONVERT(char(8), ORD_DATE,112) = #{PARAM_ORD_DATE }
+    </select>
+
+    <select id="UpdatePurOrdState" resultType="java.util.Map" parameterType="java.util.Map">
+        /* UpdatePurordState [OrderParmSearch.xml 발주마스터 상태 Update] */
+        UPDATE   T_PUR_ORD SET
+                 ORD_STATE  =  #{PARAM_ORD_STATE} 
+               , MPROGRM    =  #{PARAM_PROGRM}
+               , MUSER      =  #{REG_ID}
+               , MDATE      =  GETDATE()
+         WHERE   ORD_DATE   =  #{PARAM_ORD_DATE }
+           AND   BCD_CD     =  #{PARAM_BCD_CD}
+    </select>
+
+</mapper>

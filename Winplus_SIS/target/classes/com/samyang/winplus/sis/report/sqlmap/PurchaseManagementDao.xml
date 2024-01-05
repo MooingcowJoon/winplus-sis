@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.report.dao.PurchaseManagementDao">
+	<select id="getDebtByCustmrList" resultType="java.util.Map" parameterType="java.util.Map">
+		
+	</select>
+	
+	<select id="getPurchaseStatusHeaderSearch" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getPurchaseStatusHeaderSearch */
+		SELECT 
+			PM.ORGN_DIV_CD
+			,PM.ORGN_CD
+			,CONVERT(NVARCHAR(10),CONVERT(DATETIME2,PM.PUR_DATE,120)) AS DATE
+			,CASE
+				WHEN COUNT(PD.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD)),' 외 ',(COUNT(PD.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD))
+				END AS TOT_GOODS_NM
+			,TOT_PUR_TAXA_AMT
+			,TOT_PUR_FREE_AMT
+			,TOT_PAY_SUM_AMT
+		FROM 
+			(SELECT
+				ORGN_DIV_CD
+				,ORGN_CD
+				,PUR_DATE
+				--,PAY_SUM_AMT
+				,SUM(PUR_TAXA_AMT) AS TOT_PUR_TAXA_AMT
+				,SUM(PUR_FREE_AMT) AS TOT_PUR_FREE_AMT
+				,SUM(PAY_SUM_AMT) AS TOT_PAY_SUM_AMT
+			FROM T_PUR_MAST
+			WHERE 1=1
+				AND PUR_DATE BETWEEN #{searchDateFrom} AND #{searchDateTo}
+				AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			<if test='ORGN_CD != ""'>
+				AND ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test='PUR_TYPE != ""'>
+				AND PUR_TYPE = #{PUR_TYPE}
+			</if>
+			GROUP BY ORGN_DIV_CD,ORGN_CD,PUR_DATE
+		)  PM
+		INNER JOIN 
+			(SELECT
+				A.ORGN_DIV_CD
+				,A.ORGN_CD
+				,A.BCD_CD
+				,B.PUR_DATE
+			FROM T_PUR_DETL A
+			INNER JOIN T_PUR_MAST B
+				ON A.ORGN_DIV_CD = B.ORGN_DIV_CD
+					AND B.ORGN_CD = A.ORGN_CD
+					AND A.PUR_SLIP_CD = B.PUR_SLIP_CD
+			WHERE 1=1
+				AND B.PUR_DATE BETWEEN #{searchDateFrom} AND #{searchDateTo}
+				AND B.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			<if test='ORGN_CD != ""'>
+				AND B.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test='PUR_TYPE != ""'>
+				AND B.PUR_TYPE = #{PUR_TYPE}
+			</if>
+		) PD
+		ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD
+			AND PM.ORGN_CD = PD.ORGN_CD
+			AND PM.PUR_DATE = PD.PUR_DATE
+		GROUP BY
+			PM.ORGN_DIV_CD
+			,PM.ORGN_CD
+			,PM.PUR_DATE
+			,TOT_PUR_TAXA_AMT
+			,TOT_PUR_FREE_AMT
+			,TOT_PAY_SUM_AMT
+		ORDER BY DATE DESC
+	</select>
+	
+	<select id="getPurchaseStatusDetailSearch" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getPurchaseStatusDetailSearch */
+		SELECT
+			T2.BCD_NM
+			,T2.PUR_PRICE
+			,T2.PUR_QTY
+			,T2.PAY_SUM_AMT
+			,(T2.PAY_SUM_AMT) AS FIX_AMT
+			,T1.SUPR_CD
+			,T1.CUSTMR_NM
+		FROM (
+				SELECT
+					PM.*
+					,SMC.CUSTMR_NM
+				FROM T_PUR_MAST PM
+				INNER JOIN T_STD_MAST_CUSTMR SMC
+					ON PM.SUPR_CD = SMC.CUSTMR_CD
+			) T1
+		INNER JOIN
+			(
+				SELECT 
+					PD.*
+					,SMB.BCD_NM
+				FROM T_PUR_DETL PD
+				INNER JOIN T_STD_MAST_BCD SMB
+					ON PD.BCD_CD = SMB.BCD_CD
+			) T2
+		ON T1.ORGN_DIV_CD = T2.ORGN_DIV_CD
+			AND T1.ORGN_CD = T2.ORGN_CD
+			AND T1.PUR_SLIP_CD = T2.PUR_SLIP_CD
+		WHERE 1=1
+			AND T1.ORGN_CD = #{ORGN_CD}
+			AND T1.PUR_DATE = #{PUR_DATE}
+	</select>
+	
+	<select id ="getPurchaseAmtAdjustment" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPurchaseAmtAdjustment */
+		SELECT
+			PM.ORGN_DIV_CD
+			,PM.ORGN_CD
+			,(SUBSTRING(PM.PUR_DATE,1,4) + '-' + SUBSTRING(PM.PUR_DATE,5,2) + '-' + SUBSTRING(PM.PUR_DATE,7,2)) AS DATE
+			,CASE
+		WHEN COUNT(PD.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD)),' 외 ',(COUNT(PD.BCD_CD)-1),'건')
+			ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD))
+			END AS TOT_GOODS_NM
+			,SUM(PD.PAY_SUM_AMT) AS TOT_AMT
+			,SUM(PD.CONF_AMT) AS CONF_AMT
+			,TC.CUSTMR_NM
+			,PM.PUR_SLIP_CD
+		FROM T_PUR_MAST PM
+		INNER JOIN T_PUR_DETL PD
+			ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD
+			AND PM.ORGN_CD = PD.ORGN_CD
+			AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+		LEFT OUTER JOIN T_STD_MAST_CUSTMR AS TC
+			ON PM.SUPR_CD = TC.CUSTMR_CD
+		WHERE PM.ORGN_CD = #{orgnCd}
+			AND PM.PUR_DATE BETWEEN #{searchDateFrom} AND #{searchDateTo}
+			<if test = 'CUSTMR_CD != null and CUSTMR_CD != ""'>
+			AND TC.CUSTMR_CD = #{CUSTMR_CD}
+			</if>
+			<if test = 'SLIP_TYPE != null and SLIP_TYPE != ""'>
+			AND PM.PUR_TYPE = #{SLIP_TYPE}
+			</if>
+		GROUP BY PM.ORGN_DIV_CD,PM.ORGN_CD,PM.PUR_DATE,TC.CUSTMR_NM,PM.PUR_SLIP_CD, PM.PAY_SUM_AMT
+		ORDER BY DATE
+	</select>
+	
+	<select id ="getPurchaseAmtDetailAdjustment" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPurchaseAmtDetailAdjustment */
+			SELECT TB.BCD_NM 
+					,TPD.BCD_CD
+					,TPD.PUR_PRICE
+					,TPD.PUR_QTY
+					,(TPD.PAY_SUM_AMT) AS PAY_SUM_AMT
+					,TPD.CONF_AMT AS CONF_AMT_DETL
+					,TB.DIMEN_NM
+					,TPD.PUR_SLIP_CD
+					,TPD.ORGN_CD
+					,TPD.ORGN_DIV_CD
+					,TM.PUR_TYPE
+			FROM T_PUR_DETL AS TPD
+			INNER JOIN T_STD_MAST_BCD AS TB
+			ON TB.BCD_CD = TPD.BCD_CD
+			INNER JOIN T_PUR_MAST AS TM
+			ON TPD.PUR_SLIP_CD = TM.PUR_SLIP_CD
+			AND TPD.ORGN_CD = TM.ORGN_CD
+			AND TPD.ORGN_DIV_CD = TM.ORGN_DIV_CD
+			WHERE TPD.ORGN_CD = #{ORGN_CD}
+			AND TPD.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND TPD.PUR_SLIP_CD = #{PUR_SLIP_CD}
+	</select>
+	
+	<update id="savePurchaseAmtAdjustment" parameterType="java.util.Map">
+		/* savePurchaseAmtAdjustment */
+		UPDATE T_PUR_DETL
+		SET CONF_AMT = #{CONF_AMT_DETL}
+			, MPROGRM = #{MPROGM}
+			, MUSER = #{MUSER}
+			, MDATE = NOW()
+		WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND BCD_CD = #{BCD_CD}
+	</update>
+	
+	<update id="updatePurchaseAmtAdjustment" parameterType="java.util.Map">
+		/* updatePurchaseAmtAdjustment */
+		DECLARE @CONF_AMT DECIMAL(19,6)
+		
+		SET @CONF_AMT = (SELECT SUM(CONF_AMT) AS CONF_AMT
+						FROM T_PUR_DETL
+						WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND ORGN_DIV_CD = #{ORGN_DIV_CD})
+		
+		UPDATE T_PUR_MAST
+		SET CONF_AMT = @CONF_AMT
+			, MPROGRM = #{MPROGM}
+			, MUSER = #{MUSER}
+			, MDATE = NOW()
+		WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+	</update>
+	
+	<select id="getpurchaseByCompanyHeaderList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getpurchaseByCompanyHeaderList */
+		SELECT 
+			ROW_NUMBER() OVER (ORDER BY SMC.CUSTMR_CD)	AS SEQ_NO					--AS 순번
+			, TPM.ORGN_DIV_CD							AS ORGN_DIV_CD				--AS 법입구분
+			, CDD.CMMN_DETAIL_CD_NM						AS ORGN_DIV_NM				--AS 법입구분
+			, TPM.ORGN_CD								AS ORGN_CD					--AS 조직명
+			, CD.CMMN_DETAIL_CD_NM						AS ORGN_NM					--AS 조직명
+			, SMC.CUSTMR_CD								AS CUSTMR_CD				--AS 업체명
+			, SMC.CUSTMR_NM								AS CUSTMR_NM				--AS 업체명
+			, SMC.CORP_NO								AS CORP_NO					--AS 사업자번호
+			, SUM(PUR_TAXA_AMT)							AS PUR_TAXA_AMT				--AS 과세구매금액
+			, SUM(PUR_FREE_AMT)							AS PUR_FREE_AMT				--AS 면세구매금액
+			, SUM(PAY_SUM_AMT)							AS PAY_SUM_AMT				--AS 구매합계
+			, MIN(TPM.CONF_TYPE)						AS CONF_TYPE				--AS 확정여부
+			, SUM(IFNULL(CONF_AMT, 0))					AS CONF_AMT					--AS 확정금액
+			, MIN(IFNULL(SEND_TYPE, 'N'))				AS SEND_TYPE				--AS ERP전송여부
+			, MIN(IFNULL(CCT.CONF_TYPE, 'N'))			AS SUPR_CONF_TYPE			--AS 협력사여부
+			, SUM(IFNULL(CLSE_TOT_AMT, 0))				AS CLSE_TOT_AMT				--AS 협력사확정금액
+			, SMC.PAY_STD
+			, SMC.PAY_DATE_TYPE
+		FROM (
+			SELECT
+				ORGN_DIV_CD
+				, ORGN_CD
+				, SUPR_CD
+				, PUR_DATE
+				, PUR_SLIP_CD
+				, SUM(PUR_TAXA_AMT)			AS PUR_TAXA_AMT
+				, SUM(PUR_FREE_AMT)			AS PUR_FREE_AMT
+				, SUM(PAY_SUM_AMT)			AS PAY_SUM_AMT
+				, SUM(CONF_AMT)				AS CONF_AMT
+				, CONF_TYPE, SEND_TYPE, USE_YN
+			FROM T_PUR_MAST
+			GROUP BY ORGN_DIV_CD,ORGN_CD, SUPR_CD, PUR_DATE, PUR_SLIP_CD, CONF_TYPE, SEND_TYPE, USE_YN
+			HAVING USE_YN = 'Y'
+			<if test='ORGN_DIV_CD != ""'>
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='ORGN_CD != ""'>
+			AND ORGN_CD = #{ORGN_CD}
+			</if>
+			AND CONVERT(NVARCHAR(10),CONVERT(DATETIME2,PUR_DATE)) BETWEEN #{DATE_FR} AND #{DATE_TO}		-- 조회기준 일자
+		) TPM
+		INNER JOIN (
+			SELECT * FROM T_STD_MAST_CUSTMR
+			WHERE 1=1
+			<if test='CUSTMR_CD != ""'>
+			AND CUSTMR_CD = #{CUSTMR_CD}																-- 조회기준 거래처코드
+			</if>
+			<if test='PAY_STD != ""'>
+			AND PAY_STD = #{PAY_STD}																	-- 조회기준 정산유형
+			</if>
+			<if test='PAY_DATE_TYPE != ""'>
+			AND PAY_DATE_TYPE = #{PAY_DATE_TYPE}														-- 조회기준 정산지급일
+			</if>
+		) SMC			ON SUPR_CD = SMC.CUSTMR_CD
+		INNER JOIN (
+			SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'ORGN_CD'
+		) CD											ON TPM.ORGN_CD = CD.CMMN_DETAIL_CD
+		INNER JOIN (
+			SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'ORGN_DIV_CD'
+		) CDD											ON TPM.ORGN_DIV_CD = CDD.CMMN_DETAIL_CD
+		LEFT OUTER JOIN (
+				SELECT 
+					ORGN_CD
+					,CLSE_SLIP_CD
+					,CUSTMR_CD
+					,CLSE_DATE
+					,SUM(CLSE_TOT_AMT) AS CLSE_TOT_AMT
+					,CONF_TYPE
+				FROM T_CLSE_CUSTMR_TMP
+				GROUP BY ORGN_CD, CLSE_SLIP_CD, CUSTMR_CD, CLSE_DATE, CONF_TYPE
+		) CCT
+				ON TPM.ORGN_CD = CCT.ORGN_CD 
+					AND TPM.SUPR_CD = CCT.CUSTMR_CD
+					AND TPM.PUR_SLIP_CD = CCT.CLSE_SLIP_CD
+					AND TPM.PUR_DATE = CLSE_DATE
+		GROUP BY TPM.ORGN_DIV_CD, CDD.CMMN_DETAIL_CD_NM, TPM.ORGN_CD, CD.CMMN_DETAIL_CD_NM, SMC.CUSTMR_CD, SMC.CUSTMR_NM, SMC.CORP_NO
+		, SMC.PAY_STD
+		, SMC.PAY_DATE_TYPE
+	</select>
+	<select id="getpurchaseByCompanyDetailList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getpurchaseByCompanyDetailList */
+		SELECT
+			CONCAT(CONVERT(NVARCHAR(10),CONVERT(DATETIME2,TPM.PUR_DATE)),'  ','확정여부: ',TPM.CONF_TYPE,' / ERP전송여부: ',IFNULL(TPM.SEND_TYPE, 'N'),' / 협력사확정여부: ',IFNULL(CCT.CONF_TYPE, 'N'))	AS GROUPBYKEY
+			, CONVERT(NVARCHAR(10),CONVERT(DATETIME2,TPM.PUR_DATE)) AS PUR_DATE		--구매일자
+			, TPM.ORGN_DIV_CD
+			, CDD.CMMN_DETAIL_CD_NM		ORGN_DIV_NM
+			, TPM.ORGN_CD
+			, CD.CMMN_DETAIL_CD_NM		ORGN_NM
+			, SMC.CUSTMR_CD
+			, SMC.CUSTMR_NM
+			, TPD.BCD_NM															--상품명
+			, TPD.GOODS_TAX_YN														--과세여부
+			, CASE
+				WHEN TPD.GOODS_TAX_YN = 'Y' THEN TPD.PAY_SUM_AMT
+				ELSE 0
+				END PUR_TAXA_AMT													--과세구매금액
+			, CASE
+				WHEN TPD.GOODS_TAX_YN = 'Y' THEN 0
+				ELSE TPD.PAY_SUM_AMT
+				END PUR_FREE_AMT													--면세구매금액
+			, TPD.PAY_SUM_AMT														--구매합계
+			, IFNULL(TPD.CONF_AMT, 0)					AS CONF_AMT					--확정금액
+			, IFNULL(CCT.CLSE_TOT_AMT,0)				AS CLSE_TOT_AMT				--협력사 확정금액
+			, IFNULL(TPM.CONF_TYPE, 'N')				AS CONF_TYPE				--AS 확정여부
+			, IFNULL(TPM.SEND_TYPE, 'N')				AS SEND_TYPE				--AS ERP전송여부
+			, IFNULL(CCT.CONF_TYPE, 'N')				AS SUPR_CONF_TYPE			--AS 협력사여부
+		FROM (
+				SELECT
+					ORGN_DIV_CD
+					, ORGN_CD
+					, SUPR_CD
+					, PUR_DATE
+					, PUR_SLIP_CD
+					, CONF_TYPE, SEND_TYPE, USE_YN
+				FROM T_PUR_MAST
+				GROUP BY ORGN_DIV_CD, ORGN_CD, SUPR_CD, PUR_DATE, PUR_SLIP_CD, CONF_TYPE, SEND_TYPE, USE_YN
+				HAVING USE_YN = 'Y'
+				AND ORGN_CD = #{ORGN_CD}
+				AND CONVERT(NVARCHAR(10),CONVERT(DATETIME2,PUR_DATE)) BETWEEN #{DATE_FR} AND #{DATE_TO}
+			) TPM
+		INNER JOIN (
+				SELECT * FROM T_STD_MAST_CUSTMR
+				WHERE 1=1
+				AND CUSTMR_CD = #{CUSTMR_CD}
+			) SMC
+		ON TPM.SUPR_CD = SMC.CUSTMR_CD
+		INNER JOIN (
+				SELECT
+					PD.ORGN_DIV_CD
+					, PD.ORGN_CD
+					, PD.PUR_SLIP_CD
+					, PD.PUR_SLIP_SEQ
+					, PD.GOODS_TAX_YN
+					, PD.PAY_SUM_AMT
+					, PD.CONF_AMT
+					, SMB.BCD_NM
+				FROM T_PUR_DETL PD
+				INNER JOIN T_STD_MAST_BCD SMB
+					ON PD.BCD_CD = SMB.BCD_CD
+			) TPD
+		ON TPM.ORGN_DIV_CD = TPD.ORGN_DIV_CD
+			AND TPM.ORGN_CD = TPD.ORGN_CD
+			AND TPM.PUR_SLIP_CD = TPD.PUR_SLIP_CD
+		LEFT OUTER JOIN T_CLSE_CUSTMR_TMP CCT
+		ON TPD.ORGN_CD = CCT.ORGN_CD AND TPD.PUR_SLIP_CD = CCT.CLSE_SLIP_CD AND CCT.CLSE_SLIP_SEQ = TPD.PUR_SLIP_SEQ
+		INNER JOIN (
+			SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'ORGN_CD'
+		) CD											ON TPM.ORGN_CD = CD.CMMN_DETAIL_CD
+		INNER JOIN (
+			SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'ORGN_DIV_CD'
+		) CDD											ON TPM.ORGN_DIV_CD = CDD.CMMN_DETAIL_CD
+		WHERE 1=1
+		ORDER BY TPM.PUR_DATE DESC
+	</select>
+</mapper>

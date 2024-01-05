@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.pos.dao.PosVersionManagementDao">
+	<select id="getPosVersionList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPosVersionList */
+		SELECT 
+			VER_SEQ
+			,CONVERT(NVARCHAR(10),CONVERT(DATETIME2,VER_DATE)) AS VER_DATE
+			,VER_NM
+			,ORG_FILE_NM
+			,FILE_NM
+			,FILE_SIZE
+			,DELETE_FG
+		FROM WINPLUS_IF_POS.dbo.MVERSNTB
+		WHERE 1=1 
+		<if test='DateFrom != ""'>
+			<if test='DateTo != ""'>
+				AND CONVERT(NVARCHAR(10),CONVERT(DATETIME2,VER_DATE)) BETWEEN #{DateFrom} AND #{DateTo}
+			</if>
+		</if>
+		<if test='SEARCH_NM != ""'>
+			AND VER_NM LIKE CONCAT('%',#{SEARCH_NM},'%')
+		</if>
+	</select>
+	
+	<select id="getVersionFileIndex" resultType="java.util.Map">
+		/* getVersionFileIndex */
+		DECLARE @VER_SEQ NVARCHAR(8)
+		
+		IF EXISTS(
+			SELECT ROW_NUMBER() OVER (ORDER BY CREATE_DTIME ASC) AS ROW_NUM 
+			FROM WINPLUS_IF_POS.dbo.MVERSNTB
+		)
+		
+		BEGIN
+			SET @VER_SEQ = (SELECT 1+MAX(VER_SEQ) AS ROW_NUM FROM WINPLUS_IF_POS.dbo.MVERSNTB)
+			SET @VER_SEQ = REPLICATE(0, 2-LEN(@VER_SEQ)) + (@VER_SEQ)
+		END
+		ELSE
+			BEGIN
+				SET @VER_SEQ = REPLICATE(0, 2-LEN('1')) + '1'
+			END
+			
+		SELECT @VER_SEQ AS FILE_IDX
+	</select>
+	
+	<insert id="savePosVersionFile" parameterType="java.util.Map">
+		/* savePosVersionFile */
+		DECLARE @VER_SEQ NVARCHAR(8)
+			, @VER_NM NVARCHAR(80)
+
+		IF EXISTS(
+			SELECT ROW_NUMBER() OVER (ORDER BY CREATE_DTIME ASC) AS ROW_NUM 
+			FROM WINPLUS_IF_POS.dbo.MVERSNTB
+		)
+		
+		BEGIN
+			SET @VER_SEQ = (SELECT 1+MAX(VER_SEQ) AS ROW_NUM FROM WINPLUS_IF_POS.dbo.MVERSNTB)
+			SET @VER_SEQ = REPLICATE(0, 8-LEN(@VER_SEQ)) + (@VER_SEQ)
+		END
+		ELSE
+			BEGIN
+				SET @VER_SEQ = REPLICATE(0, 8-LEN('1')) + '1'
+			END
+
+		SET @VER_NM = #{Save_Ver_File_Name} + '_' + @VER_SEQ
+	
+		INSERT INTO WINPLUS_IF_POS.dbo.MVERSNTB (
+			VER_SEQ
+			, VER_DATE
+			, VER_NM
+			, ORG_FILE_NM
+			, FILE_NM
+			, FILE_SIZE
+			, DELETE_FG
+			, CREATE_DTIME
+			, CREATE_ID
+			, LAST_DTIME
+			, LAST_ID
+		) VALUES (
+			@VER_SEQ
+			, CONVERT(VARCHAR(8), GETDATE(), 112) 
+			, @VER_NM
+			, #{FILE_NM}+RIGHT(@VER_SEQ, 2)+'.zip'
+			, #{FILE_NM}+RIGHT(@VER_SEQ, 2)
+			, ${FILE_SIZE}
+			, '1'
+			, CONVERT(NVARCHAR(8), GETDATE(), 112)
+			, #{EMP_NO}
+			, CONVERT(NVARCHAR(8), GETDATE(), 112)
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<select id="getVersionByMarketList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getVersionByMarketList */
+			SELECT
+				A.ORGN_DIV_CD
+				, A.ORGN_CD
+				, REPLICATE('0', 2-LEN(CONVERT(NVARCHAR(2),A.TRML_NO))) + CONVERT(NVARCHAR(2),A.TRML_NO) AS TRML_NO
+				, CONVERT(NVARCHAR(10),CONVERT(DATETIME2,B.LAST_DTIME)) AS LAST_DTIME
+			FROM T_STD_TRML A
+			LEFT OUTER JOIN (
+				SELECT * 
+				FROM (
+					SELECT POS_NO, LAST_DTIME, MS_NO
+						,ROW_NUMBER() OVER(PARTITION BY (MS_NO+POS_NO) ORDER BY LAST_DTIME DESC) as RowIdx
+					FROM WINPLUS_IF_POS.dbo.MVERSMTB
+					<if test='ORGN_CD != ""'>
+					WHERE MS_NO = #{ORGN_CD}
+					</if>
+					GROUP BY POS_NO, LAST_DTIME, MS_NO
+				) A
+				WHERE RowIdx = '1'
+			) B ON A.TRML_NO = B.POS_NO AND A.ORGN_CD = B.MS_NO
+			WHERE A.TRML_TYPE = '1' AND A.USE_YN = 'Y'
+			<if test='ORGN_CD != ""'>
+				AND A.ORGN_CD = #{ORGN_CD}
+			</if>
+	</select>
+	
+	<select id="getPosVersionConfirmList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPosVersionConfirmList */
+		SELECT 
+				SEQ
+				,VER_SEQ
+				,MS_NO
+				,POS_NO
+				,VER_ID
+				,FILE_NM
+				,CONFIRM_FG
+				,FILE_SZ
+				,RowIdx
+				,VER_SEQ + '_' + MS_NO + '_' + POS_NO + '_' + VER_ID AS UNIQUE_KEY
+		FROM 
+			(
+				SELECT 
+					SEQ
+					,VER_SEQ
+					,MS_NO
+					,POS_NO
+					,VER_ID
+					,FILE_NM
+					,CONFIRM_FG
+					,FILE_SZ
+					,ROW_NUMBER() OVER(PARTITION BY (MS_NO+POS_NO) ORDER BY SEQ DESC) as RowIdx
+				FROM WINPLUS_IF_POS.dbo.MVERSMTB
+				WHERE 1=1
+					AND CONFIRM_FG = '1'
+			UNION
+				SELECT 
+					SEQ
+					,VER_SEQ
+					,MS_NO
+					,POS_NO
+					,VER_ID
+					,FILE_NM
+					,CONFIRM_FG
+					,FILE_SZ
+					,'1'
+				FROM WINPLUS_IF_POS.dbo.MVERSMTB
+				WHERE 1=1
+						 AND CONFIRM_FG = '0'
+			) TT
+		WHERE 1=1 AND RowIdx = '1'
+		<if test='MS_NO != ""'>
+			AND MS_NO = #{MS_NO}
+		</if>
+		ORDER BY SEQ DESC
+	</select>
+	
+	<insert id="ConfirmPosVersion" parameterType="java.util.Map">
+		/* ConfirmPosVersion */
+		DECLARE @SEQ NVARCHAR(8)
+			, @NEW_SEQ NVARCHAR(8)
+			
+		SET @SEQ = #{SEQ}
+		
+		IF EXISTS(
+			SELECT ROW_NUMBER() OVER (ORDER BY CREATE_DTIME ASC) AS ROW_NUM 
+			FROM WINPLUS_IF_POS.dbo.MVERSMTB
+		)
+
+			BEGIN
+				SET @NEW_SEQ = (SELECT 1+MAX(SEQ) AS ROW_NUM FROM WINPLUS_IF_POS.dbo.MVERSMTB)
+				SET @NEW_SEQ = REPLICATE(0, 8-LEN(@NEW_SEQ)) + (@NEW_SEQ)
+			END
+
+		ELSE
+			BEGIN
+				SET @NEW_SEQ = REPLICATE(0, 8-LEN('1')) + ('1')
+			END
+			
+		IF @SEQ = ''
+			BEGIN
+				INSERT INTO WINPLUS_IF_POS.dbo.MVERSMTB (
+					SEQ, VER_SEQ, MS_NO, POS_NO, FILE_NM, FILE_SZ, VER_ID, CONFIRM_FG, CREATE_DTIME, CREATE_ID, LAST_DTIME, LAST_ID
+				) VALUES (
+					@NEW_SEQ, #{VER_SEQ}, #{MS_NO}, REPLICATE(0, 2-LEN(#{POS_NO})) + (#{POS_NO}), #{FILE_NM}, #{FILE_SZ}, #{VER_ID}, '1', CONVERT(NVARCHAR(8), GETDATE(), 112), #{EMP_NO},CONVERT(NVARCHAR(8), GETDATE(), 112), #{EMP_NO}
+				)
+			END
+		ELSE
+			BEGIN
+				IF #{CONFIRM_FG} = '0'
+					BEGIN
+						UPDATE WINPLUS_IF_POS.dbo.MVERSMTB
+						SET CONFIRM_FG = '1'
+							, LAST_DTIME = CONVERT(NVARCHAR(8), GETDATE(), 112)
+							, LAST_ID = #{EMP_NO}
+						WHERE SEQ = @SEQ AND MS_NO = #{MS_NO} AND POS_NO = #{POS_NO}
+					END
+			END
+			
+	</insert>
+	
+	<insert id="VersionUploadSave" parameterType="java.util.Map">
+		/* VersionUploadSave */
+		DECLARE @NEW_SEQ NVARCHAR(8)
+		
+		IF EXISTS(
+			SELECT ROW_NUMBER() OVER (ORDER BY CREATE_DTIME ASC) AS ROW_NUM 
+			FROM WINPLUS_IF_POS.dbo.MVERSMTB
+		)
+
+			BEGIN
+				SET @NEW_SEQ = (SELECT 1+MAX(SEQ) AS ROW_NUM FROM WINPLUS_IF_POS.dbo.MVERSMTB)
+				SET @NEW_SEQ = REPLICATE(0, 8-LEN(@NEW_SEQ)) + (@NEW_SEQ)
+			END
+
+		ELSE
+			BEGIN
+				SET @NEW_SEQ = REPLICATE(0, 8-LEN('1')) + ('1')
+			END
+		
+		IF #{CRUD} = 'C'
+			BEGIN
+				INSERT INTO WINPLUS_IF_POS.dbo.MVERSMTB (
+					SEQ, VER_SEQ, MS_NO, POS_NO, FILE_NM, FILE_SZ, VER_ID, CONFIRM_FG, CREATE_DTIME, CREATE_ID, LAST_DTIME, LAST_ID
+				) VALUES (
+					@NEW_SEQ, #{VER_SEQ}, #{MS_NO}, REPLICATE(0, 2-LEN(#{POS_NO})) + (#{POS_NO}), #{FILE_NM}, #{FILE_SZ}, #{VER_ID}, #{CONFIRM_FG}, CONVERT(NVARCHAR(8), GETDATE(), 112), #{EMP_NO},CONVERT(NVARCHAR(8), GETDATE(), 112), #{EMP_NO}
+				)
+			END
+		
+		IF #{CRUD} = 'U'
+			BEGIN
+				UPDATE WINPLUS_IF_POS.dbo.MVERSMTB
+				SET CONFIRM_FG = #{CONFIRM_FG}
+					, LAST_DTIME = CONVERT(NVARCHAR(8), GETDATE(), 112)
+					, LAST_ID = #{EMP_NO}
+				WHERE SEQ = #{SEQ} AND MS_NO = #{MS_NO} AND POS_NO = #{POS_NO}
+			END
+			
+		IF #{CRUD} = 'D'
+			BEGIN
+				DELETE FROM WINPLUS_IF_POS.dbo.MVERSMTB
+				WHERE SEQ = #{SEQ} AND MS_NO = #{MS_NO} AND POS_NO = #{POS_NO}
+			END
+	</insert>
+	
+	<update id="saveVersionFileState" parameterType="java.util.Map">
+		/* saveVersionFileState */
+		<choose>
+			<when test='STATE == "delete"'>
+				DELETE FROM WINPLUS_IF_POS.dbo.MVERSNTB
+				WHERE VER_SEQ = #{VER_SEQ}
+					AND FILE_NM = #{FILE_NM}
+					AND VER_NM = #{VER_NM} 
+			</when>	
+			<otherwise>
+				UPDATE WINPLUS_IF_POS.dbo.MVERSNTB
+				SET DELETE_FG = '0'
+				WHERE VER_SEQ = #{VER_SEQ}
+					AND FILE_NM = #{FILE_NM}
+					AND VER_NM = #{VER_NM}
+			</otherwise>	
+		</choose>	
+	</update>
+	
+	<select id="VersionUploadDelete" parameterType="java.util.Map">
+		/* VersionUploadDelete */
+		DELETE FROM WINPLUS_IF_POS.dbo.MVERSMTB
+		WHERE SEQ IN (SELECT VALUE FROM [STRING_SPLIT](#{SEQ_STRING}, ','))
+	</select>
+</mapper>

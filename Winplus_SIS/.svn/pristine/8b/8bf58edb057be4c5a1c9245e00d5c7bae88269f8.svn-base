@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="cacheEnabled" value="false" />
+		<setting name="jdbcTypeForNull" value="NULL" />
+		<setting name="callSettersOnNulls" value="true" />
+	</settings>
+	<typeAliases>
+		<typeAlias
+			type="com.samyang.winplus.common.system.model.LoginDto"
+			alias="LoginDto" />
+		<typeAlias
+			type="com.samyang.winplus.common.system.model.EmpSessionDto"
+			alias="EmpSessionDto" />
+		<typeAlias
+			type="com.samyang.winplus.common.system.model.MenuDto"
+			alias="MenuDto" />
+		<typeAlias
+			type="com.samyang.winplus.common.system.model.ScreenDto"
+			alias="ScreenDto" />
+		<typeAlias
+			type="com.samyang.winplus.common.employee.model.EmpDto"
+			alias="EmpDto" />
+		<typeAlias
+			type="com.samyang.winplus.common.system.model.ConvertMap"
+			alias="CMap" />
+	</typeAliases>
+</configuration>

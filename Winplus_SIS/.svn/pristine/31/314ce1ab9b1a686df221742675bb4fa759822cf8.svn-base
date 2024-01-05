@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.order.dao.OrderInputParmGridPopupDao">
+    <select id="getParmOrderGoodsPriceList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getParmOrderGoodsPriceList [orderInputParmGridPopup.xml 팜에서 직영점발주 집계건의 외부공급사로 발주시 상품,최저가(or전체공급사) 가져오기] */
+        SELECT  OBJ.GOODS_NO       /* 상품코드     */
+              , OBJ.BCD_CD         /* 자바코드     */
+              , OBJ.BCD_M_CD       /* 모바코드     */
+              , OBJ.BCD_NM         /* 상품이름     */
+              , OBJ.DIMEN_NM       /* 규격         */
+              , OBJ.UNIT_CD        /* 단위코드     */
+              , OBJ.DIMEN_QTY      /* 규격수량     */
+              , OBJ.DIMEN_WGT      /* 단위중량     */
+              , OBJ.DSCD_TYPE      /* 반품가능여부 */
+              , OBJ.PUR_PRICE      /* 센터판매가   */
+              , OBJ.BOX_QTY        /* BOX수량      */
+              , OBJ.ORD_QTY        /* 수량         */
+              , OBJ.CUSTMR_CD      /* 협력사코드   */
+              , OBJ.CUSTMR_NM      /* 협력사명     */
+         FROM (
+                SELECT  BB.GOODS_NO      /* 상품코드     */
+                      , BB.BCD_CD        /* 자바코드     */
+                      , BB.BCD_M_CD      /* 모바코드     */
+                      , BB.BCD_NM        /* 상품이름     */
+                      , BB.DIMEN_NM      /* 규격         */
+                      , BB.UNIT_CD       /* 단위코드     */
+                      , BB.DIMEN_QTY     /* 규격수량     */
+                      , BB.DIMEN_WGT     /* 단위중량     */
+                      , AA.PUR_DSCD_TYPE DSCD_TYPE    /* 반품가능여부 */
+                      , CC.PUR_PRICE     /* 공급사구매가 */
+                      , CC.BOX_QTY       /* BOX수량      */
+                      , CC.ORD_QTY       /* 수량         */
+                      , DD.CUSTMR_CD     /* 협력사코드   */
+                      , DD.CUSTMR_NM     /* 협력사명     */
+                FROM   T_STD_MAST_GOODS    AA
+                       JOIN T_STD_MAST_BCD BB  ON AA.GOODS_NO = BB.GOODS_NO AND BB.USE_YN = 'Y'
+                       JOIN (
+                              SELECT  BCD_CD,  PUR_PRICE, CUSTMR_CD, BOX_QTY, ORD_QTY
+                                FROM  ( 
+                                       SELECT   ROW_NUMBER() OVER (PARTITION BY BCD_CD  ORDER BY BCD_CD,PUR_PRICE ) AS ROWNUM,
+                                                BCD_CD,  PUR_PRICE, CUSTMR_CD, BOX_QTY, ORD_QTY
+                                         FROM (
+                                                SELECT  B.BCD_CD , C.PUR_PRICE ,  C.CUSTMR_CD,  A.BOX_QTY,  A.ORD_QTY
+                                                  FROM  T_PUR_ORD_GOODS_TEMP      A
+                                                        JOIN T_STD_MAST_BCD       B ON B.GOODS_NO =  A.GOODS_CD  AND B.USE_YN = 'Y' AND B.BCD_CD  = A.BCD_CD
+                                                        JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD   =  B.BCD_CD    AND C.GOODS_NO = B.GOODS_NO
+                                                        JOIN T_STD_MAST_CUSTMR    D ON D.CUSTMR_CD = C.CUSTMR_CD 
+                                                 WHERE  1 =  1
+                                                   AND  C.PUR_PRICE IS  NOT NULL
+                                                   AND  A.ORD_DATE  =   #{PARAM_ORD_DATE}
+                                                   AND  A.STATUS_CD =   '1'
+                                                   <if test='PARAM_CUST_CD != null and PARAM_CUST_CD != ""'>
+                                                   AND  C.CUSTMR_CD =   #{PARAM_CUST_CD}
+                                                   </if> 
+                                                   <if test='PARAM_BCD_NM != null and PARAM_BCD_NM != ""'>
+                                                   AND  B.BCD_NM    LIKE #{PARAM_BCD_NM}
+                                                   </if> 
+                                              ) B
+                                     ) C
+                                  <if test='PARAM_ROWNUM == 1 '>
+                                  WHERE  C.ROWNUM  = 1
+                                  </if> 
+                                  <if test='PARAM_ROWNUM != 1 '>
+                                  WHERE  C.ROWNUM  != 0
+                                  </if> 
+                             ) CC ON CC.BCD_CD  = BB.BCD_CD
+                       LEFT OUTER JOIN T_STD_MAST_CUSTMR DD ON DD.CUSTMR_CD = CC.CUSTMR_CD
+                WHERE  1 =  1
+                  AND  BB.USE_YN   = 'Y'
+               ) OBJ
+        ORDER  BY  OBJ.BCD_NM,  OBJ.CUSTMR_CD
+    </select>
+
+    <select id="getParmOrderGoodsMatrixList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getParmOrderGoodsMatrixList [orderInputParmGridPopup.xml 직영점별 상품단위 팜발주요청조회 ] */
+        SELECT   A.IN_WARE_CD                      /* 입고창고코드   */
+                ,F.CMMN_DETAIL_CD_NM  IN_WARE_NM   /* 입고창고명     */
+                ,A.RETN_YN                         /* 반품여부       */ 
+                ,X.GOODS_CD                        /* 상품코드       */
+                ,C.BCD_CD                          /* 자바코드       */
+                ,C.BCD_NM                          /* 상품이름       */
+                ,C.DIMEN_NM                        /* 규격           */
+                ,X.ORD_QTY                         /* 발주수량       */
+                ,X.BOX_QTY                         /* BOX수량        */
+                ,X.PUR_PRICE                       /* 매입단가       */
+                ,X.SUPR_AMT                        /* 공급가액       */
+                ,X.VAT                             /* 부가세         */
+                ,X.SUM_AMT                         /* 합계금액       */
+         FROM   T_PUR_ORD A
+                JOIN T_PUR_ORD_GOODS X ON A.ORGN_DIV_CD = X.ORGN_DIV_CD AND A.ORGN_CD = X.ORGN_CD  AND A.ORD_NO = X.ORD_NO
+                JOIN T_STD_MAST_BCD  C ON C.GOODS_NO    = X.GOODS_CD    AND C.BCD_CD  = X.BCD_CD
+                LEFT OUTER JOIN T_STD_MAST_GOODS     B ON  B.GOODS_NO  = C.GOODS_NO
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'ORGN_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+         WHERE  1 = 1
+           AND  A.ORGN_DIV_CD LIKE 'C%'  
+           AND  A.ORD_TYPE    = '2'      /* 1:발주, 2:주문 */
+           AND  CONVERT(CHAR(8), A.ORD_DATE,112) =  #{PARAM_ORD_DATE}
+           AND   A.SUPR_CD  = 
+                 (
+                    SELECT ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+                     FROM COM_CMMN_CODE_DETAIL
+                    WHERE CMMN_CD='ORGN_CD'
+                      AND DIV1 = 'PM'
+                 )
+           AND  C.BCD_CD = #{PARAM_BCD_CD}
+         ORDER  BY A.IN_WARE_CD  
+    </select>
+
+</mapper>

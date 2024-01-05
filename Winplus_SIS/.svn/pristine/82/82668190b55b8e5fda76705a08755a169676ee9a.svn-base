@@ -1,0 +1,9 @@
+servername:
+  name: local
+
+#SIS
+datasource:
+  driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  url: jdbc:sqlserver://192.168.210.9:7411;databaseName=WINPLUS_SIS;SelectMethod=cursor;responseBuffering=adaptive;sendStringParametersAsUnicode=false;applicationName=winplus;
+  username: sis_samyang
+  password: 'Sis_rhksflwk2)!('

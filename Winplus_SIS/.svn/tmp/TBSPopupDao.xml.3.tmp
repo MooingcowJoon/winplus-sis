@@ -1,0 +1,1541 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.popup.dao.PopupDao">
+
+	<!--
+
+	<select id="searchMtrlPopup" resultType="java.util.Map" parameterType="java.util.Map"></select>
+	<insert id="insertFileMetaData" parameterType="java.util.Map"></insert>
+	<update id="updateExpenditureDecision" parameterType="java.util.Map"></update>
+	<delete id="deleteExpenditureDecision" parameterType="java.util.Map"></delete>
+	
+	-->
+    <select id="getSearchCustomerCdPopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchCustomerCdPopupList (POPUPDAO) */
+		SELECT CUSTOMER_CODE,
+		       CUSTOMER_NAME,
+		       CUSTOMER_ADDRESS1,
+		       MEMBER_NAME,
+		       DBO.ECL_DECRYPT(CUSTOMER_ADDRESS2) AS CUSTOMER_ADDRESS2,
+			   DBO.ECL_DECRYPT(CUSTOMER_THP) AS 'CUSTOMER_THP',
+			   DBO.ECL_DECRYPT(CUSTOMER_TCP) AS 'CUSTOMER_TCP',
+			   CUSTOMER_WAREA,
+			   CUSTOMER_POST
+		FROM CUSTOMER_INF A(NOLOCK)
+		     INNER JOIN MEMBER_INF B(NOLOCK) ON A.CUSTOMER_MCODE = B.MEMBER_CODE
+		WHERE 1=1
+		<if test='searchCustomerCd != null and searchCustomerCd != "" '> 
+		AND CUSTOMER_CODE =  #{searchCustomerCd} 
+		</if>
+		<if test='searchCustomerNm != null and searchCustomerNm != "" '> 
+		AND CUSTOMER_NAME   like CONCAT('%',#{searchCustomerNm},'%')  
+		</if>
+	</select>
+	
+	<select id="getSearchCustomerTypePopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchCustomerTypePopupList (POPUPDAO) */
+		SELECT
+			CONVERT(CHAR(20), A.Customer_Name) AS 'CUSTOMER_NAME'
+			,CONVERT(CHAR(10), A.Customer_Code) AS 'CUSTOMER_CODE'
+			,MEMBER_CHK
+			,CONVERT(CHAR(300), A.CUSTOMER_ADDRESS1) AS 'CUSTOMER_ADDRESS1'
+			,CONVERT(CHAR(30), B.MEMBER_NAME+'['
+				+ ISNULL(C.MEMBER_TNAME, ISNULL(OI.ORGN_NM,''))
+				+ ']') AS 'MEMBER_NAME'
+			,ISNULL(dbo.ECL_DECRYPT(CUSTOMER_THP), '') AS 'CUSTOMER_THP'
+			,CUSTOMER_WAREA    
+		FROM CUSTOMER_INF A(NOLOCK)
+		INNER JOIN MEMBER_INF B(NOLOCK) 
+			ON A.CUSTOMER_MCODE = B.MEMBER_CODE
+		LEFT JOIN MEMBER_TEAM C(NOLOCK) 
+			ON B.MEMBER_TEAM = C.MEMBER_TCODE
+		LEFT JOIN COM_EMP_INFO EI(NOLOCK) 
+			ON B.MEMBER_CODE = EI.MEMBER_CD
+		LEFT JOIN COM_ORGN_INFO OI(NOLOCK) 
+			ON EI.DEPT_CD = OI.ORGN_CD
+		<if test='searchType =="10" '>
+		INNER JOIN ORDER_DETAIL OD(NOLOCK) 
+			ON OD.Order_DCCode = A.Customer_Code
+		</if>
+		WHERE 1=1
+		<if test='searchType =="01" '> 
+			AND CUSTOMER_CODE =  #{searchText} 
+		</if>
+		<if test='searchType =="02" '> 
+			AND(CUSTOMER_THP = dbo.ECL_ENCRYPT(#{searchText})
+		    OR CUSTOMER_TCP = dbo.ECL_ENCRYPT(#{searchText})
+		    OR CUSTOMER_TEHP = dbo.ECL_ENCRYPT(#{searchText}))
+		</if>
+		<if test='searchType =="03" '> 
+	   		AND CUSTOMER_NAME  LIKE CONCAT(#{searchText},'%')
+		</if>
+		<if test='searchType =="04" '> 
+			AND CUSTOMER_JUMIN1 = dbo.ECL_ENCRYPT(#{searchText})
+		</if>
+		<if test='searchType =="05" '>
+			AND CUSTOMER_ADDRESS1 LIKE CONCAT('%',#{searchText},'%')  
+		</if>
+		<if test='searchType =="06" '> 
+			AND  CUSTOMER_ID = dbo.ECL_ENCRYPT(#{searchText})
+		</if>
+		<if test='searchType =="07" '>
+			AND CUSTOMER_INTRODUCTION = #{searchText}
+		</if>
+		<if test='searchType =="08" '> 
+			AND CUSTOMER_BIRTHDAY = #{searchText}
+		</if>
+		<if test='searchType =="09" '> 
+			AND  CUSTOMER_IN LIKE CONCAT(#{searchText},'%')
+		</if>
+		<if test='searchType =="10" '> 
+			AND  OD.Order_DCIdx = #{searchText}
+		</if>
+		<if test='departmentKbn == "" or departmentKbn == NULL '>
+			AND 1=1
+		</if>
+		<if test='departmentKbn == "Y"'>
+			AND 1=1
+		</if>
+		<if test='ROUTE_DIV != null and ROUTE_DIV != ""'>
+			AND A.ROUTE_DIV = #{ROUTE_DIV}
+		</if>
+	</select>
+	
+	 <select id="getSearchMemberCdPopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchMemberCdPopupList (POPUPDAO) */
+		SELECT 
+			A.MEMBER_CODE
+			, A.MEMBER_NAME
+			, A.MEMBER_TNAME
+			, A.MCHK
+			, A.BUSINESS_NAME
+			, A.MEMBER_CODE + ' ' + A.MEMBER_NAME + '(' + MCHK + ') [' + A.MEMBER_TNAME + ']' AS FULLCDNMBUSI
+		FROM (
+			SELECT  A.MEMBER_CODE,
+			        A.MEMBER_NAME,
+	                B.MEMBER_TNAME,
+	                CASE WHEN A.MEMBER_CHK = 1 THEN 'ON' ELSE 'OFF' END AS 'MCHK',
+	                C.BUSINESS_NAME
+			FROM VIEW_MEMBER_INF A(NOLOCK)
+			     INNER JOIN VIEW_MEMBER_TEAM B(NOLOCK) ON A.MEMBER_TEAM = B.MEMBER_TCODE
+			     INNER JOIN BUSINESS_INF C(NOLOCK) ON DBO.FN_GET_MEMBER_AREA(A.Member_Code) = C.BUSINESS_CODE
+			WHERE 1=1
+			    AND MEMBER_INOUT = 0
+				<if test='searchMemberNm != null and searchMemberNm != "" '> 
+				AND MEMBER_NAME   like CONCAT('%',#{searchMemberNm},'%')  
+				</if>
+				<if test='searchMemberCd != null and searchMemberCd != "" '> 
+				AND MEMBER_CODE   like CONCAT('%',#{searchMemberCd},'%')  
+				</if>
+				<if test='memberTeamCd != null and memberTeamCd != "" '> 
+				AND A.MEMBER_TEAM = #{memberTeamCd}
+				</if>
+				<!-- <if test='cmbSaleChDiv != null and cmbSaleChDiv != "" '> 
+				AND A.SALES_CH_DIV_CD = #{cmbSaleChDiv}
+				</if> -->
+				<if test='cmbBusinessInfCd != null and cmbBusinessInfCd != "" '> 
+				AND A.MEMBER_WAREA = #{cmbBusinessInfCd}
+				</if>
+		) A
+		ORDER BY A.MEMBER_NAME
+	</select>
+	
+	 <select id="getSearchBusinessCdPopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchBusinessCdPopupList (POPUPDAO) */
+		SELECT RECEIPT_CODE
+		      ,RECEIPT_NAME
+		      ,RECEIPT_ADMIN
+		FROM RECEIPT_INF WITH (NOLOCK)
+		WHERE 1=1
+		<if test='searchBusinessCd != null and searchBusinessCd != "" '> 
+		    AND RECEIPT_CODE = #{searchBusinessCd}
+		</if>     
+		<if test='searchBusinessNm != null and searchBusinessNm != "" '>      
+            AND  RECEIPT_NAME LIKE CONCAT('%',#{searchBusinessNm},'%') 
+		</if>
+	</select>
+
+    <select id="getOpenCustGridList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenCustGridList (POPUPDAO) */
+		SELECT 
+			ORDER_DCIDX			/* 주문번호 */
+			,ORDER_DT			/* 주문일자 */
+			,Member_Name + (
+				CASE 
+					WHEN DBO.FN_GET_CMMN_CD_NM('ORDER_DGUBUN',Order_DGubun) = '' THEN '' 
+					ELSE '('+DBO.FN_GET_CMMN_CD_NM('ORDER_DGUBUN',Order_DGubun)+')'
+				END
+			) AS MEMBER_NM		/* 주문담당자 */
+			,ISNULL(ORDER_STAT,'') AS ORDER_STAT	/* 주문상태 */
+			,dbo.FN_GET_CMMN_CD_NM('ORDER_KIND', 
+				ISNULL(A.ORDER_KIND, 
+					CASE 
+						WHEN Order_DReturn = 1 THEN 'OK002'
+						ELSE 'OK001'
+					END
+				)
+			) AS ORDER_KIND_NM	/* 주문종류 */
+			,ORDER_DESC			/* 주문내역 */
+			,ORDER_MEMO			/* 주문메모 */
+			,ORDER_DSPRICE		/* 결제금액 */
+			,ORDER_DRPRICE		/* 미수금 */
+			,ORDER_USE_RESERVE	/* 사용적립금 */
+			,ORDER_IN_RESERVE	/* 주문적립금 */
+			,CASE 
+				WHEN COUPON_PRICE = 0 THEN Order_DCoupon + Order_DECoupon 
+				ELSE COUPON_PRICE 
+			END AS COUPON_PRICE	/* 쿠폰사용금액 */
+			,ORDER_PAYMENT		/* 결제방법 */
+			,ORDER_COMPLETE		/* 미수금 상계처리 여부 */
+			,ORDER_DJSANCTION	/* 운영팀 승인 여부 */
+			,ORDER_MEDIUM		/* 매체 */
+			,ORDER_COUPON_NM	/* 사용쿠폰명 */
+		FROM (
+			SELECT
+				DBO.FN_GET_ORDER_STAT(Order_DCIdx) AS ORDER_STAT,
+				Order_DReturn,
+				ISNULL(OA.COUPON_NM,ISNULL(Order_DNum,'')) AS ORDER_COUPON_NM,
+				A.Order_DDate AS ORDER_DT,
+				ISNULL(Order_DGubun, 0) AS Order_DGubun,
+				D.Member_Name,
+				A.Order_Description AS ORDER_DESC,
+				Order_DMemo AS ORDER_MEMO,
+				ISNULL(Order_DSPrice, 0) AS ORDER_DSPRICE,	
+				CASE
+					WHEN ISNULL(A.Order_DComplete, 0) = 1 THEN 0 --상계
+					WHEN A.ORDER_KIND = 'OK002' AND A.Order_DCha <![CDATA[ <> ]]> 0 THEN 0
+					-- WHEN A.ORDER_KIND IS NULL AND A.Order_DReturn = 1 THEN 0
+					ELSE (
+						(ISNULL(A.Order_DSPrice, 0) + ISNULL(A.Order_DDPrice, 0) - ISNULL(A.EXCHANGE_POINT, 0)) -
+						ISNULL((
+							SELECT SUM(ISNULL(ACCOUNT_IOIPRICE, 0) - ISNULL(ACCOUNT_IOOPRICE, 0))
+							FROM ACCOUNT_INOUT_INF (NOLOCK) 
+							WHERE ACCOUNT_IOCODE = A.ORDER_DCIDX
+							GROUP BY ACCOUNT_IOCODE), 0
+						)
+					)
+				END AS ORDER_DRPRICE,
+				ISNULL(Order_DUseReserve, 0) AS ORDER_USE_RESERVE,
+				ISNULL(Order_DCoupon, 0) AS 'Order_DCoupon',
+				ISNULL(Order_DECoupon, 0) AS 'Order_DECoupon',
+				Order_DSanctionETC AS ORDER_PAYMENT,
+				Order_DComplete AS ORDER_COMPLETE,
+				Order_DJSanction AS ORDER_DJSANCTION,
+				ISNULL(Order_DInReserve, 0) AS ORDER_IN_RESERVE,
+				Medium_Name AS ORDER_MEDIUM,
+				Order_DCIdx AS ORDER_DCIDX
+				, ORDER_KIND ORDER_KIND
+				, ISNULL(COUPON_PRICE,0) AS COUPON_PRICE
+			FROM VIEW_ORDER_DETAIL A(NOLOCK)
+			LEFT JOIN MEDIUM_INF C(NOLOCK) 
+				ON A.Order_DMedium = C.Medium_Code
+			LEFT JOIN VIEW_MEMBER_INF D(NOLOCK) 
+				ON A.Order_DMCode = D.Member_Code
+			LEFT JOIN (
+				SELECT 
+					OCODE
+					, STUFF((
+						SELECT 
+							' / ' + COUPON_NM
+						FROM ORDER_APPLY_COUPON(NOLOCK)
+						WHERE OCODE = a.OCODE
+						ORDER BY COUPON_APPLY_IDX ASC
+						FOR XML PATH('')
+					), 1, 3, '') AS COUPON_NM
+				FROM ORDER_APPLY_COUPON (NOLOCK) a
+				GROUP BY OCODE
+			) OA
+				ON A.Order_DCIdx = OA.OCODE
+			LEFT JOIN (
+				SELECT
+					Order_CIdx
+					, SUM(ISNULL(DC_ORDER_COUPON_AMT,0)+ISNULL(DC_PRDT_COUPON_AMT,0)) AS COUPON_PRICE
+				FROM ORDER_COMMON (NOLOCK)
+				GROUP BY Order_CIdx
+			) OC
+				ON A.Order_DCIdx = OC.Order_CIdx
+			WHERE A.Order_DCCode = #{CUST_CODE}
+		
+			UNION ALL
+					
+			SELECT 
+				DBO.FN_GET_ORDER_STAT(Customer_SOCode) AS ORDER_STAT,
+				0 AS 'Order_DReturn',
+				'' AS ORDER_COUPON_NM,
+				Customer_SDate AS ORDER_DT,
+				9 AS 'Order_DGubun',
+				C.Member_Name,
+				(
+					SELECT STUFF((
+						SELECT 
+							','+OCode
+						FROM (
+							SELECT 
+								Customer_SOCode,
+								Article_OCode+'('+CONVERT(VARCHAR(10), SUM(Customer_SaQa))+')' AS 'OCode'
+							FROM CUSTOMER_SAMPLE_INF A(NOLOCK)
+							INNER JOIN ARTICLE_INF B(NOLOCK) 
+								ON A.Customer_SACode = B.Article_Code
+							WHERE A.Customer_SCCode = #{CUST_CODE}
+								AND A.Customer_SOCode = A1.Customer_SOCode
+							GROUP BY Customer_SOCode,Article_OCode
+						) TA0 FOR XML PATH('')
+					), 1, 1, '') AS ORDER_DESC
+				) AS ORDER_DESC,
+				ISNULL(Customer_SMemo, '') AS ORDER_MEMO,
+				0 AS ORDER_DSPRICE,
+				0 AS ORDER_DRPRICE,
+				0 AS ORDER_USE_RESERVE,
+				0 AS 'Order_DCoupon',
+				0 AS 'Order_DECoupon',
+				'샘플' AS ORDER_PAYMENT,
+				Customer_SCHK AS ORDER_COMPLETE,
+				Customer_SCHK AS ORDER_DJSANCTION,
+				0 AS ORDER_IN_RESERVE,
+				'샘플' AS ORDER_MEDIUM,
+				Customer_SOCode AS ORDER_DCIDX,
+				'OK011' ORDER_KIND, 
+				0 AS COUPON_PRICE
+			FROM CUSTOMER_SAMPLE_INF A1(NOLOCK)
+			INNER JOIN ARTICLE_INF B1(NOLOCK) 
+				ON A1.Customer_SACode = B1.Article_Code
+			INNER JOIN VIEW_MEMBER_INF C(NOLOCK) 
+				ON A1.Customer_SMCode = C.Member_Code
+			INNER JOIN CUSTOMER_INF D(NOLOCK) 
+				ON A1.Customer_SCCode = D.Customer_Code
+			WHERE A1.Customer_SCCode = #{CUST_CODE}
+			GROUP BY Customer_SDate,
+					    Customer_SOCode,
+					    Member_Name,
+					    Customer_SMemo,
+					    Customer_SCHK,
+					    Customer_SDDate,
+					    Customer_SRDate,
+					    Customer_SDNum,
+					    Customer_SDKind
+		) A          
+		ORDER BY A.ORDER_DT DESC, A.ORDER_DCIDX DESC
+	</select>	
+
+    <select id="getOpenCustListCardList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenCustListCardList (POPUPDAO) */
+		<![CDATA[
+		SELECT * FROM SANCTION_INF WHERE SANCTION_CODE1 ='0' AND SANCTION_WAREA='CH01'  ORDER BY SANCTION_CODE2 
+		]]>
+	</select>	
+
+    <select id="getOpenCustContent" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenCustContent (POPUPDAO) */
+		<![CDATA[
+		SELECT ISNULL(CUSTOMER_AGREE, 0) AS 'CUSTOMER_AGREE',
+		       ISNULL(CUSTOMER_AAPER, '') AS 'AAPER',
+		       ISNULL(CUSTOMER_APER, '') AS 'APER',
+		       ISNULL(CUSTOMER_ANAME, '') AS 'ANAME',
+		       ISNULL(CUSTOMER_BIRTHDAY, '') AS 'BIRTHDAY',
+		       DBO.ECL_DECRYPT(CUSTOMER_ID) AS 'CUSTOMER_ID',
+		       CUSTOMER_BIRTHDAY,
+		       CUSTOMER_ANAME,
+		       CUSTOMER_AAPER,
+		       CUSTOMER_APER,
+		       CUSTOMER_IDX,
+		       CUSTOMER_CODE,
+		       CUSTOMER_NAME,
+		       CUSTOMER_POST,
+		       CUSTOMER_ADDRESS1,
+		       DBO.ECL_DECRYPT(CUSTOMER_ADDRESS2) AS 'CUSTOMER_ADDRESS2',
+		       DBO.ECL_DECRYPT(CUSTOMER_JUMIN1) AS 'CUSTOMER_JUMIN1',
+		       DBO.ECL_DECRYPT(CUSTOMER_JUMIN2) AS 'CUSTOMER_JUMIN2',
+		       CUSTOMER_INDATE,
+		       ISNULL(CUSTOMER_OUTDATE, '') AS 'CUSTOMER_OUTDATE',
+		       CONVERT(CHAR(10), CUSTOMER_INTRODUCTION) AS 'CUSTOMER_INTRO',
+		       DBO.ECL_DECRYPT(CUSTOMER_EMAIL) AS 'CUSTOMER_EMAIL',
+		       CUSTOMER_MAILCHK,
+		       CUSTOMER_EMAILCHK,
+		       CUSTOMER_SMSCHK,
+		       CUSTOMER_MEMO,
+		       CUSTOMER_AMEMO,
+		       CUSTOMER_HOPE,
+		       CUSTOMER_GUBUN,
+		       CUSTOMER_MCODE,
+		       CUSTOMER_WAREA,
+		       DBO.ECL_DECRYPT(CUSTOMER_THP) AS 'CUSTOMER_THP',
+		       CUSTOMER_CHKHP,
+		       DBO.ECL_DECRYPT(CUSTOMER_TCP) AS 'CUSTOMER_TCP',
+		       CUSTOMER_CHKCP,
+		       DBO.ECL_DECRYPT(CUSTOMER_TEHP) AS 'CUSTOMER_TEHP',
+		       CUSTOMER_CHKEHP,
+		       CUSTOMER_MEDIUM,
+		       CUSTOMER_SEX,
+		       CUSTOMER_PART,
+		       CUSTOMER_IN,
+		       CUSTOMER_ATTENTION,
+		       ISNULL(
+				(
+				    SELECT CUSTOMER_NAME
+				    FROM CUSTOMER_INF
+				    WHERE CUSTOMER_CODE = A.CUSTOMER_INTRODUCTION
+				), '') AS 'CUSTOMER_INAME',
+		       ISNULL(CUSTOMER_THPT, '') AS 'CUSTOMER_THPT',
+		       ISNULL(CUSTOMER_TCPT, '') AS 'CUSTOMER_TCPT',
+		       ISNULL(CUSTOMER_TEHPT, '') AS 'CUSTOMER_TEHPT',
+		       CUSTOMER_AB,
+		       CUSTOMER_FAV,
+		       CUSTOMER_FAVMEMO,
+		       CUSTOMER_LASTCALL,
+		       CUSTOMER_LASTORDER,
+		       CUSTOMER_LASTOMONEY,
+		       CUSTOMER_OCOUNT,
+		       --MEMBER_CODE + ' ' + MEMBER_NAME AS MEMBER_NAME,
+		       MEMBER_CODE + ' ' + MEMBER_NAME + '(' + CASE WHEN B.MEMBER_CHK = 1 THEN 'ON' ELSE 'OFF' END + ') [' + MEMBER_TNAME + ']' AS MEMBER_NAME,
+		       MEMBER_TNAME,
+		       MEMBER_WAREA,
+		       MEMBER_CODE,
+		       BUSINESS_NAME,
+		       MEMBER_TEAM,
+		       BUSINESS_GROUP,
+		       (CASE
+		            WHEN B.MEMBER_CHK = 1
+		            THEN 'ON'
+		            ELSE 'OFF'
+		        END) AS 'MCHK',
+		       ISNULL(
+				(
+				    SELECT CUSTOMER_NAME
+				    FROM CUSTOMER_INF WITH (NOLOCK)
+				    WHERE CUSTOMER_CODE = A.CUSTOMER_INTRODUCTION
+				), '') AS 'INAME',
+		       ISNULL(
+				(
+				    SELECT SUM(CONVERT(MONEY, ORESERVE_MONEY)) AS 'ORESERVE_MONEY'
+				    FROM ORDER_RESERVE WITH (NOLOCK)
+				    WHERE ORESERVE_CCODE = A.CUSTOMER_CODE
+				          AND ORESERVE_IN = 1
+				), 0) AS 'ORESERVE_MONEY',
+		       ISNULL(CUSTOMER_THPT, '') AS 'CUSTOMER_THPT',
+		       ISNULL(CUSTOMER_TCPT, '') AS 'CUSTOMER_TCPT',
+		       ISNULL(CUSTOMER_TEHPT, '') AS 'CUSTOMER_TEHPT',
+		       CUSTOMER_ACODE AS CUST_ATTE
+		FROM CUSTOMER_INF A(NOLOCK)
+		     INNER JOIN VIEW_MEMBER_INF B(NOLOCK) ON A.CUSTOMER_MCODE = B.MEMBER_CODE
+		     INNER JOIN BUSINESS_INF C ON DBO.FN_GET_MEMBER_AREA(B.Member_Code) = C.BUSINESS_CODE
+		     INNER JOIN CUSTOMER_ATTENTION D(NOLOCK) ON A.CUSTOMER_ATTENTION = D.CUSTOMER_ACODE
+		     INNER JOIN VIEW_MEMBER_TEAM E(NOLOCK) ON B.MEMBER_TEAM = E.MEMBER_TCODE
+		WHERE CUSTOMER_CODE = #{CUST_CODE}  
+		]]>
+	</select>	
+
+	<select id="updateOpenCustListPopupContentCUD" statementType="CALLABLE" resultType="Integer">
+		/* updateOpenCustListPopupContentCUD (POPUPDAO) */
+    	DECLARE @RETURN_VALUE INT
+    	SET @RETURN_VALUE = #{CUST_CODE}
+        EXEC PE_C_UPDATE_SUB  #{MEMBER_CODE}, #{CUST_ATTE}, #{MEMBER_CD}, @RETURN_VALUE OUTPUT
+        SELECT @RETURN_VALUE
+    </select>	
+    
+	<select id="updateopenCustListPopupContentOffSet" statementType="CALLABLE" resultType="Integer">
+		/* updateopenCustListPopupContentOffSet */
+    	DECLARE @RETURN_VALUE INT
+    	SET @RETURN_VALUE = 0
+		EXEC PE_CLIST
+		 #{Order_DCIdx}
+		 ,0
+		 , #{Order_DComPlete}
+		 ,''
+		 ,''
+		 ,''
+		 ,''
+		 , @RETURN_VALUE OUTPUT
+		 
+    	SELECT @RETURN_VALUE
+    </select>	    
+
+    <select id="getOpenSearchSaveMoneyPromotionNamePopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchSaveMoneyPromotionNamePopupList (POPUPDAO) */
+		SELECT
+			ISNULL(ORESERVE_MEMO,'') AS ORESERVE_MEMO
+		FROM ORDER_RESERVE   WITH (NOLOCK)
+		WHERE ORESERVE_CIDX IS  NULL  
+		<if test='SEARCH_NM != null and SEARCH_NM != "" '> 
+			AND ISNULL(ORESERVE_MEMO,'') LIKE CONCAT('%',#{SEARCH_NM},'%')		
+		</if>
+		GROUP BY  ORESERVE_MEMO
+		ORDER BY ORESERVE_MEMO ASC
+	</select>	
+	
+   <select id="getOpenSearchCampainPopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchCampainPopupList (POPUPDAO) */
+		SELECT 
+			CAMPAIGN_CODE
+			,CAMPAIGN_NAME
+		FROM CAMPAIGN_INF
+		WHERE 1=1
+		<if test='SEARCH_NM != null and SEARCH_NM != "" '> 
+			AND ISNULL(CAMPAIGN_NAME,'') LIKE CONCAT('%',#{SEARCH_NM},'%')		
+		</if>
+		
+		<if test='SEARCH_DT != null and SEARCH_DT != "" '> 
+			AND CAMPAIGN_DATE = #{SEARCH_DT}		
+		</if>		
+		ORDER BY CAMPAIGN_IDX
+	</select>	
+	
+   <select id="getOpenSearchBuyPurposePopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchBuyPurposePopupList (POPUPDAO) */
+		SELECT 
+			DIS_CODE
+			,DIS_NAME
+		FROM DISEASE_INF WITH (NOLOCK)
+		<if test='SEARCH_NM != null and SEARCH_NM != "" '> 
+			WHERE ISNULL(DIS_NAME,'') LIKE CONCAT('%',#{SEARCH_NM},'%')
+		</if>
+		ORDER BY DIS_NAME
+	</select>	
+	
+   <select id="getOpenSearchDeliveryList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchDeliveryList (POPUPDAO) */
+		SELECT 
+			ISNULL(CUSTOMER_OUTDATE, '') AS 'CUSTOMER_OUTDATE',
+			ORDER_DDATE,
+			ORDER_FLAG,
+			ORDER_DUSE,
+			ISNULL(ORDER_DNAME, '이름미설정') AS 'ORDER_DNAME',
+			ISNULL(DBO.ECL_DECRYPT(ORDER_DHP), '') AS 'ORDER_DHP',
+			ISNULL(DBO.ECL_DECRYPT(ORDER_DCP), '') AS 'ORDER_DCP',
+			ISNULL(ORDER_DADDRESS1, '') AS 'ORDER_DADDRESS1',
+			ISNULL(DBO.ECL_DECRYPT(ORDER_DADDRESS2), '') AS 'ORDER_DADDRESS2',
+			ORDER_DIDX,
+			ORDER_DPOST,
+			ORDER_DCCODE,
+			'선택' AS 'BUTTON_PROCESS'
+		FROM ORDER_DELIVERY A(NOLOCK)
+		INNER JOIN CUSTOMER_INF B(NOLOCK) ON A.ORDER_DCCODE = B.CUSTOMER_CODE
+		WHERE ORDER_DCCODE = #{CUSTOMER_CODE}
+			AND ORDER_DUSE = 1
+		ORDER BY ORDER_FLAG, ORDER_DIDX 
+	</select>	
+	
+	<update id="updateOpenSearchDeliveryCUD" parameterType="java.util.Map">
+		/* updateOpenSearchDeliveryCUD (POPUPDAO) */
+        UPDATE ORDER_DELIVERY SET 
+        	Order_Dname = #{PAYEENAME}
+        	,Order_DHp = DBO.ECL_ENCRYPT(#{CUSTOMER_THP})
+        	,Order_DCp = DBO.ECL_ENCRYPT(#{CUSTOMER_TCP})
+        	,Order_DPost = #{POST}
+        	,Order_DAddress1 = #{ADDR}
+        	,Order_DAddress2 = DBO.ECL_ENCRYPT(#{ADDRDETAIL})
+        WHERE Order_DIdx = #{ORDER_DIDX}
+        	AND Order_DUse = 1
+        
+        <if test='ORDER_FLAG == "0"'>
+        	UPDATE CUSTOMER_INF SET
+        		Customer_THp = DBO.ECL_ENCRYPT(#{CUSTOMER_THP})
+        		,Customer_TCp = DBO.ECL_ENCRYPT(#{CUSTOMER_TCP})
+        		,Customer_Post = #{POST}
+        		,Customer_Address1 = #{ADDR}
+        		,Customer_Address2 = DBO.ECL_ENCRYPT(#{ADDRDETAIL})
+        		,MOD_DT = GETDATE()
+        		,MOD_ID = #{MEMBER_CD}
+        	WHERE Customer_Code = #{ORDER_DCCODE}
+        </if>
+    </update>
+
+	<select id="insertOpenSearchDeliveryCUD" statementType="CALLABLE" resultType="Integer">
+		/* insertOpenSearchDeliveryCUD (POPUPDAO) */
+		DECLARE @RETURN_VALUE INT
+		DECLARE @TODATE VARCHAR(10)
+		SET @TODATE = CONVERT(VARCHAR(10), GETDATE(), 121)
+		EXEC PE_D_INSERT
+			#{ORDER_DCCODE}
+			,#{PAYEENAME}
+			,#{CUSTOMER_THP}
+			,#{CUSTOMER_TCP}
+			,#{POST}
+			,#{ADDR}
+			,#{ADDRDETAIL}
+			,#{WAREA_CD}
+			,@TODATE
+			,1
+			,'2'
+			,@RETURN_VALUE OUTPUT
+		SELECT @RETURN_VALUE
+    </select>
+        
+   <select id="getOpenSearchOrderCustomerList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchOrderCustomerList (POPUPDAO) */
+		<if test='DELIVERY_TYPE == "00"'>
+			SELECT DISTINCT
+				A.ORDER_CD AS ORDER_CODE				/* 주문번호 */
+				,A.ORDER_NAME AS RECEIVER_NAME			/* 수령자명 */
+				,A.ORDER_HP AS CUSTOMER_HP				/* 전화번호 */
+				,A.ORDER_ADDR AS CUSTOMER_ADDRESS		/* 기본주소 */
+				,A.ORDER_DESC							/* 주문내역 */
+				,B.Order_DDate AS ORDER_DDATE			/* 주문일자 */
+				,C.Customer_Name AS CUSTOMER_NAME		/* 주문자 */
+				,B.Order_DCCode AS CUSTOMER_CODE		/* 주문자 고객코드 */
+			FROM (
+				SELECT
+					B.Order_DCIdx AS ORDER_CD
+					,A.Order_Dname AS ORDER_NAME
+					,DBO.PI_DECRYPT(ISNULL(A.Order_DHp,'')) AS ORDER_HP
+					,A.Order_DAddress1 AS ORDER_ADDR
+					,ISNULL(B.Order_Description,'') AS ORDER_DESC
+				FROM ORDER_DELIVERY A(NOLOCK)
+				LEFT JOIN ORDER_DETAIL B(NOLOCK)
+					ON A.Order_Didx = B.Order_DSendAIdx
+				WHERE B.Order_DCIdx IS NOT NULL
+				<if test='SEARCHCD == "NAME"'>
+					AND Order_Dname LIKE CONCAT('%',#{TXTSEARCH},'%')
+				</if>
+				<if test='SEARCHCD == "PHONE"'>
+					AND A.Order_DHp = DBO.PI_ENCRYPT(REPLACE(#{TXTSEARCH},'-',''))
+				</if>
+		
+				UNION
+		
+				SELECT
+					A.OCODE AS ORDER_CD
+					,A.RECEIVER AS ORDER_NAME
+					,A.RECPHONE AS ORDER_HP
+					,A.ADDR AS ORDER_ADDR
+					,A.DELIV_DESC AS ORDER_DESC
+				FROM T_DELIVERY (NOLOCK) A
+				INNER JOIN ORDER_DETAIL (NOLOCK) B
+					ON A.OCODE = B.Order_DCIdx
+				WHERE B.ORDER_KIND <![CDATA[<>]]> 'OK003'
+				<if test='SEARCHCD == "NAME"'>
+					AND RECEIVER LIKE CONCAT('%',#{TXTSEARCH},'%')
+				</if>
+				<if test='SEARCHCD == "PHONE"'>
+					AND REPLACE(A.RECPHONE,'-','') = REPLACE(#{TXTSEARCH},'-','')
+				</if>
+			) A
+			INNER JOIN ORDER_DETAIL B(NOLOCK)
+				ON A.ORDER_CD = B.Order_DCIdx
+			INNER JOIN CUSTOMER_INF C(NOLOCK)
+				ON B.Order_DCCode = C.Customer_Code
+			ORDER BY ORDER_CD DESC
+		</if>
+		
+		<if test='DELIVERY_TYPE == "01"'>
+			<if test='SEARCHCD == "0"'>
+				SELECT 
+					A.OCODE AS ORDER_CODE
+					,B.Order_DDate AS ORDER_DDATE
+					,C.CUSTOMER_NAME AS CUSTOMER_NAME
+					,A.RECEIVER AS RECEIVER_NAME
+					,B.Order_Description AS ORDER_DESC
+					,DBO.ECL_DECRYPT(A.PHONE1) AS CUSTOMER_HP
+					,A.ADDR AS CUSTOMER_ADDRESS
+					,B.ORDER_DCCODE AS CUSTOMER_CODE
+				FROM T_INVOICE_H A(NOLOCK)
+				INNER JOIN ORDER_DETAIL B(NOLOCK) 
+					ON A.OCODE = B.Order_DCIdx
+				INNER JOIN CUSTOMER_INF C(NOLOCK) 
+					ON B.ORDER_DCCODE = C.CUSTOMER_CODE
+				WHERE INV_NO = #{TXTSEARCH}
+				ORDER BY A.ADDR, A.RECEIVER
+			</if>
+			<if test='SEARCHCD == "1"'>
+				SELECT 
+					B.ORDER_DCIDX AS ORDER_CODE
+					,B.Order_DDate AS ORDER_DDATE
+					,C.CUSTOMER_NAME AS CUSTOMER_NAME
+					,A.ORDER_DNAME AS RECEIVER_NAME
+					,B.Order_Description AS ORDER_DESC
+					,DBO.ECL_DECRYPT(A.Order_DHp) AS CUSTOMER_HP
+					,A.Order_DAddress1 AS CUSTOMER_ADDRESS
+					,B.ORDER_DCCODE AS CUSTOMER_CODE
+				FROM ORDER_DELIVERY A(NOLOCK)
+				INNER JOIN ORDER_DETAIL B(NOLOCK) 
+					ON A.ORDER_DIDX = B.ORDER_DSENDAIDX
+				INNER JOIN CUSTOMER_INF C(NOLOCK) 
+					ON B.ORDER_DCCODE = C.CUSTOMER_CODE
+				WHERE ORDER_DSENDNO = #{TXTSEARCH}
+					AND ORDER_KIND IS NULL
+				ORDER BY ORDER_DADDRESS1, ORDER_DNAME
+			</if>
+		</if>
+	</select>	    
+	
+	<select id="getOpenSearchOrderCustomerDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchOrderCustomerDetailList (POPUPDAO) */
+		SELECT 
+			B.ORDER_DDATE,
+			CONVERT(CHAR(10), A.CUSTOMER_CODE) AS 'CUSTOMER_CODE',
+			A.CUSTOMER_NAME,
+			ISNULL(DBO.ECL_DECRYPT(A.CUSTOMER_THP), '') AS 'CUSTOMER_HP',
+			ISNULL(DBO.ECL_DECRYPT(A.CUSTOMER_TCP), '') AS 'CUSTOMER_CP',
+			ISNULL(A.CUSTOMER_POST, '000-000') AS 'CUSTOMER_POST',
+			ISNULL(A.CUSTOMER_ADDRESS1, '') AS 'CUSTOMER_ADDRESS1',
+			ISNULL(DBO.ECL_DECRYPT(A.CUSTOMER_ADDRESS2), '') AS 'CUSTOMER_ADDRESS2',
+			ISNULL(A.CUSTOMER_ADDRESS1, '') + ' ' + ISNULL(DBO.ECL_DECRYPT(A.CUSTOMER_ADDRESS2), '') AS CUSTOMER_ADDRESS
+		FROM CUSTOMER_INF A(NOLOCK)
+		INNER JOIN ORDER_DETAIL B(NOLOCK) ON A.CUSTOMER_CODE = B.ORDER_DCCODE
+		WHERE ORDER_DSENDAIDX = #{CUSTOMER_CODE}
+		ORDER BY B.ORDER_DDATE DESC 
+	</select>
+
+	<update id="updateOrderDuse" parameterType="java.util.Map">
+		/* updateOrderDuse (POPUPDAO) */
+		UPDATE ORDER_DELIVERY SET ORDER_DUSE = #{ORDER_DUSE} WHERE ORDER_DIDX = #{ORDER_DIDX}
+	</update>	
+	
+	<select id="getOpenSearchDeliveryDupCheckList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchDeliveryDupCheckList (POPUPDAO) */
+		SELECT 
+			CONVERT(CHAR(10), ORDER_DCCODE) AS 'ORDER_DCCODE',
+		    CONVERT(CHAR(20), ORDER_DNAME) AS 'ORDER_DNAME',
+		    ORDER_DADDRESS1
+		FROM ORDER_DELIVERY WITH (NOLOCK)
+		WHERE 1=1
+		
+		<choose>
+			<when test='CUSTOMER_THP != null and CUSTOMER_THP != "" and CUSTOMER_TCP != null and CUSTOMER_TCP != ""'>
+				AND (ORDER_DHP = DBO.ECL_ENCRYPT(#{CUSTOMER_THP}) OR ORDER_DCP = DBO.ECL_ENCRYPT(#{CUSTOMER_THP})) OR (ORDER_DHP = DBO.ECL_ENCRYPT(#{CUSTOMER_TCP}) OR ORDER_DCP = DBO.ECL_ENCRYPT(#{CUSTOMER_TCP}))
+			</when>
+			<when test='CUSTOMER_THP != null and CUSTOMER_THP != ""'>
+				AND (ORDER_DHP = DBO.ECL_ENCRYPT(#{CUSTOMER_THP}) OR ORDER_DCP = DBO.ECL_ENCRYPT(#{CUSTOMER_THP}))
+			</when>		
+			<when test='CUSTOMER_TCP != null and CUSTOMER_TCP != ""'>
+				AND (ORDER_DHP = DBO.ECL_ENCRYPT(#{CUSTOMER_TCP}) OR ORDER_DCP = DBO.ECL_ENCRYPT(#{CUSTOMER_TCP}))
+			</when>	
+			<otherwise>AND 1=2</otherwise>
+		</choose>
+		ORDER BY ORDER_DCCODE
+	</select>	
+	
+	<select id="updateSaveDeliveryBatchAssignCUD" statementType="CALLABLE" resultType="Integer">
+		/* updateSaveDeliveryBatchAssignCUD (POPUPDAO) */
+		DECLARE @RETURN_VALUE INT
+		DECLARE @TODATE VARCHAR(10)
+		SET @TODATE = CONVERT(VARCHAR(10), GETDATE(), 121)
+		EXEC PE_D_INSERT #{CODE}, #{NAME}, #{DHP}, #{DCP}, #{POST}, #{ADDRESS1}, #{ADDRESS2}, #{MEMBER_CD}, @TODATE, 1, '2', @RETURN_VALUE OUTPUT
+		SELECT @RETURN_VALUE
+    </select>	
+    
+	<select id="getOpenSearchFavoriteGoodsList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchFavoriteGoodsList (POPUPDAO) */
+			SELECT * FROM
+			(
+				SELECT 
+					A.*
+					, CONVERT(VARCHAR, RANK() OVER(ORDER BY ORDER_CQA DESC)) + '위' AS RNK
+				FROM
+				(
+				SELECT 
+		
+					B.ORDER_CARTICLE
+					,SUM(B.ORDER_CQA) ORDER_CQA
+					,C.ARTICLE_OCODE ARTICLE_OCODE_1
+					,C.ARTICLE_NAME ARTICLE_OCODE
+					,MAX(A.Order_DDate) ORDER_DDATE
+		
+				FROM ORDER_DETAIL A(NOLOCK)
+				INNER JOIN ORDER_COMMON B(NOLOCK) ON (A.ORDER_DCIDX = B.ORDER_CIDX)
+				INNER JOIN ARTICLE_INF C(NOLOCK) ON (B.ORDER_CARTICLE = C.ARTICLE_CODE)
+				WHERE A.ORDER_DCCODE = #{CUSTOMER_CODE}	--고객코드
+				AND A.ORDER_DSPRICE  <![CDATA[<>]]>  0	--결재금액이 0원인것 제외
+				AND A.ORDER_DDATE  <![CDATA[>=]]>  CONVERT(VARCHAR(10), DATEADD(YEAR, -2, GETDATE()), 121) --2년전부터 현재까지
+				AND SUBSTRING(C.ARTICLE_CODE, 9, 1) = 1
+				GROUP BY B.ORDER_CARTICLE, C.ARTICLE_OCODE, C.ARTICLE_NAME
+				
+				) A
+			) A WHERE REPLACE(RNK,'위','') <![CDATA[<]]> 11
+
+	</select>
+
+	<select id="getOpenSearchIntroduceCustomerList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchIntroduceCustomerList (POPUPDAO) */
+		SELECT 
+			A.CUSTOMER_INDATE
+			, A.CUSTOMER_CODE
+			, A.CUSTOMER_NAME
+			, A.CUSTOMER_MCODE
+			, B.MEMBER_NAME
+		FROM CUSTOMER_INF A
+		LEFT OUTER JOIN MEMBER_INF B ON (A.CUSTOMER_MCODE = B.MEMBER_CODE)
+		WHERE ISNULL(A.CUSTOMER_INTRODUCTION, '') = #{CUSTOMER_CODE}
+		ORDER BY A.CUSTOMER_NAME ASC
+	</select>	
+	
+	<select id="getOpenSearchCustomerGradeList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchCustomerGradeList (POPUPDAO) */
+	 	SELECT *
+		FROM
+				(SELECT		
+					MIN(CONVERT(VARCHAR(10), A.REG_DT, 121)) AS REG_DT
+					,ISNULL(A.ATTENTION_PRE,'4') AS ATTENTION_NUM
+					,ISNULL(B.CUSTOMER_ANAME,'FAMILY등급') AS ATTENTION_PRE
+					,ISNULL(C.CUSTOMER_ANAME, '') AS ATTENTION_NOW
+					,MIN(ISNULL(A.ATTENTION_AMT,'')) AS ATTENTION_AMT
+					,ISNULL(A.MEMBER_CD,'') AS MEMBER_CD
+				FROM ATTENTION_LOG A
+				LEFT OUTER JOIN CUSTOMER_ATTENTION B ON (A.ATTENTION_PRE = B.CUSTOMER_ACODE)
+				LEFT OUTER JOIN CUSTOMER_ATTENTION C ON (A.ATTENTION_NOW = C.CUSTOMER_ACODE)
+				WHERE A.CUSTOMER_CD = #{CUSTOMER_CODE}
+				AND CONVERT(VARCHAR(10), A.REG_DT, 121) BETWEEN #{STR_DT} AND #{END_DT}
+				GROUP BY A.ATTENTION_PRE, C.CUSTOMER_ANAME, B.CUSTOMER_ANAME ,A.MEMBER_CD
+				) A
+		WHERE A.ATTENTION_PRE <![CDATA[<>]]> A.ATTENTION_NOW
+		ORDER BY REG_DT DESC, ATTENTION_AMT DESC, ATTENTION_NUM ASC
+	</select>	
+
+	<select id="getOpenSearchMedicalExaminationByInterviewPopupTabService1BigList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchMedicalExaminationByInterviewPopupTabService1BigList (POPUPDAO) */
+
+	</select>
+
+	<select id="getOpenSearchMedicalExaminationByInterviewPopupTabService1SmallList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchMedicalExaminationByInterviewPopupTabService1SmallList (POPUPDAO) */
+		SELECT 
+			ISNULL(ARTICLE_POINT, '') AS 'ARTICLE_DPOINT',
+			ISNULL(ARTICLE_DMEMO, '') AS 'ARTICLE_DMEMO',
+			ISNULL(ARTICLE_DPATH, '') AS 'ARTICLE_DPATH',
+			ARTICLE_OUTPRICE,
+			ARTICLE_DESC,
+			ARTICLE_CODE,
+			ARTICLE_NAME
+		FROM ARTICLE_INF_DETAIL A(NOLOCK)
+		INNER JOIN ARTICLE_INF B(NOLOCK) ON A.ARTICLE_DCODE = B.ARTICLE_CODE
+		WHERE ARTICLE_OUTPRICE > 0
+		AND ARTICLE_USEYN = 1
+		AND (
+				LEFT(ARTICLE_D1, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D2, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D3, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D4, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D5, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D6, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D7, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D8, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D9, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D10, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D11, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D12, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D13, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D14, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D15, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D16, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D17, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D18, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D19, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D20, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D21, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D22, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D23, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D24, 2) = #{ARTICLE_BIG_CODE}
+				OR LEFT(ARTICLE_D25, 2) = #{ARTICLE_BIG_CODE}
+			)
+		ORDER BY ARTICLE_OUTPRICE DESC, ARTICLE_NAME 
+	</select>		
+	
+	<select id="getOpenSearchMedicalExaminationByInterviewPopupTabService1SmallContentsList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchMedicalExaminationByInterviewPopupTabService1SmallContentsList (POPUPDAO) */
+		SELECT 
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D1
+				), '') AS 'ARTICLE_D1',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D2
+				), '') AS 'ARTICLE_D2',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D3
+				), '') AS 'ARTICLE_D3',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D4
+				), '') AS 'ARTICLE_D4',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D5
+				), '') AS 'ARTICLE_D5',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D6
+				), '') AS 'ARTICLE_D6',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D7
+				), '') AS 'ARTICLE_D7',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D8
+				), '') AS 'ARTICLE_D8',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D9
+				), '') AS 'ARTICLE_D9',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D10
+				), '') AS 'ARTICLE_D10',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D11
+				), '') AS 'ARTICLE_D11',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D12
+				), '') AS 'ARTICLE_D12',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D13
+				), '') AS 'ARTICLE_D13',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D14
+				), '') AS 'ARTICLE_D14',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D15
+				), '') AS 'ARTICLE_D15',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D16
+				), '') AS 'ARTICLE_D16',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D17
+				), '') AS 'ARTICLE_D17',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D18
+				), '') AS 'ARTICLE_D18',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D19
+				), '') AS 'ARTICLE_D19',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D20
+				), '') AS 'ARTICLE_D20',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D21
+				), '') AS 'ARTICLE_D21',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D22
+				), '') AS 'ARTICLE_D22',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D23
+				), '') AS 'ARTICLE_D23',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D24
+				), '') AS 'ARTICLE_D24',
+			ISNULL(
+				(
+				    SELECT SYMPTOM_NAME
+				    FROM SYMPTOM_INF WITH (NOLOCK)
+				    WHERE SYMPTOM_CODE = ARTICLE_D25
+				), '') AS 'ARTICLE_D25',
+			ARTICLE_DMEMO,
+			ARTICLE_DPATH,
+			ISNULL((SELECT TOP 1 ISNULL(SYMPTOM_DIC,'') AS 'SYMPTOM_DIC' FROM SYMPTOM_INF WITH (NOLOCK) WHERE LEFT(SYMPTOM_CODE,2) = #{ARTICLE_BIG_CODE} AND ISNULL(SYMPTOM_DIC,'') <![CDATA[<>]]> '' ), '') AS SYMPTOM_DIC		
+		FROM ARTICLE_INF_DETAIL
+		WHERE ARTICLE_DCODE = #{ARTICLE_SMALL_CODE}
+	</select>	    
+	
+	<select id="getOpenSearchMedicalExaminationByInterviewPopupTabService2BigList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchMedicalExaminationByInterviewPopupTabService2BigList (POPUPDAO) */
+		SELECT 
+			SYMPTOM_IDX
+			,SYMPTOM_CODE
+			,SYMPTOM_NAME
+			,SYMPTOM_DIC		
+		FROM SYMPTOM_INF WITH (NOLOCK) ORDER BY SYMPTOM_NAME ASC
+	</select>	
+
+	<select id="getOpenSearchMedicalExaminationByInterviewPopupTabService2SmallList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchMedicalExaminationByInterviewPopupTabService2SmallList (POPUPDAO) */
+		SELECT
+		       ARTICLE_OUTPRICE,
+		       ARTICLE_DESC,
+		       ARTICLE_CODE,
+		       ARTICLE_NAME
+		FROM ARTICLE_INF_DETAIL A(NOLOCK)
+		INNER JOIN ARTICLE_INF B(NOLOCK) ON A.ARTICLE_DCODE = B.ARTICLE_CODE
+		WHERE ARTICLE_OUTPRICE > 0
+		AND ARTICLE_USEYN = 1
+		AND (
+			<if test='ARTICEL_CODE_LIST.size != 0'>
+				ARTICLE_D1 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D2 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D3 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D4 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D5 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D6 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D7 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D8 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D9 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D10 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D11 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D12 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D13 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D14 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D15 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D16 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D17 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D18 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D19 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D20 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D21 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D22 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D23 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D24 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+				OR ARTICLE_D25 IN <foreach item="item" collection="ARTICEL_CODE_LIST" index="index" open="(" separator="," close=")">#{item}</foreach>
+	   		</if>
+		)
+		ORDER BY ARTICLE_OUTPRICE DESC 	 	
+	</select>	
+	
+	<select id="getCustomerCounselhappyCallProcPopupSearch" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCustomerCounselhappyCallProcPopupSearch (POPUPDAO) */
+		SELECT 
+			ISNULL(HAPPY_CCIDX,'') AS 'CCIDX',
+			ISNULL(RTRIM(LTRIM(HAPPY_CCODE1)),'') AS 'HAPPY_CCODE1',
+			ISNULL(RTRIM(LTRIM(HAPPY_CCODE2)),'') AS 'HAPPY_CCODE2',
+			ISNULL(RTRIM(LTRIM(HAPPY_CCODE3)),'') AS 'HAPPY_CCODE3',
+			ISNULL(RTRIM(LTRIM(HAPPY_CCODE4)),'') AS 'HAPPY_CCODE4',
+			RTRIM(LTRIM(HAPPY_CMAN)) AS HAPPY_CMAN,
+			RTRIM(LTRIM(HAPPY_CMEMO)) AS HAPPY_CMEMO
+		FROM HAPPY_CALL WITH (NOLOCK) 
+		WHERE HAPPY_CGUBUN = #{param1} 
+		AND HAPPY_CCODE = #{param2}		
+	</select>	
+	
+	<insert id="insertCustomerCounselhappyCallProcPopupCUD" parameterType="java.util.Map">
+		/* insertCustomerCounselhappyCallProcPopupCUD (POPUPDAO) */
+		INSERT HAPPY_CALL (HAPPY_CDATE, HAPPY_CGUBUN, HAPPY_CGUBUN1, HAPPY_CCODE, HAPPY_CCODE1, HAPPY_CCODE2, HAPPY_CCODE3, HAPPY_CCODE4, HAPPY_CMAN, HAPPY_CMCODE, HAPPY_CMEMO,HAPPY_CCIDX) 
+		VALUES (CONVERT(VARCHAR, GETDATE(), 120), #{GUBUN}, #{ORDERGUBUN}, #{HAPPY_CCODE}, #{CALL_GUBUN}, #{CALL_SUB_GUBUN}, '', '', #{SATISFACTIONGUBUN}, #{MEMBER_CD}, #{CONTENT} ,0)
+	</insert>
+	
+	<update id="updateCustomerCounselhappyCallProcPopupCUD" parameterType="java.util.Map">
+		/* updateCustomerCounselhappyCallProcPopupCUD (POPUPDAO) */
+		<if test='GRP_NUM == ""'>
+			<if test='GUBUN == "O"'>
+				UPDATE ORDER_DETAIL SET ORDER_DHAPPYCALL = 1, ORDER_DHAPPYCALLDATE = GETDATE() WHERE ORDER_DCIDX = #{HAPPY_CCODE}
+			</if>
+			<if test='GUBUN == "S"'>
+				UPDATE CUSTOMER_SAMPLE_INF SET CUSTOMER_SHAPPYCALL = 1 WHERE CUSTOMER_SOCODE = #{HAPPY_CCODE}
+			</if>
+		</if>
+		<if test='GRP_NUM != ""'>
+			UPDATE T_DELIVERY 
+				SET CHK_HAPPYCALL = 1
+					, HAPPYCALL_OK_DATE = GETDATE()
+			WHERE 
+				OCODE = #{HAPPY_CCODE}
+				AND GRP_NUM = #{GRP_NUM}
+		</if>
+	</update>
+	
+	<select id="procedureCustomerCounselhappyCallProcPopupCUD" statementType="CALLABLE" resultType="Integer">
+		/* procedureCustomerCounselhappyCallProcPopupCUD (POPUPDAO) */
+    	DECLARE @RETURN_VALUE INT
+    	DECLARE @TODATE VARCHAR(19)
+    	DECLARE @CONTENT VARCHAR(MAX)   	
+    	SET @TODATE = CONVERT(VARCHAR(19), GETDATE(), 120)
+    	SET @CONTENT = #{CONTENT_TEXT} + '/' + #{MEMBER_NM} + '(' + @TODATE + ')'
+
+        EXEC PE_CCALL_INSERT 1, 1, @TODATE, #{HAPPY_CCODE}, #{UNION_USER}, @CONTENT, #{MEMBER_CD}, 1, 0, 0, 0, #{CALL_GUBUN}, #{CALL_SUB_GUBUN}, '', '', @RETURN_VALUE OUTPUT 
+        SELECT @RETURN_VALUE
+    </select>	
+    
+    <select id="getCallRecordFilePath" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCallRecordFilePath */
+		DECLARE @V_uniqueid NVARCHAR(100)
+		DECLARE @V_SQL NVARCHAR(MAX)
+		
+		SET @V_uniqueid = #{CALL_RECORD}
+		
+		SET @V_SQL = 'SELECT * FROM OPENQUERY(MYSQL,'
+		SET @V_SQL = @V_SQL + CONCAT('''SELECT record_file AS ''''filePath'''' FROM eicn_cdr WHERE uniqueid = ''''' , @V_uniqueid , ''''''')')
+		EXEC(@V_SQL)
+    </select>
+    
+    <select id="getMobileCallRecordFilePath" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMobileCallRecordFilePath */
+		DECLARE @V_uniqueid NVARCHAR(100)
+		DECLARE @V_SQL NVARCHAR(MAX)
+		
+		SET @V_uniqueid = #{CALL_RECORD}
+		
+		SET @V_SQL = 'SELECT * FROM OPENQUERY(MARIA,'
+		SET @V_SQL = @V_SQL + CONCAT('''SELECT FILE_NM AS ''''filePath'''' FROM LOG_CALL_2018 WHERE C_SEQ = ''''' , @V_uniqueid , ''''''')')
+		EXEC(@V_SQL)
+    </select>
+    
+    <select id="getCallingCustomerData" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getcallingCustomerData */
+		SELECT
+			ISNULL(Customer_Code,'') AS customer_Code,
+			(CASE Customer_Gender WHEN 2 THEN '' WHEN 0 THEN '여자' WHEN 1 THEN '남자' ELSE '' END) AS customer_Gender,
+			ISNULL(Customer_Name,'') AS customer_Name,
+			CASE WHEN ISNULL(Customer_BirthDay, '') = '' THEN '' ELSE CONVERT(VARCHAR, (DATEPART(YEAR,GETDATE()) - LEFT(Customer_BirthDay, 4)) + 1) END AS customer_Age,
+			MAX(A.Order_DDate) AS Order_Date,
+			Customer_Indate
+		FROM CUSTOMER_INF(NOLOCK)
+		LEFT OUTER JOIN ORDER_DETAIL A(NOLOCK)
+			ON A.Order_DSanctionYN = 1
+			AND A.Order_DCCode = Customer_Code
+		WHERE ( Customer_THp = dbo.ECL_ENCRYPT(#{calling_Number})
+			OR Customer_TCp = dbo.ECL_ENCRYPT(#{calling_Number})
+			OR Customer_TEHp = dbo.ECL_ENCRYPT(#{calling_Number}) )
+			AND Route_Div = 'RD0001'
+		GROUP BY customer_Code, customer_Gender, customer_Name, Customer_BirthDay, Customer_Indate
+		ORDER BY Order_Date DESC, Customer_Indate ASC, customer_Code DESC
+    </select>
+    
+    <select id="getMemberStatus" resultType="java.util.Map">
+		/* getMemberStatus */
+		SELECT 
+			D.Business_Name AS MERBER_AREA					/* 지역 */
+			, C.Member_TName AS MERBER_TEAM					/* 팀 */
+			, B.Member_Name AS MERBER_NM					/* 상담원명 */
+			, Case A.CTI_STATUS
+				WHEN 0 THEN '대기중'     
+				WHEN 1 THEN '통화중'     
+				WHEN 2 THEN '후처리중'     
+				WHEN 3 THEN '클레임처리중'     
+				WHEN 4 THEN '회의중'     
+				WHEN 5 THEN 'PDS'     
+				WHEN 6 THEN '식사중'     
+				WHEN 7 THEN '이석'
+				WHEN 8 THEN '휴식중'
+				WHEN 99 THEN '로그아웃'        
+				Else '상태표시 불가' END AS MERBER_STATUS	/* 상담원상태 */
+			, B.Member_InPhone AS MERBER_INPHONE			/* 내선번호 */
+		FROM CTI_STATUS_MASTER A
+		INNER JOIN MEMBER_INF B(NOLOCK) 
+			ON A.MEMBER_CD = B.Member_Code 
+		LEFT JOIN MEMBER_TEAM C(NOLOCK) 
+			ON B.Member_Team = C.Member_TCode 
+		LEFT JOIN BUSINESS_INF D(NOLOCK)
+			ON B.Member_WArea = D.Business_Code
+		WHERE A.STATUS_DT Between CONCAT(CONVERT(date,GETDATE()),' 00:00:00') AND CONCAT(CONVERT(date,GETDATE()),' 23:59:59')
+    </select>
+    
+    <select id="getCheckMemberStatus" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCheckMemberStatus */
+		SELECT 
+			Case A.CTI_STATUS
+				WHEN 0 THEN '대기중'     
+				WHEN 1 THEN '통화중'     
+				WHEN 2 THEN '후처리중'     
+				WHEN 3 THEN '클레임처리중'     
+				WHEN 4 THEN '회의중'     
+				WHEN 5 THEN 'PDS'     
+				WHEN 6 THEN '식사중'     
+				WHEN 7 THEN '이석'
+				WHEN 8 THEN '휴식중'    
+				WHEN 99 THEN '로그아웃'    
+				Else '상태표시 불가' END AS memberStatus	/* 상담원상태 */
+		FROM CTI_STATUS_MASTER A
+		INNER JOIN MEMBER_INF B(NOLOCK) 
+			ON A.MEMBER_CD = B.Member_Code 
+		WHERE A.STATUS_DT Between CONCAT(CONVERT(date,GETDATE()),' 00:00:00') AND CONCAT(CONVERT(date,GETDATE()),' 23:59:59')
+			AND B.Member_InPhone = #{changeInPhone}
+    </select>
+    
+    <select id="getOpenSearchStorageList" resultType="java.util.Map" parameterType="java.util.Map">
+	 	/* getOpenSearchStorageList (POPUPDAO) */
+		SELECT 
+			 CONVERT(CHAR(19), D.WANTRECEIVEDATE, 23) AS WANTRECEIVEDATE
+			 , O.Order_DDate AS ORDER_DDATE
+			 , D.OCODE 
+			 , D.GRP_NUM  
+			 , D.POSTNO 
+			 , D.POSTCO  
+			 , M.CUSTOMER_CODE 
+			 , M.CUSTOMER_NAME
+			 , A.MEMBER_NAME 
+			 , D.DELIV_DESC 
+			 , '' AS STATUS
+			 , POSTAPPROVAL
+			 , DBO.FN_GET_CMMN_CD_NM('POST_APPROVAL', POSTAPPROVAL) POSTAPPROVAL_NM
+			 , CONVERT(CHAR(10), O.Order_DDate, 120) AS Order_DD
+			 , D.RECEIVER		
+			 , REPLACE(D.ZIPNO, '-', '') AS ZIPNO
+			 , (D.ADDR + ' ' + D.ADDR2) AS ADDR
+			 , CASE WHEN LTRIM(RTRIM(D.RECPHONE))   <![CDATA[<>]]>   '' THEN D.RECPHONE ELSE D.RECTELL END RECPHONE
+			 , CASE WHEN LTRIM(RTRIM(D.RECTELL))  <![CDATA[<>]]>   '' THEN D.RECTELL ELSE D.RECPHONE END RECTELL
+			 , D.POSTCHARGER
+			 , D.REMARK				 
+			 , CONVERT(CHAR(10), D.WANTRECEIVEDATE, 120) AS WANTRECEIVEDATE
+			 , CI.Business_Manager
+			 , CI.Business_Hp1
+			 , CI.Business_Hp2
+			 , CI.Business_Post
+			 , CI.Business_Address1 + ' '+ CI.Business_Address2 AS Business_Address
+			 , CI.BUSINESS_NAME					 
+			 , D.ADDR
+			 , D.ADDR2
+			 , D.POST_DIV
+		FROM T_DELIVERY (NOLOCK) AS D
+		INNER JOIN ORDER_DETAIL (NOLOCK) AS O 
+			ON D.OCODE = O.Order_DCIdx
+			--AND O.OSTATUS = '1'
+		INNER JOIN CUSTOMER_INF (NOLOCK) AS M 
+			ON M.Customer_Code = O.Order_DCCode
+		INNER JOIN MEMBER_INF (NOLOCK) AS A 
+			ON A.Member_Code = O.Order_DMCode
+		INNER JOIN BUSINESS_INF (NOLOCK) AS CI 
+			ON CI.Business_Code = DBO.FN_GET_MEMBER_AREA(A.Member_Code)
+			AND CI.Business_Division = '03'
+			AND CI.Business_use = '1'
+		WHERE D.INVSTATUS = '0'   
+		 	AND D.POSTAPPROVAL = 'PA001'
+			AND D.POSTAPPROVAL !='PA003'
+			AND D.POSTAPPROVAL !='PA004'
+			AND D.POST_DIV NOT IN ('5','8')
+			AND O.ORDER_DJSANCTION = 1
+			AND O.ORDER_KIND IN ('OK001','OK004')
+			AND M.CUSTOMER_CODE = #{CUSTOMER_CODE}
+			AND D.KEEP_DIV NOT IN ('2')
+		ORDER BY Order_DDate DESC
+	</select>
+	
+	<update id="deliveryDelete" parameterType="java.util.Map">
+		/* deliveryDelete (POPUPDAO) */
+		UPDATE ORDER_DELIVERY
+		SET ORDER_DUSE = 0
+		WHERE ORDER_DIDX = #{ORDER_DIDX}
+	</update>
+	
+	<select id="getRepresentNumber" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getRepresentNumber */
+		SELECT TOP 1
+			MyPhone_Number
+		FROM MY_PHONE(NOLOCK)
+		WHERE MyPhone_Mcode = #{member_Cd}
+    </select>
+    
+    <update id="updateRepresentNm" parameterType="java.util.Map">
+		/* updateRepresentNm (POPUPDAO) */
+		UPDATE MY_PHONE SET 
+			MyPhone_Number = #{MyPhone_Number}
+		WHERE MyPhone_Mcode = #{member_cd}
+	</update>
+	
+	<insert id="insertRepresentNm" parameterType="java.util.Map">
+	    /* insertRepresentNm (POPUPDAO) */
+	    INSERT INTO MY_PHONE
+		VALUES(
+			#{member_cd}
+			,#{MyPhone_Number}
+		)
+	</insert>	
+	
+	<select id="memberChangeIf" statementType="CALLABLE" resultType="Integer">
+        /* memberChangeIf (POPUPDAO) */
+        exec UP_CUSTOMER_MEMBER_IF
+    </select>
+	
+	<select id="getGiftCardList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGiftCardList */
+		SELECT GIFT_NM,
+			   GIFT_FACE_PRICE
+			   <!-- 매수 추가해야함 -->
+		FROM T_EVENT_GIFT
+		WHERE GIFT_CD = #{CLSE_CD} <!-- 임시로 걸어놓은 것 -->
+		<!-- T_SALE_CLSE 랑 조인걸고 마감코드로 조건 걸기 -->			   
+	</select>
+	
+	<select id="getOpenBargainGroupPointList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenBargainGroupPointList */
+		SELECT EVENT_NM
+				,EVENT_STRT_DATE
+				,EVENT_END_DATE
+				,EVENT_TYPE
+				,EVENT_CD
+				,ORGN_CD
+		FROM T_EVENT_GRUP
+		WHERE SUBSTRING(EVENT_STRT_DATE,1,4) + '-' + SUBSTRING(EVENT_STRT_DATE,5,2) = #{SEARCH_FROM_DATE}
+		<if test= 'ORGN_CD != null and ORGN_CD != ""'>
+		AND ORGN_CD = #{ORGN_CD}
+		</if>
+	</select>
+	
+	<update id= "savePosManagementInfo" parameterType="java.util.Map">
+		/* savePosManagementInfo */
+		UPDATE T_SALE_CLSE 
+		SET DEPO_CASH = #{DEPO_CASH}
+		WHERE CLSE_CD = #{CLSE_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<select id="getSelectEmpList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSelectEmpList */
+		SELECT CI.EMP_NO
+				,CI.EMP_NO
+				,CI.EMP_NM
+				,CI.DEPT_CD
+				,CA.SYS_DIV_CD
+		FROM COM_EMP_INFO AS CI
+		INNER JOIN COM_EMP_ACNT AS CA
+		ON CI.EMP_NO = CA.EMP_NO
+		WHERE 1=1
+		<if test = 'ORGN_CD != ""'>
+		AND CI.DEPT_CD = #{ORGN_CD}
+		</if>
+		<if test = 'EMP_NM != ""'>
+		AND CI.EMP_NM LIKE '%'+#{EMP_NM}+'%'
+		</if>
+	</select>
+	
+	<select id="getCashCntList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCashCntList */
+		SELECT CASH_CNT_01
+				,CASH_CNT_02
+				,CASH_CNT_03
+				,CASH_CNT_04
+				,CASH_CNT_05
+				,CASH_CNT_06
+				,CASH_CNT_07
+				,CASH_CNT_08
+				,CASH_CNT_09
+				,DEPO_CASH
+		FROM T_SALE_CLSE
+		WHERE CLSE_CD = #{CLSE_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</select>
+	
+	<update id= "saveDepositCash" parameterType="java.util.Map">
+		/* saveDepositCash */
+		UPDATE T_SALE_CLSE SET
+				DEPO_CASH = #{DEPO_CASH},
+				CASH_CNT_01 = #{CASH_CNT_01},
+				CASH_CNT_02 = #{CASH_CNT_02},
+				CASH_CNT_03 = #{CASH_CNT_03},
+				CASH_CNT_04 = #{CASH_CNT_04},
+				CASH_CNT_05 = #{CASH_CNT_05},
+				CASH_CNT_06 = #{CASH_CNT_06},
+				CASH_CNT_07 = #{CASH_CNT_07},
+				CASH_CNT_08 = #{CASH_CNT_08},
+				CASH_CNT_09 = #{CASH_CNT_09}
+		WHERE CLSE_CD = #{CLSE_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<select id="getStockInspListPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockInspListPopup */
+		SELECT TP.ORGN_CD
+				,TP.STORE_AREA
+				,TB.BCD_NM
+				,TP.GOODS_QTY
+				,TP.CUSER
+		FROM T_PDA_TEMP AS TP
+		INNER JOIN T_STD_MAST_BCD AS TB
+		ON TP.BCD_CD = TB.BCD_CD
+		WHERE TP.STORE_AREA = #{STORE_AREA}
+		AND TP.ORGN_CD = #{ORGN_CD}
+		AND LEFT(TP.CDATE,10) = #{SEARCH_FROM_DATE}
+	</select>
+	
+	<select id="getSearchMember" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchMember */
+		SELECT
+			TT.UNIQUE_MEM_NM
+			,TT.MEM_NO
+			,TT.ORGN_CD
+			,TT.LOAN_CD
+		FROM
+			(
+				SELECT
+						ORGN_CD
+						, CONCAT(ORGN_CD,'_',MEM_NO) AS UNIQUE_MEM_NO
+						, MEM_NO
+						, MEM_NM
+						, MEM_ABC
+						, PHON_NO
+						, CORP_NM
+						, CONCAT(CORP_NM,'[',MEM_NM,']') AS UNIQUE_MEM_NM
+						, TC.LOAN_CD
+						, MEM_STATE
+				FROM T_STD_MAST_MEM
+				INNER JOIN T_STD_MAST_CREDITLOAN_DETL AS TC
+				ON CONCAT(T_STD_MAST_MEM.ORGN_CD ,'_',T_STD_MAST_MEM.MEM_NO) = TC.OBJ_CD
+			) TT
+		WHERE 1=1
+		<if test ='MEM_NM != ""'>  	<!-- 검색어 조건 -->
+			AND UNIQUE_MEM_NM LIKE '%'+ #{MEM_NM} +'%'
+		</if>
+		<if test ='ORGN_CD != "" and ORGN_CD != null'>
+			AND ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test ='MEM_STATE == "0"'>
+			AND MEM_STATE = 'Y'
+		</if>
+		<if test ='MEM_STATE == "1"'>
+			AND MEM_STATE IS NOT NULL
+		</if>
+	</select>	
+	
+	<select id="addSearchMemberList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* addSearchMemberList */
+		SELECT ORGN_CD
+				, MEM_NM
+				, MEM_ABC
+				, PHON_NO
+				, CORP_NM
+		FROM T_STD_MAST_MEM
+		WHERE ORGN_CD = #{ORGN_CD}
+			AND PHON_NO = #{PHON_NO}
+			AND MEM_NM = #{MEM_NM}
+	</select>
+	
+	<select id="getMemberInformation" parameterType="Map" resultType="CMap">
+		/* getMemberInformation */
+		<if test='list.size > 0'>
+			SELECT ORGN_CD
+				, MEM_NM
+				, MEM_ABC
+				, CORP_NM
+				, PHON_NO
+			FROM T_STD_MAST_MEM
+			WHERE PHON_NO IN
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	
+	<select id="saveSendTalk" parameterType="java.util.Map" resultType="int" >
+		/* saveSendTalk */
+		DECLARE	@SEND_NUM						NVARCHAR(20)
+				, @RECP_NUM						NVARCHAR(MAX)
+				, @MSG_TIT						NVARCHAR(100)
+				, @MSG							NVARCHAR(2000)
+				, @IMG_TYPE						NVARCHAR(3)
+				, @IMG_NM						NVARCHAR(255)
+				, @BT_LINK_W					NVARCHAR(255)
+				, @BT_LINK_M					NVARCHAR(255)
+				, @V_RETURN						INT
+				
+		SET		@SEND_NUM = #{SEND_NUM}
+		SET		@RECP_NUM = #{PHON_NO}
+		SET		@MSG_TIT = #{MSG_TIT}
+		SET		@MSG = #{MSG}
+		SET		@IMG_TYPE = 'N'
+		SET		@IMG_NM = ''
+		SET		@BT_LINK_W = ''
+		SET		@BT_LINK_M = ''
+		SET		@V_RETURN = 0
+				
+		EXEC [dbo].[SP_SEND_FRETALK] @SEND_NUM, @RECP_NUM, @MSG_TIT, @MSG, @IMG_TYPE, @IMG_NM, @BT_LINK_W, @BT_LINK_W, @V_RETURN output
+		SELECT @V_RETURN
+	</select>
+	
+	<update id= "saveBundleGroupInfo" parameterType="java.util.Map">
+		/* saveBundleGroupInfo */
+		DECLARE @BUDL_STRT_DATE NVARCHAR(10)
+				,@BUDL_END_DATE NVARCHAR(10)
+		
+		SET @BUDL_STRT_DATE =  REPLACE(#{BUDL_STRT_DATE},'-','')
+		SET	@BUDL_END_DATE =  REPLACE(#{BUDL_END_DATE},'-','')
+		
+		UPDATE T_EVENT_BUDL_GRUP
+		SET BUDL_NM = #{BUDL_NM}
+			,BUDL_STRT_DATE = @BUDL_STRT_DATE
+			,BUDL_END_DATE = @BUDL_END_DATE
+			,ORGN_CD = #{ORGN_CD}
+			,BUDL_STATE = #{BUDL_STATE}
+			,BUDL_APPLY_UNIT = #{BUDL_APPLY_UNIT}
+			,BUDL_DC_TYPE = #{BUDL_DC_TYPE}
+			,BUDL_APPLY_VALUE = #{BUDL_APPLY_VALUE}
+			,POINT_SAVE_EX_YN = #{POINT_SAVE_EX_YN}
+			,MEMO = #{MEMO}
+		WHERE BUDL_CD = #{BUDL_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		
+		UPDATE T_EVENT_BUDL_GOODS
+		SET BUDL_APPLY_UNIT = #{BUDL_APPLY_UNIT}
+			,BUDL_DC_TYPE = #{BUDL_DC_TYPE}
+			,BUDL_APPLY_VALUE = #{BUDL_APPLY_VALUE}
+			,POINT_SAVE_EX_YN = #{POINT_SAVE_EX_YN}
+		WHERE BUDL_CD = #{BUDL_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<select id="getOpenDoubleGroupPointPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenDoubleGroupPointPopup */
+		SELECT BUDL_NM
+				, BUDL_STRT_DATE
+				, BUDL_END_DATE
+				, POINT_SAVE_EX_YN
+				, BUDL_CD
+				, ORGN_CD
+		FROM T_EVENT_BUDL_GRUP
+		WHERE REPLACE(#{SEARCH_FROM_DATE},'-','') = LEFT(BUDL_STRT_DATE,6)
+		<if test ='ORGN_CD != "" and ORGN_CD != null'>
+		AND ORGN_CD = #{ORGN_CD}
+		</if>
+	</select>
+	
+	<select id="addMemberInformation" resultType="java.util.Map">
+		/* addMemberInformation */
+		SELECT ORGN_CD
+				,CONCAT(ORGN_CD,'_',MEM_NO) AS UNIQUE_MEM_NO
+				, MEM_NM
+				, MEM_ABC
+				, CORP_NM
+				, PHON_NO
+		FROM T_STD_MAST_MEM
+		WHERE ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+	</select>
+</mapper>

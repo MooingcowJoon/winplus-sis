@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.organ.dao.OrganDao">
+	<select id="getDlvBsnCodeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getDlvBsnCodeList */
+		SELECT 
+		  DLV_BSN_CD
+		  , DLV_BSN_NM 
+		FROM COM_DLV_BSN_INFO 
+		WHERE DLV_BSN_DIV_CD = #{DLV_BSN_DIV_CD}
+		  <if test='USE_YN != null and USE_YN != ""'>
+		  AND USE_YN = #{USE_YN}
+		  </if>
+		  <if test='DLV_BSN_CD != null and DLV_BSN_CD != ""'>
+		  AND DLV_BSN_CD = #{DLV_BSN_CD}
+		  </if>
+		  <if test='DLV_BSN_NM != null and DLV_BSN_NM != ""'>
+		  AND (DLV_BSN_NM LIKE CONCAT('%',#{DLV_BSN_NM},'%') OR DLV_BSN_CD LIKE CONCAT('%',#{DLV_BSN_NM},'%'))
+		  </if>
+	</select>
+	
+	<select id="getDlvBsnMap" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getDlvBsnMap */
+		SELECT
+			DLV_BSN_CD
+			, DLV_BSN_NM
+			, LICENS_NO
+			, RPST_NM
+			--, CHAR_NM
+			--, CHAR_EMAIL
+			, CHAR_TEL_NO
+			, TEL_NO
+			, FAX_NO
+			, ZIPCODE
+			, ADDR
+			, ADDR_DTL
+			, SAPCODE
+			, INDUSTRY
+			, SECTOR
+			, TAX_TYPE
+			, NOTE
+			, USE_YN
+			, CONVERT(VARCHAR,STR_DT, 120) STR_DT
+			, CONVERT(VARCHAR,END_DT, 120) END_DT
+			, CONVERT(VARCHAR,REG_DT, 120) REG_DT
+			, REG_ID
+			, CONVERT(VARCHAR,MOD_DT, 120) MOD_DT
+			, MOD_ID
+		FROM COM_DLV_BSN_INFO
+		WHERE DLV_BSN_CD = #{DLV_BSN_CD}
+	</select>
+	
+	<update id="saveDlvBsn" parameterType="java.util.Map">
+		/* saveDlvBsn */
+		UPDATE COM_DLV_BSN_INFO
+		SET
+			DLV_BSN_NM = #{DLV_BSN_NM}
+			,LICENS_NO = #{LICENS_NO}
+			,RPST_NM = #{RPST_NM}
+			--,CHAR_NM = #CHAR_NM
+			--,CHAR_EMAIL = #CHAR_EMAIL
+			,CHAR_TEL_NO = #{CHAR_TEL_NO}
+			,TEL_NO = #{TEL_NO}
+			,FAX_NO = #{FAX_NO}
+			,ZIPCODE = #{ZIPCODE}
+			,ADDR = #{ADDR}
+			,ADDR_DTL = #{ADDR_DTL}
+			,INDUSTRY = #{INDUSTRY}
+			,SECTOR = #{SECTOR}
+			,TAX_TYPE = #{TAX_TYPE}
+			,NOTE = #{NOTE}
+			,USE_YN = #{USE_YN}
+			<if test='STR_DT == null or STR_DT == ""'>
+			,STR_DT = NOW()
+			</if>
+			<if test='STR_DT != null and STR_DT != ""'>
+			,STR_DT = #{STR_DT}
+			</if>
+			<if test='END_DT == null or END_DT == ""'>
+			,END_DT = '29991231'
+			</if>
+			<if test='END_DT != null and END_DT != ""'>
+			,END_DT = #{END_DT}
+			</if>
+			,MOD_DT = NOW()
+			,MOD_ID = #{MOD_ID}
+		WHERE 
+			DLV_BSN_CD = #{DLV_BSN_CD}
+	</update>
+
+	<insert id="insertDlvBsnIfRequest" parameterType="java.util.Map">	
+		/* insertDlvBsnIfRequest */
+		INSERT INTO IF_REQUEST_FAC_RECV(
+			classification
+			, name
+			, businessNumber
+			, ownerName
+			, phoneNumber
+			, faxNumber
+			--, managerName
+			, email
+			, managerPhoneNumber
+			, zipCode
+			, baseAddress
+			, detailAddress
+			, industry
+			, sector
+			, taxType
+
+			, USE_YN
+			, REG_DT
+			, REG_ID
+		)
+		VALUES
+		(
+			'20'
+			, #{DLV_BSN_NM}
+			, #{LICENS_NO}
+			, #{RPST_NM}
+			, #{TEL_NO}
+			, #{FAX_NO}
+			--, #CHAR_NM}
+			--, #CHAR_EMAIL
+			, #{CHAR_TEL_NO}
+			, #{ZIPCODE}
+			, #{ADDR}
+			, #{ADDR_DTL}
+			, #{INDUSTRY}
+			, #{SECTOR}
+			, #{TAX_TYPE}
+
+			, 'Y'
+			, NOW()
+			, #{REG_ID}
+		)
+	</insert>
+	
+	<select id="getBusinessNumberCheck" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getBusinessNumberCheck */
+		SELECT SUM(CNT) CNT FROM(
+			SELECT COUNT(*) CNT
+			FROM IF_RESPONSE_FAC_RECV 
+			WHERE replace(businessNumber,'-','') = replace(#{LICENS_NO},'-','')
+			UNION ALL
+			SELECT COUNT(*) CNT
+			FROM COM_DLV_BSN_INFO
+			WHERE replace(LICENS_NO,'-','') = replace(#{LICENS_NO},'-','')
+		) A
+	</select>
+
+	<insert id="saveMtrl" parameterType="java.util.Map">
+		/* saveMtrl */
+		INSERT INTO MTRL_CSTM_INFO (
+		   MTRL_CD
+		  ,CSTM_CD
+		  ,CSTM_MTRL_CD
+		  ,CSTM_DELI_PRICE
+		  ,LST_WHS_PRICE
+		  ,USE_YN
+		  ,REG_DT
+		  ,REG_ID
+		  ,INST_DT
+		) VALUES (
+		   #{MTRL_CD}
+		  ,#{CSTM_CD}
+		  ,#{CSTM_MTRL_CD}
+		  ,#{CSTM_DELI_PRICE}
+		  ,#{LST_WHS_PRICE}
+		  ,#{USE_YN}
+		  ,NOW()
+		  ,#{REG_ID}
+		  ,NOW()
+		)
+		ON DUPLICATE KEY UPDATE
+		  CSTM_MTRL_CD = #{CSTM_MTRL_CD}
+		  ,CSTM_DELI_PRICE = #{CSTM_DELI_PRICE}
+		  ,LST_WHS_PRICE = #{LST_WHS_PRICE}
+		  ,USE_YN = #{USE_YN}
+		  ,MOD_DT = NOW()
+		  ,MOD_ID = #{MOD_ID}
+	</insert>
+	
+	<update id="deleteDlvBsn" parameterType="java.util.Map">
+		/* deleteDlvBsn */
+		UPDATE COM_DLV_BSN_INFO SET
+		  USE_YN = 'N'
+		  ,MOD_DT = NOW()
+		  ,MOD_ID = #{MOD_ID}
+		WHERE 
+			DLV_BSN_CD = #{DLV_BSN_CD}
+	</update>
+	
+	<select id="getCstmMtrlList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCstmMtrlList */
+		SELECT 
+		  A.MTRL_CD
+		  , C.MTRL_NM
+		  , A.CSTM_CD
+		  , A.CSTM_MTRL_CD
+		  , A.CSTM_DELI_PRICE
+		  , A.LST_WHS_PRICE 
+		  , A.USE_YN
+		  , CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+		  , A.REG_ID
+		  , CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+		  , A.MOD_ID 
+		FROM 
+		  MTRL_CSTM_INFO A JOIN COM_DLV_BSN_INFO B JOIN MTRL_INFO C
+		  ON A.CSTM_CD = B.DLV_BSN_CD AND A.MTRL_CD = C.MTRL_CD
+		WHERE
+		  B.DLV_BSN_CD = #{DLV_BSN_CD}
+		  AND A.USE_YN = 'Y'
+	</select>
+
+	<select id="getOrgnList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOrgnList */
+		SELECT 
+			A.ORGN_CD
+			, A.ORGN_NM
+			, A.UPPER_ORGN_CD
+			, A.ORGN_DIV_CD
+			, DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',A.ORGN_DIV_CD) ORGN_DIV_NM
+			, A.ORGN_DELEGATE_CD
+			, B.ORGN_NM	ORGN_DELEGATE_NM
+			, A.ORGN_STEP
+			, A.ORGN_ORDER
+			, 'N' FOLDER_YN
+			, A.USE_YN
+			, CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+			, A.REG_ID
+			, CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+			, A.MOD_ID
+		FROM COM_ORGN_INFO A
+			LEFT JOIN COM_ORGN_INFO B
+			ON A.ORGN_DELEGATE_CD = B.ORGN_CD
+		WHERE 
+			A.USE_YN = 'Y'
+		ORDER BY A.ORGN_CD
+	</select>
+
+	<select id="getOrgn" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOrgn */
+		SELECT
+			A.ORGN_CD
+			, A.ORGN_NM
+			, A.UPPER_ORGN_CD
+			, IFNULL(B.ORGN_NM,'') UPPER_ORGN_NM
+			, A.ORGN_DIV_CD
+			, A.ORGN_DELEGATE_CD
+			, C.ORGN_NM	ORGN_DELEGATE_NM
+			, A.DLV_BSN_CD
+			, (SELECT TOP 1 DLV_BSN_NM FROM COM_DLV_BSN_INFO WHERE DLV_BSN_CD = A.DLV_BSN_CD) DLV_BSN_NM
+			, DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',A.ORGN_DIV_CD) ORGN_DIV_NM
+			, A.TEL_NO
+			, A.FAX_NO
+			, A.ADDR
+			, IFNULL(A.SEARCHABLE_AUTH_CD,'') SEARCHABLE_AUTH_CD
+			, A.USE_YN
+			, CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+			, A.REG_ID
+			, CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+			, A.MOD_ID
+			, A.ZIP_NO
+			, A.ADDR
+			, A.ADDR2
+		FROM COM_ORGN_INFO A
+			LEFT JOIN COM_ORGN_INFO B
+			ON A.UPPER_ORGN_CD = B.ORGN_CD
+			LEFT JOIN COM_ORGN_INFO C
+			ON A.ORGN_DELEGATE_CD = C.ORGN_CD
+		WHERE 
+			A.ORGN_CD = #{ORGN_CD}
+			AND A.USE_YN = 'Y'
+	</select>
+
+	<insert id="insertOrgn" parameterType="java.util.Map">
+		/* insertOrgn */
+		INSERT INTO COM_ORGN_INFO (
+			  ORGN_CD
+			, ORGN_NM
+			<if test='UPPER_ORGN_CD != null and UPPER_ORGN_CD != ""'>
+			, UPPER_ORGN_CD
+			</if>
+			, ORGN_DIV_CD
+			, ORGN_DELEGATE_CD
+			, ORGN_STEP
+			, SEARCHABLE_AUTH_CD
+			, USE_YN
+			, REG_ID
+			, REG_DT
+			, TEL_NO
+			, ZIP_NO
+			, ADDR
+			, ADDR2
+		) VALUES (
+			#{ORGN_CD}
+			, #{ORGN_NM}
+			<if test='UPPER_ORGN_CD != null and UPPER_ORGN_CD != ""'>
+			, #{UPPER_ORGN_CD}
+			</if>
+			, #{ORGN_DIV_CD}
+			, #{ORGN_DELEGATE_CD}
+			<choose>
+				<when test='UPPER_ORGN_CD != null and UPPER_ORGN_CD != ""'>
+				, (SELECT	ORGN_STEP 
+				  FROM 		(SELECT 	IFNULL(ORGN_STEP, 0)+1 AS ORGN_STEP
+							 FROM  		COM_ORGN_INFO
+							 WHERE  	ORGN_CD= #{UPPER_ORGN_CD}
+					) tmp)
+				</when>
+				<otherwise>
+				, 0
+				</otherwise>
+			</choose>
+			, #{SEARCHABLE_AUTH_CD}
+			, #{USE_YN}
+			, #{REG_REQ_ID}
+			, NOW()
+			, #{TEL_NO}
+			, #{ZIP_NO}
+			, #{ADDR}
+			, #{ADDR2}
+		)
+	</insert>
+	
+	<update id="updateOrgn" parameterType="java.util.Map">
+		/* updateOrgn */
+		UPDATE  COM_ORGN_INFO SET 
+			ORGN_NM = #{ORGN_NM},
+			ORGN_DIV_CD = #{ORGN_DIV_CD},
+			ORGN_DELEGATE_CD = #{ORGN_DELEGATE_CD},
+			SEARCHABLE_AUTH_CD = #{SEARCHABLE_AUTH_CD},
+			USE_YN = #{USE_YN}, 
+			MOD_DT = NOW(), 
+			MOD_ID = #{REG_REQ_ID},
+			TEL_NO = #{TEL_NO},
+			ZIP_NO = #{ZIP_NO},
+			ADDR = #{ADDR},
+			ADDR2 = #{ADDR2}
+		WHERE 
+			ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<update id="deleteOrgn" parameterType="java.util.Map">
+		/* deleteOrgn */
+		UPDATE  COM_ORGN_INFO SET
+			USE_YN = 'N' 
+		WHERE 
+			ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<select id="chkChildCtgr" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* chkChildMenu */
+		SELECT COUNT(*) 
+		FROM COM_ORGN_INFO 
+		WHERE UPPER_ORGN_CD = #{ORGN_CD}
+	</select>
+	
+	<select id="getOrgnListSession" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOrgnListSession */
+		SELECT 
+		  ORGN_CD CMMN_DETAIL_CD,
+		  ORGN_NM CMMN_DETAIL_CD_NM,
+		  ORGN_STEP CMMN_DETAIL_CD_STEP
+		FROM
+		  COM_ORGN_INFO A
+		WHERE
+		  ORGN_DIV_CD = #{ORGN_DIV_CD}
+		  AND (
+		    ORGN_CD = #{DEPT_CD}
+		    OR ORGN_CD IN 
+		      (
+		        SELECT ORGN_CD B
+		        FROM COM_ORGN_INFO
+		        WHERE (
+		          UPPER_ORGN_CD = #{DEPT_CD}
+		          OR UPPER_ORGN_CD IN 
+		            (
+		              SELECT ORGN_CD B
+		              FROM COM_ORGN_INFO
+		              WHERE UPPER_ORGN_CD = #{DEPT_CD}
+		            )
+		         )
+		       )
+		     )
+	</select>
+	
+	
+	<select id="getDepartmentStoreOrgnListSession" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getDepartmentStoreOrgnListSession */
+		SELECT 
+			CMMN_DETAIL_CD
+			,CMMN_DETAIL_CD_NM
+		FROM (
+			SELECT
+				A.ORGN_CD AS CMMN_DETAIL_CD
+				, A.ORGN_NM AS CMMN_DETAIL_CD_NM
+				, CASE 
+					WHEN B.CNT = 1 AND A.ORGN_CD <![CDATA[<>]]> #{DEPT_CD} 
+					THEN 0
+					WHEN B.CNT = 1 AND A.ORGN_CD = #{DEPT_CD} 
+					THEN 1
+					ELSE 1
+				END CNT
+			FROM COM_ORGN_INFO A
+			LEFT JOIN (
+				SELECT 
+					COUNT(*) AS CNT 
+				FROM COM_ORGN_INFO
+				WHERE ORGN_CD = #{DEPT_CD} 
+					AND ORGN_CD IN (
+						SELECT 
+							ORGN_CD 
+						FROM COM_ORGN_INFO 
+						WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+					)
+			) B
+				ON 1=1
+			WHERE ORGN_CD IN (
+				SELECT 
+					ORGN_CD 
+				FROM COM_ORGN_INFO 
+				WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+			)
+				AND USE_YN = 'Y'
+		) A
+		WHERE CNT = 1
+	</select>
+	
+	<select id="getNotOrgnListSession" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getNotOrgnListSession */
+		SELECT 
+				ORGN_CD CMMN_DETAIL_CD,
+				ORGN_NM CMMN_DETAIL_CD_NM
+			FROM
+				COM_ORGN_INFO A
+			WHERE
+				ORGN_DIV_CD = #{ORGN_DIV_CD}
+				AND 
+					ORGN_CD != #{DEPT_CD}
+	</select>				
+	
+	<select id="getOrgnListSessionCheck" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOrgnListSession */
+		SELECT COUNT(ORGN_CD) FROM 
+		(	
+			SELECT ORGN_CD 
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = '10000001'
+			UNION ALL
+			SELECT ORGN_CD 
+			FROM COM_ORGN_INFO
+			WHERE UPPER_ORGN_CD = '10000001'
+			UNION ALL
+			SELECT ORGN_CD 
+			FROM COM_ORGN_INFO
+			WHERE UPPER_ORGN_CD IN 
+				(SELECT ORGN_CD FROM COM_ORGN_INFO
+				WHERE UPPER_ORGN_CD = '10000001')
+		) A
+		WHERE A.ORGN_CD IN ('10000001')
+	</select>	
+
+	<insert id="insertErpCode" parameterType="java.util.Map">
+		/* insertErpCode */
+		INSERT INTO COM_ORGN_ERP
+		( 
+			ORGN_CD
+			, ERP_CD
+			, ERP_NM
+			, USE_YN
+			, REG_DT
+			, REG_ID
+		) 
+		values 
+		(
+			#{ORGN_CD}
+			, #{ERP_CD}
+			, #{ERP_NM}
+			, 'Y'
+			, NOW()
+			, #{REG_ID}
+		)
+		ON DUPLICATE KEY UPDATE
+			ORGN_CD = #{ORGN_CD}
+			, ERP_CD = #{ERP_CD}
+			, ERP_NM = #{ERP_NM}
+			, USE_YN = #{USE_YN}
+			, MOD_ID = #{MOD_ID}
+			, MOD_DT = NOW()
+	</insert>
+	
+	<select id="getErpCodeCheck" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getErpCodeCheck */
+		SELECT COUNT(ERP_CD) CNT
+		FROM COM_ORGN_ERP 
+		WHERE ERP_CD = #{ERP_CD}
+			AND USE_YN = 'Y'
+	</select>	
+	
+	<select id="getErpCodeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getErpCodeList */
+		SELECT
+			ORGN_CD
+			, ERP_CD
+			, ERP_NM
+			, USE_YN
+			, CONVERT(VARCHAR,REG_DT, 120) REG_DT
+			, REG_ID
+			, CONVERT(VARCHAR,MOD_DT, 120) MOD_DT
+			, MOD_ID
+			, INST_DT
+		FROM COM_ORGN_ERP
+		WHERE 
+			USE_YN = 'Y'
+			AND ORGN_CD = #{ORGN_CD}
+	</select>
+	
+	
+	<insert id="saveFacIf" parameterType="java.util.Map">
+		/* saveFacIf */
+		INSERT INTO COM_DLV_BSN_INFO
+		( 
+			DLV_BSN_CD
+			, DLV_BSN_NM
+			, LICENS_NO
+			, DLV_BSN_DIV_CD
+			, RPST_NM
+			--, CHAR_NM
+			--, CHAR_EMAIL
+			, CHAR_TEL_NO
+			, TEL_NO
+			, FAX_NO
+			, ZIPCODE
+			, ADDR
+			, ADDR_DTL
+			, INDUSTRY
+			, SECTOR
+			, SAPCODE
+			, TAX_TYPE
+			, USE_YN
+			, REG_DT
+			, REG_ID
+			
+		) 
+		values 
+		(
+			#{DLV_BSN_CD}
+			, #{DLV_BSN_NM}
+			, #{LICENS_NO}
+			, #{DLV_BSN_DIV_CD}
+			, #{RPST_NM}
+			--, #CHAR_NM
+			--, #CHAR_EMAIL
+			, #{CHAR_TEL_NO}
+			, #{TEL_NO}
+			, #{FAX_NO}
+			, #{ZIPCODE}
+			, #{ADDR}
+			, #{ADDR_DTL}
+			, #{INDUSTRY}
+			, #{SECTOR}
+			, #{SAPCODE}
+			, #{TAX_TYPE}
+			, #{USE_YN}
+			, NOW()
+			, #{REG_ID}
+		)
+		ON DUPLICATE KEY UPDATE
+			DLV_BSN_NM = #{DLV_BSN_NM}
+			, LICENS_NO = #{LICENS_NO}
+			, DLV_BSN_DIV_CD = #{DLV_BSN_DIV_CD}
+			, RPST_NM = #{RPST_NM}
+			--, CHAR_NM = #CHAR_NM
+			--, CHAR_EMAIL = #CHAR_EMAIL
+			, CHAR_TEL_NO = #{CHAR_TEL_NO}
+			, TEL_NO = #{TEL_NO}
+			, FAX_NO = #{FAX_NO}
+			, ZIPCODE = #{ZIPCODE}
+			, ADDR = #{ADDR}
+			, ADDR_DTL = #{ADDR_DTL}
+			, INDUSTRY = #{INDUSTRY}
+			, SECTOR = #{SECTOR}
+			, SAPCODE = #{SAPCODE}
+			, TAX_TYPE = #{TAX_TYPE}
+			, USE_YN = #{USE_YN}
+			, REG_DT = NOW()
+			, REG_ID = #{REG_ID}
+	</insert>
+	
+	<select id="getOrgnDivCdByOrgnCd" resultType="java.lang.String" parameterType="java.lang.String">
+		/* getOrgnDivCdByOrgnCd */
+		SELECT
+			TOP 1 IFNULL(ORGN_DIV_CD, '') AS ORGN_DIV_CD
+		FROM COM_ORGN_INFO
+		WHERE ORGN_CD = #{ORGN_CD}
+	</select>
+	
+</mapper>

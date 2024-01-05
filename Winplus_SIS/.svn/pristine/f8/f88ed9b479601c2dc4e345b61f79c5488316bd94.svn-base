@@ -1,0 +1,110 @@
+html{
+	padding:0;
+	margin:0;
+}
+body {
+	padding:0;
+	margin:0;
+	background-color: #EEE;
+	font-family:Malgun Gothic, 맑은 고딕;
+	font-size:9pt;
+}
+div {
+	margin:0;
+	padding:0;
+}
+.common_pointer{
+	cursor:pointer;
+}
+#top {
+	width:100%;
+	height:345px;
+	background-color: #FFF;
+}
+#bottom{
+	padding-top:5px;
+	width:100%;
+}
+.top_div {
+	margin:auto;
+	padding-top:286px;
+	width:359px;
+}
+.bottom_div {
+	margin:auto;
+	width:230px;
+}
+.input_elem {
+	border:1px #BBB solid;	
+	padding:2px;	
+}
+.left_elem {
+	width:70px;
+}
+.right_elem {
+	width:145px;
+}
+.center_elem {
+	text-align:center;	
+}
+.cb_elem {
+	margin-top:3px;
+	padding: 3px;	
+	text-align:left;	
+	vertical-align: top;
+}
+.label {
+	display:inline-block;
+	text-align:right;
+	padding:3px;
+	color:#333;
+	font-weight:bold;
+}
+#txtLOGN_ID{
+	ime-mode:disabled;
+}
+#btnLOGIN {	
+	margin-top:5px;
+	border:1px solid #c86d5b;
+	background-color:#c86d5b;
+	color:#fff;
+	padding:5px;
+	width:100%;
+	border-radius: 5px;
+	font-weight: bold;
+	font-size:9pt;
+}
+#pwPASSWORD{
+	margin: 2px 0px;
+}
+.hr_common_message {
+	border: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, rgba(100, 100, 100, 0), rgba(100, 100, 100, 0.75), rgba(100, 100, 100, 0));
+}
+.span_exception_header{
+	font-weight: bold;
+	color:#ff8855;
+}
+#btnIDSEARCH {	
+	margin-top:5px;
+	border:1px solid #c86d5b;
+	background-color:#c86d5b;
+	color:#fff;
+	padding:5px;
+	width:50%;
+	border-radius: 5px;
+	font-weight: bold;
+	font-size:9pt;
+}
+#btnPWDSEARCH {	
+	margin-top:5px;
+	border:1px solid #c86d5b;
+	background-color:#c86d5b;
+	color:#fff;
+	padding:5px;
+	width:50%;
+	border-radius: 5px;
+	font-weight: bold;
+	font-size:9pt;
+}

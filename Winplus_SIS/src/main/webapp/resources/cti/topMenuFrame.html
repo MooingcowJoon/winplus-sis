@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WebSocekt Sample</title>
+<link href="./css/cti.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="./js/cti.js"></script>
+</head>
+<body>
+<div style="display:none">
+서버아이피: <input type="text" name="cti_server_ip" id="cti_server_ip" value="203.239.159.165">
+웹소켓아이피: <input type="text" name="cti_server_socket_ip" id="cti_server_socket_ip" value="203.239.159.165">
+서버포트: <input type="text" name="cti_server_port" id="cti_server_port" value="7070">
+<input type="button" value="웹소켓접속" onclick="webSocketGo();">
+<input type="button" value="웹소켓끊기" onclick="func_logout();goWebSocketDisconnect();">
+<br/>
+아이디 : <input type="text" name="cti_login_id" id="cti_login_id" value="winplus1">
+비밀번호 : <input type="text" name="cti_login_pwd" id="cti_login_pwd" value="0000">
+전화번호 : <input type="text" name="cti_login_ext" id="cti_login_ext" value="07042622875">
+<input type="hidden" name="checkGroupValue" id="checkGroupValue" value="N">
+<input type="hidden" name="checkGroupValue2" id="checkGroupValue2" value="N">
+
+<input type="button" value="로그인" onclick="loginGo();">
+</div>
+<div style="display:none">
+	<textarea id="messages" cols="150" rows="10"></textarea>
+	<input type="button" value="로그초기화" onclick="javascript:document.getElementById('messages').value='';">
+</div>
+<div style="padding:10px 0 0 10px;">
+<table style="width:1186px" border="0" cellspacing="0" cellpadding="0">
+	<tr>
+		<td style="width:555px;height:36px" valign="top">
+		<!-- CTI 전화 -->								
+		<table style="width:550px" border="0" cellspacing="0" cellpadding="0">
+			<tr>
+				<td width="11px"><img src="./images/cti/search_left.gif" alt="" title=""></td>
+				<td width="55px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">전화번호</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="102px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;vertical-align:top"><input name="makeCallNum" id="makeCallNum" type="text" style="width:90px;ime-mode:disabled" onKeyPress="return CheckNumeric();" onPaste="return fnPaste();" class="cti_input"></td>
+				<td width="358px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:7px;vertical-align:top"><img id="search_call_o" src="./images/cti/search_call_o.gif" onclick="javascript:didCheckMakeCall();" class="cti_call_img" alt="걸기" title="걸기"><img id="search_get_o" src="./images/cti/search_get_o.gif" onclick="javascript:func_answer();" class="cti_call_img" alt="받기" title="받기"><img id="search_pickup_o" src="./images/cti/search_pickup_o.gif" onclick="javascript:func_pickup();" class="cti_call_img" alt="당겨받기" title="당겨받기"><img id="search_hung_o" src="./images/cti/search_hung_o.gif" onclick="func_hangup();" class="cti_call_img" alt="끊기" title="끊기"><img id="search_hold_o" src="./images/cti/search_hold_o.gif" onclick="func_hold();" class="cti_call_img" alt="보류" title="보류"><img id="search_holdout_o" src="./images/cti/search_holdout_o.gif" onclick="func_unhold();" class="cti_call_img" alt="보류해제" title="보류해제"><img id="search_mo_o" src="./images/cti/search_mo_o.gif" onclick="func_monitorTransfer();" class="cti_call_img" alt="모니터호전환" title="모니터호전환"><img id="search_return_o" src="./images/cti/search_return_o.gif" onclick="func_blindTransfer(document.getElementById('makeCallNum').value, '');" class="cti_call_img" alt="블라인드호전환" title="블라인드호전환"><img id="search_3_o" src="./images/cti/search_3_o.gif" onclick="func_threeWayCall();" class="cti_call_img" alt="3자통화" title="3자통화"></td>
+				<td width="11px"><img src="./images/cti/search_right.gif" alt="" title=""></td>
+			</tr>
+		</table>
+		<!-- CTI 전화 -->								
+		</td>
+		<td width="631px" valign="top">
+		<!-- CTI 설정 -->
+		<table width="626px" border="0" cellspacing="0" cellpadding="0">
+			<tr>
+				<td width="11px"><img src="./images/cti/search_left.gif" alt="" title=""></td>
+				<td width="52px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">상태변경</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;"><img src="./images/cti/search_line.gif" alt="" title=""></td>		
+				<td width="120px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:7px;vertical-align:top"><select name="tellerStatus" id="tellerStatus" style="width:110px;" onchange="javascript:func_changeTellerStatus(this.value);"><option></option></select></td>
+				<td width="80px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">소속그룹변경</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="141px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:7px;" valign="top"><select name="callGroup" id="callGroup" style="width:131px;" onchange="javascrpt:changeGroup();"><option></option></select></td>
+				<td width="75px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">내번호사용</td>
+				<td width="20px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;"><input type="checkbox" class="check" id="did" onclick="javascript:didCheck();"></td>
+				<td width="90px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;"><input type="button" value="로그아웃" onclick="javascript:func_logout();"></td>
+				<td width="11px"><img src="images/cti/search_right.gif" alt="" title=""></td>
+			</tr>
+		</table>
+		<!-- CTI 설정 -->
+		</td>
+	</tr>
+</table>
+
+<table width="1186px" border="0" cellspacing="0" cellpadding="0">
+	<tr>
+		<td width="761px" height="41px" valign="top">
+		<!-- CTI 통계 -->								
+		<table width="756px" border="0" cellspacing="0" cellpadding="0">
+			<tr>
+				<td width="11px"><img src="./images/cti/search_left.gif" alt="" title=""></td>
+				<td width="65px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">호분배시도</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="31px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="transferTryCnt" class="cti_text_nomal">0</span></td>
+				<td width="65px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x" class="cti_text_bold">호분배연결</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="31px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="transferConnectCnt" class="cti_text_nomal">0</span></td>
+				<td width="78px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x" class="cti_text_bold">인바운드시도</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="31px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="ibTryCnt" class="cti_text_nomal">0</span></td>
+				<td width="78px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x" class="cti_text_bold">인바운드연결</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="31px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="ibConnectCnt" class="cti_text_nomal">0</span></td>
+				<td width="92px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x" class="cti_text_bold">아웃바운드시도</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="31px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="obTryCnt" class="cti_text_nomal">0</span></td>
+				<td width="92px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x" class="cti_text_bold">아웃바운드연결</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="31px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="obConnectCnt" class="cti_text_nomal">0</span></td>
+				<td width="11"><img src="./images/cti/search_right.gif" alt="" title=""></td>
+			</tr>
+		</table>
+		<!-- CTI 통계 -->								
+		</td>
+		<td width="425px" valign="top">
+		<!-- CTI 상태 -->
+		<table width="420px" border="0" cellpadding="0" cellspacing="0" >
+			<tr>
+				<td width="11px"><img src="./images/cti/search_left.gif" alt="" title=""></td>
+
+				<td width="27px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">상태</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="100px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="status" class="cti_text_nomal">연결안됨</span></td>
+
+				<td width="78px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">발신표시번호</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="82px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:6px;"><span id="outCallNum" class="cti_text_nomal"></span></td>
+
+				<td width="52px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;" class="cti_text_bold">고객대기</td>
+				<td width="13px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x"><img src="./images/cti/search_line.gif" alt="" title=""></td>
+				<td width="20px" style="background-image:url('./images/cti/search_bg.gif');background-repeat:repeat-x;padding-top:5px;" class="red_12"><span id="cti_waitting_cnt" class="cti_text_nomal">0</span></td>
+
+				<td width="11px"><img src="./images/cti/search_right.gif" alt="" title=""></td>
+			</tr>
+		</table>
+		<!-- CTI 상태 -->
+		</td>
+	</tr>
+</table>
+</div>
+<script type="text/javascript">
+webSocketGo();//웹소켓접속
+setTimeout ('loginGo()', 3000);//로그인
+</script>
+
+</body>
+</html>

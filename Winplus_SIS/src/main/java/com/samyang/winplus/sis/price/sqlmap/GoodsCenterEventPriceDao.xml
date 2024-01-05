@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.price.dao.GoodsCenterEventPriceDao">
+	<select id="getCenterEventList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCenterEventList */
+		SELECT
+			*
+			, STRT_DATE AS BEGIN_DATE
+		FROM T_CENT_EVENT_PRICE
+		WHERE 1=1
+		<if test = 'PAGE_TYPE == "S"'>
+		AND EVENT_TYPE = '2'
+		</if>
+		<if test = 'PAGE_TYPE == "P"'>
+		AND EVENT_TYPE = '1'
+		</if>
+		<if test='ORGN_CD != ""'>
+		AND ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test='EVENT_GRUP_CD != ""'>
+		AND EVENT_GRUP_CD = #{EVENT_GRUP_CD}
+		</if>
+		<if test='DATE_FR != "" or DATE_TO != ""'>
+			<choose>
+				<when test='DATE_FR != "" and DATE_TO != ""'>
+					AND STRT_DATE BETWEEN DATEADD(DD,0, #{DATE_FR}) AND DATEADD(SS,-1,DATEADD(DD,1,#{DATE_TO}))
+					AND END_DATE BETWEEN DATEADD(DD,0, #{DATE_FR}) AND DATEADD(SS,-1,DATEADD(DD,1,#{DATE_TO}))
+				</when>
+				
+				<when test='DATE_FR != ""'>
+					AND DATEADD(DD,0, #{DATE_FR}) <![CDATA[<=]]> STRT_DATE
+				</when>
+				
+				<when test='DATE_TO != ""'>
+					AND END_DATE <![CDATA[<=]]> DATEADD(DD,0, #{DATE_TO})
+				</when>
+			</choose>
+		</if>
+		<if test='EVENT_STATE != ""'>
+		AND EVENT_STATE = #{EVENT_STATE}
+		</if>
+		ORDER BY STRT_DATE, EVENT_TITLE
+	</select>
+	
+	
+	<insert id="insertCenterEventList" parameterType="java.util.Map">
+		/* insertCenterEventList */
+		DECLARE @CRUD			nvarchar(100) = #{CRUD}
+		DECLARE @REG_ID			nvarchar(10) = #{REG_ID}
+	
+		DECLARE @ORGN_DIV_CD	nvarchar(10) = #{ORGN_DIV_CD}
+		DECLARE @ORGN_CD		nvarchar(10) = #{ORGN_CD}
+		DECLARE @EVENT_TITLE	nvarchar(30) = #{EVENT_TITLE}
+		DECLARE @EVENT_GRUP_CD	nvarchar(20) = #{EVENT_GRUP_CD}
+		DECLARE @EVENT_TYPE		nvarchar(1) = #{EVENT_TYPE}
+		DECLARE @STRT_DATE		nvarchar(8) = #{BEGIN_DATE}
+		DECLARE @STRT_TIME		nvarchar(6) = #{STRT_TIME}
+		DECLARE @END_DATE		nvarchar(8) = #{END_DATE}
+		DECLARE @CHG_REMK		nvarchar(50) = #{CHG_REMK}
+		DECLARE @EVENT_STATE	nvarchar(1) = #{EVENT_STATE}
+		DECLARE @VRN			int
+		
+		SET @VRN = 0
+		EXEC SP_CRUD_CENTEREVENTPRICE 
+			@CRUD
+			, @REG_ID
+			, @ORGN_DIV_CD
+			, @ORGN_CD
+			, @EVENT_TITLE
+			, @EVENT_GRUP_CD
+			, @EVENT_TYPE
+			, @STRT_DATE
+			, @STRT_TIME
+			, @END_DATE
+			, @CHG_REMK
+			, @REG_ID
+			, @ORGN_CD
+			, @EVENT_STATE
+						
+			,@VRN output
+		SELECT @VRN
+	</insert>
+	
+	<select id="getCenterEventGoodsInfo" parameterType="Map" resultType="CMap">
+		/* getCenterEventGoodsInfo */
+		<if test='list.size > 0'>
+		SELECT *
+			FROM(
+				SELECT
+					T1.BCD_CD
+					, T1.BCD_NM
+					, T1.DIMEN_NM
+					, T2.CUSTMR_CD
+					, T2.PUR_PRICE
+					, T3.ORGN_CD
+					, T3.SALE_PRICE
+					, T3.RCMD_SALE_PRICE
+					, (T3.PROF_RATE*100) AS PROF_RATE
+					, ROW_NUMBER() OVER(PARTITION BY T3.ORGN_CD, T3.BCD_CD ORDER BY T3.SALE_PRICE ASC, T3.PROF_RATE DESC) AS 'RANK'
+					,'Y' AS TAX_YN
+					,'Y' AS USE_YN
+				FROM 
+					T_STD_MAST_BCD T1
+					LEFT JOIN (SELECT MIN(PUR_PRICE) AS PUR_PRICE
+											,BCD_CD ,CUSTMR_CD
+								FROM T_STD_MAST_PUR_PRICE
+								GROUP BY BCD_CD,CUSTMR_CD
+					) T2
+					ON T1.BCD_CD = T2.BCD_CD
+					INNER JOIN T_STD_MAST_SALE_PRICE T3
+					ON T1.BCD_CD = T3.BCD_CD
+				WHERE
+					1=1
+					AND T3.ORGN_CD IN (SELECT CMMN_DETAIL_CD FROM COM_CMMN_CODE_DETAIL WHERE 1=1 AND CMMN_CD = 'ORGN_CD' AND DIV1 = 'CT')
+					AND T1.BCD_CD IN
+					<foreach collection="list" item="item" open="(" separator="," close=")">
+						#{item}
+					</foreach>
+				) T
+			WHERE T.RANK = 1
+		</if>
+	</select>
+	
+	<select id="insertCenterEventGoodsList" parameterType="Map">
+		/* insertCenterEventGoodsList */
+		<foreach collection="list" item="map">
+			INSERT INTO T_CENT_EVENT_PRICE_GOODS(
+				EVENT_GRUP_CD
+				, BCD_CD
+				, CENT_SALE_PRICE
+				, SALE_PRICE
+				, TAX_YN
+				, USE_YN
+				, REMK
+			)VALUES(
+				 #{map.EVENT_GRUP_CD}
+				,#{map.BCD_CD}
+				,#{map.SALE_EVENT_PRICE}
+				,#{map.RCMD_SALE_PRICE}
+				,#{map.TAX_YN}
+				,#{map.USE_YN}
+				,#{map.REMK}
+			)
+		</foreach>
+	</select>
+	
+	<select id="updateCenterEventGoodsList" parameterType="Map">
+		/* updateCenterEventGoodsList */
+		<foreach collection="list" item="map">
+			UPDATE T_CENT_EVENT_PRICE_GOODS
+			SET 
+				CENT_SALE_PRICE = #{map.SALE_EVENT_PRICE}
+				, SALE_PRICE = #{map.RCMD_SALE_PRICE}
+				, TAX_YN = #{map.TAX_YN}
+				, USE_YN = #{map.USE_YN}
+				, REMK = #{map.REMK}
+			WHERE
+				1=1
+				AND EVENT_GRUP_CD = #{map.EVENT_GRUP_CD}
+				AND BCD_CD = #{map.BCD_CD}
+		</foreach>
+	</select>
+	
+	<select id="deleteCenterEventGoodsList" parameterType="Map">
+		/* deleteCenterEventGoodsList */
+		<foreach collection="list" item="map">
+			UPDATE T_CENT_EVENT_PRICE_GOODS
+			SET USE_YN = 'N'
+			WHERE 
+				1=1
+				AND EVENT_GRUP_CD = #{map.EVENT_GRUP_CD}
+				AND BCD_CD = #{map.BCD_CD}
+		</foreach>
+	</select>
+	
+	<select id="insertCenterEventGoodsPurList" parameterType="Map">
+		/* insertCenterEventGoodsPurList */
+		<foreach collection="list" item="map">
+			INSERT INTO T_CENT_EVENT_PRICE_GOODS(
+				EVENT_GRUP_CD
+				, BCD_CD
+				, CENT_SALE_PRICE
+				, SALE_PRICE
+				, TAX_YN
+				, USE_YN
+				, REMK
+			)VALUES(
+				 #{map.EVENT_GRUP_CD}
+				,#{map.BCD_CD}
+				,#{map.SALE_EVENT_PRICE}
+				,#{map.PUR_PRICE}
+				,#{map.TAX_YN}
+				,#{map.USE_YN}
+				,#{map.REMK}
+			)
+		</foreach>
+	</select>
+	
+	<select id="updateCenterEventGoodsPurList" parameterType="Map">
+		/* updateCenterEventGoodsPurList */
+		<foreach collection="list" item="map">
+			UPDATE T_CENT_EVENT_PRICE_GOODS
+			SET 
+				CENT_SALE_PRICE = #{map.SALE_EVENT_PRICE}
+				, SALE_PRICE = #{map.PUR_PRICE}
+				, TAX_YN = #{map.TAX_YN}
+				, USE_YN = #{map.USE_YN}
+				, REMK = #{map.REMK}
+			WHERE
+				1=1
+				AND EVENT_GRUP_CD = #{map.EVENT_GRUP_CD}
+				AND BCD_CD = #{map.BCD_CD}
+		</foreach>
+	</select>
+	
+	<select id="deleteCenterEventGoodsPurList" parameterType="Map">
+		/* deleteCenterEventGoodsPurList */
+		<foreach collection="list" item="map">
+			UPDATE T_CENT_EVENT_PRICE_GOODS
+			SET USE_YN = 'N'
+			WHERE 
+				1=1
+				AND EVENT_GRUP_CD = #{map.EVENT_GRUP_CD}
+				AND BCD_CD = #{map.BCD_CD}
+		</foreach>
+	</select>
+	
+	<select id="getCenterEventGoodsList" parameterType="Map" resultType="CMap">
+		/* getCenterEventGoodsList */
+			SELECT *
+			FROM(
+				SELECT
+					DISTINCT
+					T1.BCD_CD
+					, T2.BCD_NM
+					, T2.DIMEN_NM
+					, CAST(T1.CENT_SALE_PRICE AS INT) SALE_EVENT_PRICE
+					, CAST(T3.SALE_PRICE AS INT) SALE_PRICE
+					, CAST(T3.RCMD_SALE_PRICE AS INT) RCMD_SALE_PRICE
+					, T3.PROF_RATE
+					, T1.TAX_YN
+					, T1.USE_YN
+					, T1.REMK
+					, RANK() OVER(PARTITION BY T3.ORGN_CD, T3.BCD_CD ORDER BY T3.PROF_RATE DESC) AS 'RANK'
+					, T4.PUR_PRICE
+				FROM
+					T_CENT_EVENT_PRICE_GOODS T1
+					INNER JOIN T_STD_MAST_BCD T2
+					ON T1.BCD_CD = T2.BCD_CD
+					LEFT JOIN T_STD_MAST_SALE_PRICE T3
+					ON T1.BCD_CD = T3.BCD_CD
+					LEFT JOIN (SELECT MIN(PUR_PRICE) AS PUR_PRICE
+											,BCD_CD
+								FROM T_STD_MAST_PUR_PRICE
+								GROUP BY BCD_CD
+					) T4
+					ON T1.BCD_CD = T4.BCD_CD
+				WHERE
+					1=1
+					AND T3.ORGN_CD IN (SELECT CMMN_DETAIL_CD FROM COM_CMMN_CODE_DETAIL WHERE 1=1 AND CMMN_CD = 'ORGN_CD' AND DIV1 = 'CT')
+					AND EVENT_GRUP_CD = #{EVENT_GRUP_CD}
+				) T
+			WHERE T.RANK = 1
+			
+	</select>
+	
+	<select id="getCenterEventCustmrInfo" parameterType="List" resultType="CMap">
+		/* getCenterEventCustmrInfo */
+		<if test='list.size > 0'>
+			SELECT
+				T1.CUSTMR_CD
+				, T1.CUSTMR_NM
+				, IFNULL(T1.PUR_SALE_TYPE,'') TRADE_TYPE
+				, T1.USE_YN
+			FROM 
+				T_STD_MAST_CUSTMR T1
+			WHERE
+				1=1
+				AND T1.CUSTMR_CD IN
+				<foreach collection="list" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+		</if>
+	</select>
+	
+	<select id="insertCenterEventCustmrList" parameterType="Map">
+		/* insertCenterEventCustmrList */
+		<foreach collection="list" item="map">
+			INSERT INTO T_CENT_EVENT_PRICE_CUSTMR(
+				EVENT_GRUP_CD
+				, GRUP_CD
+				, CUSTMR_CD
+				, TRADE_TYPE
+				, USE_YN
+				, REMK
+			)VALUES(
+				 #{map.EVENT_GRUP_CD}
+				,#{map.GRUP_CD}
+				,#{map.CUSTMR_CD}
+				,#{map.TRADE_TYPE}
+				,#{map.USE_YN}
+				,#{map.REMK}
+			)
+		</foreach>
+	</select>
+	
+	<select id="updateCenterEventCustmrList" parameterType="Map">
+		/* updateCenterEventCustmrList */
+		<foreach collection="list" item="map">
+			UPDATE T_CENT_EVENT_PRICE_CUSTMR
+			SET 
+				TRADE_TYPE = #{map.TRADE_TYPE}
+				, USE_YN = #{map.USE_YN}
+				, REMK = #{map.REMK}
+			WHERE
+				1=1
+				AND EVENT_GRUP_CD = #{map.EVENT_GRUP_CD}
+				AND CUSTMR_CD = #{map.CUSTMR_CD}
+				AND GRUP_CD = #{map.GRUP_CD}
+		</foreach>
+	</select>
+	
+	<select id="deleteCenterEventCustmrList" parameterType="Map">
+		/* deleteCenterEventCustmrList */
+		<foreach collection="list" item="map">
+			UPDATE T_CENT_EVENT_PRICE_CUSTMR
+			SET USE_YN = 'N'
+			WHERE 
+				1=1
+				AND EVENT_GRUP_CD = #{map.EVENT_GRUP_CD}
+				AND CUSTMR_CD = #{map.CUSTMR_CD}
+				AND GRUP_CD = #{map.GRUP_CD}
+		</foreach>
+	</select>
+	
+	<select id="getCenterEventCustmrList" parameterType="Map" resultType="CMap">
+		/* getCenterEventCustmrList */
+		SELECT
+			DISTINCT
+			T1.CUSTMR_CD
+			, T2.CUSTMR_NM
+			, T1.TRADE_TYPE
+			, T1.USE_YN
+			, T1.REMK
+			, T1.GRUP_CD
+		FROM
+			T_CENT_EVENT_PRICE_CUSTMR T1
+			INNER JOIN T_STD_MAST_CUSTMR T2
+			ON T1.CUSTMR_CD = T2.CUSTMR_CD
+		WHERE
+			1=1
+			AND EVENT_GRUP_CD = #{EVENT_GRUP_CD}
+			
+	</select>
+	
+</mapper>

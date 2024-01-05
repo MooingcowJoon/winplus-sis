@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.market.dao.GoodsInspectionRegistDao">
+	<select id="getGoodsInspectionRegistHeaderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsInspectionRegistHeaderList */
+		SELECT
+			PM.[ORGN_DIV_CD]
+			,PM.[ORGN_CD]
+			,PM.PUR_TYPE
+			,SMC.CUSTMR_NM
+			,PM.[PUR_DATE]
+			,CONVERT(NVARCHAR(10),CONVERT(DATE,PM.[PUR_DATE]),120) AS PUR_YYYYMMDD
+			,PM.[PUR_SLIP_CD]
+			,PM.[PAY_SUM_AMT]
+			,PM.[MEMO]
+			,CONVERT(NVARCHAR(20),IFNULL(PM.MDATE,PM.CDATE),120) AS MDATE_YYYYMMDD
+			,PM.CONF_TYPE
+			,PM.SEND_TYPE
+		FROM T_PUR_MAST PM
+		INNER JOIN T_STD_MAST_CUSTMR SMC
+		ON PM.SUPR_CD = SMC.CUSTMR_CD
+		WHERE PM.PUR_DATE = #{INSP_DATE}
+		AND PM.ORGN_CD = #{ORGN_CD}
+		AND PM.USE_YN = 'Y'
+	</select>
+	
+	<select id="getGoodsInspectionRegistDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsInspectionRegistDetailList */
+		SELECT
+			[ORGN_DIV_CD]
+			,[ORGN_CD]
+			,[PUR_SLIP_CD]
+			,[BCD_CD]
+			,[BCD_CD] AS HID_BCD_CD
+			,(
+				SELECT
+					BCD_NM 
+				FROM T_STD_MAST_BCD 
+				WHERE T_STD_MAST_BCD.BCD_CD = T_PUR_DETL.BCD_CD
+			) AS BCD_NM
+			,(
+				SELECT
+					DIMEN_NM 
+				FROM T_STD_MAST_BCD 
+				WHERE T_STD_MAST_BCD.BCD_CD = T_PUR_DETL.BCD_CD
+			) AS DIMEN_NM
+			,[BCD_M_CD]
+			,[PUR_QTY] AS SALE_QTY
+			,[PUR_PRICE] AS SALE_PRICE
+			,[PUR_SLIP_SEQ]
+			,[PAY_SUM_AMT]
+			,[VAT]
+			,[SUPR_AMT]
+			,[GOODS_SALETYPE]
+			,[PAY_SUM_AMT]
+			,[GOODS_EVENT_YN]
+			,[GOODS_TAX_YN] AS TAX_YN
+			,[BF_PUD_EAGUARANTY]
+			,[BF_PUD_GUARANTY]
+			,[SCHD_SALE_AMT]
+			,[PUR_UNIT_CAPA]
+			,[UNIT_CD]
+			,[PUR_DC_AMT]
+		FROM T_PUR_DETL
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND PUR_SLIP_CD = #{PUR_SLIP_CD}
+		AND USE_YN = 'Y'
+	</select>
+	
+	<select id="updateGoodsInspectionRegistList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateGoodsInspectionRegistList */
+		<if test='CRUD != null and CRUD != "D"'>
+			DECLARE @PUR_SLIP_SEQ INT
+			
+			SET @PUR_SLIP_SEQ = (
+								SELECT
+									(COUNT(PUR_SLIP_SEQ)+1) AS SEQ
+								FROM T_PUR_DETL
+								WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+							)
+			
+			IF EXISTS(
+						SELECT
+							PUR_SLIP_CD
+						FROM T_PUR_DETL
+						WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+						AND PUR_SLIP_SEQ = #{PUR_SLIP_SEQ}
+					)
+				BEGIN
+					UPDATE T_PUR_DETL
+					SET BCD_CD = #{BCD_CD}
+						,PUR_PRICE = #{PUR_PRICE}
+						,PUR_QTY = #{PUR_QTY}
+						,PAY_SUM_AMT = #{PAY_SUM_AMT}
+						,GOODS_TAX_YN = #{GOODS_TAX_YN}
+						,MPROGRM = #{PROGRM}
+						,MUSER = #{EMP_NO}
+						,MDATE = NOW()
+					WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+					AND PUR_SLIP_SEQ = #{PUR_SLIP_SEQ}
+					AND (
+							'N' IN (
+									SELECT
+										IFNULL(IFNULL(SEND_TYPE,CONF_TYPE),'N')
+									FROM T_PUR_MAST
+									WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+								)
+						OR
+							NOT EXISTS (
+									SELECT
+										IFNULL(IFNULL(SEND_TYPE,CONF_TYPE),'N')
+									FROM T_PUR_MAST
+									WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+								)
+						)
+					
+					SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+				END
+			ELSE
+				BEGIN
+					INSERT INTO T_PUR_DETL (
+						[ORGN_DIV_CD]
+						,[ORGN_CD]
+						,[PUR_SLIP_CD]
+						,[BCD_CD]
+						,[PUR_QTY]
+						,[PUR_PRICE]
+						,[PUR_SLIP_SEQ]
+						,[PAY_SUM_AMT]
+						,[GOODS_TAX_YN]
+						,[USE_YN]
+						,[CPROGRM]
+						,[CUSER]
+						,[CDATE]
+					) VALUES (
+						(SELECT ORGN_DIV_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+						,#{ORGN_CD}
+						,#{PUR_SLIP_CD}
+						,#{BCD_CD}
+						,#{PUR_QTY}
+						,#{PUR_PRICE}
+						,@PUR_SLIP_SEQ
+						,#{PAY_SUM_AMT}
+						,#{GOODS_TAX_YN}
+						,'Y'
+						,#{PROGRM}
+						,#{EMP_NO}
+						,NOW()
+					)
+					
+					SELECT 'INS_SUCCESS' AS RESULT_MSG
+				END
+		</if>
+		<if test='CRUD != null and CRUD == "D"'>
+			UPDATE T_PUR_DETL
+			SET USE_YN = 'N'
+				,MPROGRM = #{PROGRM}
+				,MUSER = #{EMP_NO}
+				,MDATE = NOW()
+			WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+			AND PUR_SLIP_SEQ = #{PUR_SLIP_SEQ}
+			AND 'N' IN (
+							SELECT
+								IFNULL(IFNULL(SEND_TYPE,CONF_TYPE),'N')
+							FROM T_PUR_MAST
+							WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+						)
+			
+			SELECT 'DEL_SUCCESS' AS RESULT_MSG
+		</if>
+	</select>
+	
+	<select id="updateGoodsInspectionRegistHeader" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateGoodsInspectionRegistHeader */
+		UPDATE PD
+		SET PD.BCD_M_CD = TMP.BCD_M_CD
+			,PD.SUPR_AMT = TMP.SUPR_AMT
+			,PD.VAT = TMP.VAT
+			,PD.GOODS_SALETYPE = TMP.GOODS_SALE_TYPE
+			,PD.GOODS_TAX_YN = TMP.TAX_TYPE
+		FROM T_PUR_DETL PD
+		INNER JOIN (
+			SELECT
+				PD.ORGN_DIV_CD
+				,PD.ORGN_CD
+				,PD.PUR_SLIP_CD
+				,PD.PUR_SLIP_SEQ
+				,PD.BCD_CD
+				,SMB.BCD_M_CD
+				,(CASE 
+					WHEN IFNULL(SMG.TAX_TYPE,'N') = 'Y' THEN ((IFNULL(PD.PUR_PRICE,0)*PD.PUR_QTY) - ((IFNULL(PD.PUR_PRICE,0)*PD.PUR_QTY) - CEILING((IFNULL(PD.PUR_PRICE,0)*PD.PUR_QTY)/1.1))) 
+					ELSE IFNULL(PD.PUR_PRICE,0)*PD.PUR_QTY
+				END) AS SUPR_AMT
+				,(CASE
+					WHEN IFNULL(SMG.TAX_TYPE,'N') = 'Y' THEN ((IFNULL(PD.PUR_PRICE,0)*PD.PUR_QTY) - ((IFNULL(PD.PUR_PRICE,0)*PD.PUR_QTY) - CEILING((IFNULL(PD.PUR_PRICE,0)*PD.PUR_QTY)/1.1)))
+					ELSE 0
+				END) AS VAT
+				,SMG.GOODS_SALE_TYPE
+				,SMG.TAX_TYPE
+			FROM T_PUR_DETL PD
+			INNER JOIN T_STD_MAST_BCD SMB
+			ON PD.BCD_CD = SMB.BCD_CD
+			INNER JOIN T_STD_MAST_GOODS SMG
+			ON SMB.GOODS_NO = SMG.GOODS_NO
+			WHERE PD.PUR_SLIP_CD = #{PUR_SLIP_CD}
+		) TMP
+		ON PD.ORGN_DIV_CD = TMP.ORGN_DIV_CD
+		AND PD.ORGN_CD = TMP.ORGN_CD
+		AND PD.PUR_SLIP_CD = TMP.PUR_SLIP_CD
+		AND PD.PUR_SLIP_SEQ = TMP.PUR_SLIP_SEQ
+		WHERE PD.PUR_SLIP_CD = #{PUR_SLIP_CD}
+		AND (
+				'N' IN (
+						SELECT
+							IFNULL(IFNULL(SEND_TYPE,CONF_TYPE),'N')
+						FROM T_PUR_MAST
+						WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+					)
+			OR
+				NOT EXISTS (
+						SELECT
+							IFNULL(IFNULL(SEND_TYPE,CONF_TYPE),'N')
+						FROM T_PUR_MAST
+						WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+					)
+			)
+		
+		IF EXISTS(
+					SELECT
+						PUR_SLIP_CD
+					FROM T_PUR_MAST
+					WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+				)
+			BEGIN
+				UPDATE PM
+				SET PM.PUR_TAXA_AMT = PD.PUR_TAXA_AMT
+					,PM.PUR_FREE_AMT = PD.PUR_FREE_AMT
+					,PM.PAY_VAT_YN = PD.PAY_VAT_YN
+					,PM.PAY_SUM_AMT = PD.PAY_SUM_AMT
+					,PM.MEMO = #{MEMO}
+					,PM.MPROGRM = #{PROGRM}
+					,PM.MUSER = #{EMP_NO}
+					,PM.MDATE = NOW()
+				FROM T_PUR_MAST PM
+				INNER JOIN (
+					SELECT
+						PD.ORGN_DIV_CD
+						,PD.ORGN_CD
+						,PD.PUR_SLIP_CD
+						,SUM(CASE WHEN IFNULL(GOODS_TAX_YN,'N') = 'Y' THEN PD.PAY_SUM_AMT ELSE 0 END) AS PUR_TAXA_AMT
+						,SUM(CASE WHEN IFNULL(GOODS_TAX_YN,'N') = 'N' THEN PD.PAY_SUM_AMT ELSE 0 END) AS PUR_FREE_AMT
+						,MAX(CASE WHEN IFNULL(GOODS_TAX_YN,'N') = 'Y' THEN 'Y' ELSE 'N' END) AS PAY_VAT_YN
+						,SUM(PD.PAY_SUM_AMT) AS PAY_SUM_AMT
+					FROM T_PUR_DETL PD
+					WHERE ORGN_CD = #{ORGN_CD}
+					AND PUR_SLIP_CD = #{PUR_SLIP_CD}
+					AND PD.USE_YN = 'Y'
+					GROUP BY PD.ORGN_DIV_CD,PD.ORGN_CD,PD.PUR_SLIP_CD
+				) PD
+				ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD
+				AND PM.ORGN_CD = PD.ORGN_CD
+				AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+				WHERE PM.PUR_SLIP_CD = #{PUR_SLIP_CD}
+				AND IFNULL(PM.CONF_TYPE,'N') = 'N'
+				AND IFNULL(PM.SEND_TYPE,'N') = 'N'
+			END
+		ELSE
+			BEGIN
+				INSERT INTO T_PUR_MAST (
+					ORGN_DIV_CD
+					,ORGN_CD
+					,PUR_SLIP_CD
+					,SUPR_CD
+					,RESP_USER
+					,PUR_TYPE
+					,PUR_DATE
+					,CONF_TYPE
+					,MEMO
+					,PUR_TAXA_AMT
+					,PUR_FREE_AMT
+					,PAY_VAT_YN
+					,PAY_SUM_AMT
+					,CURRCY_TYPE
+					,USE_YN
+					,CPROGRM
+					,CUSER
+					,CDATE
+				)
+				SELECT
+					PD.ORGN_DIV_CD
+					,PD.ORGN_CD
+					,PD.PUR_SLIP_CD
+					,#{SUPR_CD} AS SUPR_CD
+					,#{EMP_NO} AS RESP_USER
+					,#{PUR_TYPE} AS PUR_TYPE
+					,CONVERT(NVARCHAR(8),NOW(), 112) AS PUR_DATE
+					,'N' AS CONF_TYPE
+					,#{MEMO} AS MEMO
+					,SUM(CASE WHEN IFNULL(GOODS_TAX_YN,'N') = 'Y' THEN PD.PAY_SUM_AMT ELSE 0 END) AS PUR_TAXA_AMT
+					,SUM(CASE WHEN IFNULL(GOODS_TAX_YN,'N') = 'N' THEN PD.PAY_SUM_AMT ELSE 0 END) AS PUR_FREE_AMT
+					,MAX(CASE WHEN IFNULL(GOODS_TAX_YN,'N') = 'Y' THEN 'Y' ELSE 'N' END) AS PAY_VAT_YN
+					,SUM(PD.PAY_SUM_AMT) AS PAY_SUM_AMT
+					,'KRW' AS CURRCY_TYPE
+					,'Y' AS USE_YN
+					,#{PROGRM} AS CPROGRM
+					,#{EMP_NO} AS CUSER
+					,NOW() AS CDATE
+				FROM T_PUR_DETL PD
+				WHERE ORGN_CD = #{ORGN_CD}
+				AND PUR_SLIP_CD = #{PUR_SLIP_CD}
+				AND PD.USE_YN = 'Y'
+				GROUP BY PD.ORGN_DIV_CD,PD.ORGN_CD,PD.PUR_SLIP_CD
+			END
+	</select>
+	
+	<select id="deleteGoodsInspectionRegistList" resultType="java.lang.String" parameterType="java.util.Map">
+		/* deleteGoodsInspectionRegistList */
+		SET NOCOUNT ON;
+		
+		DELETE FROM T_PUR_DETL
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND PUR_SLIP_CD IN (
+			SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+		)
+		AND 'N' IN (
+					SELECT
+						MAX(IFNULL(IFNULL(SEND_TYPE,CONF_TYPE),'N'))
+					FROM T_PUR_MAST
+					WHERE PUR_SLIP_CD IN (
+						SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+					)
+				)
+		
+		DELETE FROM T_PUR_MAST
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND PUR_DATE = #{INSP_DATE}
+		AND PUR_SLIP_CD IN (
+			SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+		)
+		AND IFNULL(CONF_TYPE,'N') = 'N'
+		AND IFNULL(SEND_TYPE,'N') = 'N'
+		
+		SELECT 'SUCCESS' AS RESULT_MSG
+		SET NOCOUNT OFF;
+	</select>
+	
+	<select id="getGoodsExpertRegistList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsExpertRegistList */
+		SELECT
+			IFNULL(A.ORGN_CD,B.ORD_CUSTMR_CD) AS ORGN_CD
+			,IFNULL(A.PUR_DATE,B.RESV_DATE) AS RESV_DATE
+			,IFNULL(A.BCD_NM, B.BCD_NM) AS BCD_NM
+			,IFNULL(A.TOT_PUR_QTY,0) AS PM_TOT_PUR_QTY
+			,IFNULL(B.TOT_ORD_QTY,0) AS PO_TOT_ORD_QTY
+			,IFNULL(B.D_TYPE,A.D_TYPE) AS D_TYPE
+			,IFNULL(B.D_TYPE_NM,A.D_TYPE_NM) AS D_TYPE_NM
+		FROM (
+			SELECT
+				PM.ORGN_DIV_CD
+				,PM.ORGN_CD
+				,PD.PUR_SLIP_CD
+				,PM.PUR_DATE
+				,PD.BCD_CD
+				,BCD.BCD_NM
+				,SUM(IFNULL(PD.PUR_QTY,0)) AS TOT_PUR_QTY
+				,'PUR' AS D_TYPE
+				,'입고미정품목' AS D_TYPE_NM
+			FROM T_PUR_MAST PM
+			INNER JOIN T_PUR_DETL PD
+			ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD
+			AND PM.ORGN_CD = PD.ORGN_CD
+			AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+			INNER JOIN T_STD_MAST_BCD BCD 
+			ON PD.BCD_CD = BCD.BCD_CD 
+			WHERE PM.ORGN_CD = #{ORGN_CD}
+			AND PM.PUR_DATE = #{INSP_DATE}
+			AND PM.USE_YN = 'Y'
+			AND PD.USE_YN = 'Y'
+			GROUP BY PM.ORGN_DIV_CD,PM.ORGN_CD,PM.PUR_DATE,PD.BCD_CD,BCD.BCD_NM,PD.PUR_SLIP_CD,BCD.GOODS_NO
+		) A
+		FULL OUTER JOIN (
+			SELECT
+				PO.ORD_CUSTMR_CD
+				,PO.RESV_DATE
+				,POG.BCD_CD
+				,BCD.BCD_NM
+				,SUM(IFNULL(POG.ORD_QTY,0)) AS TOT_ORD_QTY
+				,'ORD' AS D_TYPE
+				,'입고예정품목' AS D_TYPE_NM
+			FROM T_PUR_ORD PO
+			INNER JOIN T_PUR_ORD_GOODS POG
+			ON PO.ORD_CUSTMR_CD = POG.ORD_CUSTMR_CD
+			AND PO.ORD_NO = POG.ORD_NO
+			INNER JOIN T_STD_MAST_BCD BCD
+			ON BCD.BCD_CD = POG.BCD_CD
+			WHERE PO.ORD_CUSTMR_CD = #{ORGN_CD}
+			AND PO.RESV_DATE = #{INSP_DATE}
+			GROUP BY PO.ORD_CUSTMR_CD,PO.RESV_DATE,POG.BCD_CD,BCD.BCD_NM,BCD.GOODS_NO
+		) B
+		ON A.ORGN_CD = B.ORD_CUSTMR_CD
+		AND A.PUR_DATE = B.RESV_DATE
+		AND A.BCD_CD = B.BCD_CD
+	</select>
+	
+	<select id="getInspPdaDataHeaderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getInspPdaDataHeaderList */
+		SELECT 
+			CONCAT(PT.ORGN_DIV_CD,'_',PT.ORGN_CD,'_',CONVERT(NVARCHAR(8),PT.CDATE,112),'_',PT.STORE_AREA,'_',SUM(GOODS_QTY),'_',MAX(CUSER)) AS UNI_KEY
+			,PT.ORGN_DIV_CD
+			,PT.ORGN_CD
+			,PT.STORE_AREA
+			,CASE
+				WHEN COUNT(PT.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PT.BCD_CD)),' 외 ',(COUNT(PT.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PT.BCD_CD))
+			END AS TOT_GOODS_NM
+			,SUM(GOODS_QTY) AS TOT_CNT
+			,MAX(CUSER) AS RESP_USER
+			,MAX(CONVERT(NVARCHAR(8), PT.CDATE, 112)) AS CDATE
+			,PT.DATA_TYPE
+		FROM [WINPLUS_SIS].[dbo].[T_PDA_TEMP] PT
+		WHERE PT.DATA_TYPE = #{dataType}
+		AND PT.FLAG_YN = '0'
+		AND PT.ORGN_CD = #{orgnCd}
+		AND PT.CDATE BETWEEN DATEADD(DD,0, #{searchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDateTo}))
+		GROUP BY PT.ORGN_DIV_CD,PT.ORGN_CD,CONVERT(NVARCHAR(8),PT.CDATE,112),PT.STORE_AREA,PT.DATA_TYPE
+	</select>
+	
+	<select id="getInspPdaDataDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getInspPdaDataDetailList */
+		SELECT
+			PT.ORGN_CD
+			,PT.STORE_AREA
+			,SMB.BCD_CD
+			,SMB.BCD_NM
+			,PT.GOODS_QTY
+			,PT.CUSER
+		FROM T_PDA_TEMP PT
+		INNER JOIN T_STD_MAST_BCD SMB
+		ON PT.BCD_CD = SMB.BCD_CD
+		WHERE PT.DATA_TYPE = #{DATA_TYPE}
+		AND PT.FLAG_YN = '0'
+		AND PT.STORE_AREA = #{STORE_AREA}
+		AND PT.ORGN_CD = #{ORGN_CD}
+		AND CONVERT(NVARCHAR(8),PT.CDATE,112) = #{CDATE}
+	</select>
+	
+	<select id="getInspInfo" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getInspInfo */
+		SELECT
+			PM.ORGN_DIV_CD
+			,PM.ORGN_CD
+			,PM.PUR_SLIP_CD
+			,PM.PUR_TYPE
+			,PM.SUPR_CD AS CUSTMR_CD
+			,SMC.CUSTMR_NM
+			,PM.PUR_DATE AS INSP_DATE
+			,IFNULL(PM.CONF_TYPE,'N') AS CONF_TYPE
+			,IFNULL(PM.SEND_TYPE,'N') AS SEND_TYPE
+			,PM.MEMO
+		FROM T_PUR_MAST PM
+		INNER JOIN T_STD_MAST_CUSTMR SMC
+		ON PM.SUPR_CD = SMC.CUSTMR_CD
+		WHERE PM.ORGN_CD = #{ORGN_CD}
+		AND PM.PUR_DATE = #{INSP_DATE}
+		AND PM.PUR_SLIP_CD = #{PUR_SLIP_CD}
+	</select>
+	
+	<select id="getPurMastSeq" resultType="java.lang.String">
+		/* getPurMastSeq */
+		DECLARE @TMP_SEQ INT
+		
+		SELECT @TMP_SEQ = NEXT VALUE FOR SEQ_T_PUR_MAST
+
+		SELECT CONCAT(REPLICATE('0',4-LEN(@TMP_SEQ)),@TMP_SEQ) AS RM_SEQ
+	</select>
+
+</mapper>

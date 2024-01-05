@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item value="false" key="isRegEx"/>
+		<item value="maria" key="selection"/>
+		<item value="true" key="casesensitive"/>
+		<item value="false" key="incremental"/>
+		<item value="true" key="wrap"/>
+		<item value="false" key="wholeword"/>
+		<list key="findhistory">
+			<item value="maria"/>
+			<item value="insertCommonCode"/>
+			<item value="commonCodeManagementCUD1.do"/>
+			<item value="saveErpGrid"/>
+			<item value="save_erpGrid"/>
+			<item value="save"/>
+			<item value="&quot;erpGrid"/>
+			<item value="&quot;erpDetailGrid"/>
+			<item value="erpGrid"/>
+			<item value="erpDetailGrid"/>
+			<item value="commonCodeManagementR2.do"/>
+			<item value="getCommonCodeDetailTable"/>
+			<item value="isSearchErpGridValidate"/>
+			<item value="initErpRibbon"/>
+			<item value="div_erp_sub_layout"/>
+		</list>
+		<list key="replacehistory">
+			<item value="tstCodeManagement1"/>
+			<item value="commonCodeManagement"/>
+			<item value="openGoodsOutMkPopup"/>
+			<item value="ORD_TYPE"/>
+			<item value="ORI_CUSTMER_CD"/>
+			<item value="ORI_ORD_NO"/>
+			<item value="ORD_TY"/>
+			<item value="cm_ord_type"/>
+			<item value="ls_ord_type"/>
+			<item value="ls_req_type"/>
+			<item value="PARAM_ORD_TYPE"/>
+			<item value="scrin_MKT_TYPE"/>
+			<item value="cmbMKT_TYPE_CD"/>
+			<item value="ORG_TYPE"/>
+			<item value="ORi_ORD_NO"/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item value="383" key="DIALOG_WIDTH"/>
+		<item value="1|맑은 고딕|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|맑은 고딕" key="DIALOG_FONT_NAME"/>
+		<item value="389" key="DIALOG_HEIGHT"/>
+		<item value="15" key="DIALOG_X_ORIGIN"/>
+		<item value="433" key="DIALOG_Y_ORIGIN"/>
+	</section>
+</section>

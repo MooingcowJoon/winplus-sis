@@ -1,0 +1,79 @@
+#div_erp_top_wrapper{
+	background-color: #dfe8f6;
+}
+#div_erp_navi_wrapper{
+	border-top: 1px solid #c8c8c8;
+	border-bottom: 1px solid #c8c8c8;
+	background-color: #dfe8f6;
+}
+#div_erp_left_wrapper{
+	background-image: url('/resources/common/img/default/bg.gif');
+}
+.div_erp_contents_search{
+	background-color: #dfe8f6;
+	border : 1px solid #e8e8e8;
+	border-bottom: 1px solid #bcbcbc;
+}
+.table_search .th_separate{
+	background-color:#97d1ea;	
+}
+.div_common_contents_full_size{
+	background-color: #dfe8f6;
+}
+.div_ribbon_full_size{
+	background-color:#f7f7f7 !important;
+}
+.input_common{
+	border:1px solid #ccc;
+}
+.input_readonly{
+	background-color:#f7f7f7;
+}
+.grid_cell_readonly{
+	background-color: #fdfdfd;
+}
+/* 필수 항목 홀수 행 dhx_skyblue */
+div.gridbox_dhx_skyblue.gridbox .odd_dhx_skyblue td[bgcolor=WhiteSmoke]:NOT(.grid_cell_readonly) {
+	border-top-color : #fffff4;
+	background-color: #fffff4;
+}
+/* 필수 항목 짝수 행 dhx_skyblue */
+div.gridbox_dhx_skyblue.gridbox .ev_dhx_skyblue td[bgcolor=WhiteSmoke]:NOT(.grid_cell_readonly){
+	border-top-color : #fffff4;
+	background-color: #fffff4;
+}
+.hr_common_message {
+	border: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, rgba(100, 100, 100, 0), rgba(100, 100, 100, 0.75), rgba(100, 100, 100, 0));
+}
+.tb_erp_common th{
+	background-color: #dfe8f6;
+	border:0px solid #fafafa;
+	color:#333;
+}
+.tb_erp_common td{
+	background-color: #dfe8f6;
+	border:0px solid #fafafa;
+}
+.tb_erp_common input[type=text]{
+	border:1px solid #DDD;
+	color:#333;
+}
+.tb_erp_common textarea{
+	border:1px solid #DDD;
+	color:#333;
+}
+.span_essential{
+	color:#f00;
+}
+div.gridbox_dhx_skyblue.gridbox table.hdr tr:LAST-CHILD td{
+	border-top-width:0px !important;
+}
+div.gridbox_dhx_skyblue.gridbox table.hdr td div.hdrcell input[type="text"]{
+	font-size:10px;
+}
+div.gridbox_dhx_skyblue.gridbox table.hdr td div.hdrcell select{
+	font-size:12px;
+	padding-bottom:1px;
+}

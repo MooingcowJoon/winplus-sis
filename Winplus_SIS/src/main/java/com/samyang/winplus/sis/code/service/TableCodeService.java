@@ -1,0 +1,38 @@
+package com.samyang.winplus.sis.code.service;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+@Service("TableCodeService")
+public interface TableCodeService {
+
+	List<Map<String, Object>> getPosNoList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getCardIssuerCorpList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getCardAcquirerCorpList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getSearchableOrgnDivCdList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getSearchableOrgnCdList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getBoardPublishScope(Map<String, Object> paramMap);
+	
+	List<Map<String, Object>> getSaleRegTypeList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getSearchStdPriceCdList(Map<String, Object> paramMap);
+
+	/**
+	  * getOrgnCustomerList  발주및 주문서 작성시 조직코드에 해당하는 거래처및 거래처명을 가져온다
+	  * @author 손경락
+	  * @param paramMap
+	  * @return List<map>
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	List<Map<String, Object>>  getOrgnCustomerList(Map<String, Object> paramMap);	
+	
+}

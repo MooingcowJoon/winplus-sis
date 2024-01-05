@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.market.dao.EmptyBottleDao">
+
+<select id="getEBRHList" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getEBRHList 공병회수반납조회 헤더영역 조회*/
+	SELECT 
+		*
+	FROM (
+		SELECT
+				ORGN_DIV_CD
+				,ORGN_CD
+				,DATE
+				,SUM_SALE_AMT
+				,SUM_SALE_QTY
+				,SUM_PUR_AMT
+				,SUM_PUR_QTY
+				,SUPR_CD
+				,CUSTMR_NM
+				,SEQ
+		FROM (
+				SELECT
+					ORGN_DIV_CD
+					,ORGN_CD
+					,DATE
+					,SUM(SUM_SALE_AMT)		SUM_SALE_AMT
+					,SUM(SUM_SALE_QTY)		SUM_SALE_QTY
+					,SUM(SUM_PUR_AMT)		SUM_PUR_AMT
+					,SUM(SUM_PUR_QTY)		SUM_PUR_QTY
+					,SUPR_CD
+					,CUSTMR_NM
+					,SEQ
+				FROM (
+						SELECT 
+								A.ORGN_DIV_CD
+								,A.ORGN_CD
+								,CONVERT(NVARCHAR(10),CONVERT(DATETIME2,B.PUR_DATE)) AS DATE
+								,0									SUM_SALE_AMT
+								,0									SUM_SALE_QTY
+								,IFNULL(A.PAY_SUM_AMT,0)			SUM_PUR_AMT
+								,IFNULL(A.PUR_QTY,0)				SUM_PUR_QTY
+								,B.SUPR_CD							SUPR_CD
+								,SMC.CUSTMR_NM						CUSTMR_NM
+								,'2'								SEQ
+						FROM T_PUR_DETL A
+							INNER JOIN T_PUR_MAST B
+							ON A.ORGN_DIV_CD = B.ORGN_DIV_CD
+								AND A.ORGN_CD = B.ORGN_CD
+								AND A.PUR_SLIP_CD = B.PUR_SLIP_CD
+							INNER JOIN T_STD_MAST_CUSTMR  SMC
+								ON B.SUPR_CD = SMC.CUSTMR_CD
+						WHERE BCD_CD IN (
+										SELECT BCD_CD FROM T_STD_MAST_BCD
+										WHERE GOODS_NO IN (
+											SELECT GOODS_NO FROM T_STD_MAST_GOODS
+													WHERE EMPTY_BOTTLE_YN = 'Y'
+												)
+										)
+				) T
+				GROUP BY 
+					ORGN_DIV_CD
+					,ORGN_CD
+					,DATE
+					,SUPR_CD
+					,CUSTMR_NM
+					,SEQ
+			) T1
+		UNION
+			(
+				SELECT
+						ORGN_DIV_CD
+						,ORGN_CD
+						,DATE
+						,SUM(SALE_TOT_AMT)		SUM_SALE_AMT
+						,SUM(SALE_QTY)			SUM_SALE_QTY
+						,SUM(SUM_PUR_AMT)		SUM_PUR_AMT
+						,SUM(SUM_PUR_QTY)		SUM_PUR_QTY
+						,SUPR_CD
+						,CUSTMR_NM
+						,SEQ
+				FROM (
+					SELECT
+							SM.ORGN_DIV_CD
+							,SM.ORGN_CD
+							,CONVERT(NVARCHAR(10),SM.ORD_DATE)	AS DATE
+							,IFNULL(SMD.SALE_TOT_AMT,0)			AS SALE_TOT_AMT
+							,IFNULL(SMD.SALE_QTY,0)				AS SALE_QTY
+							,0									AS SUM_PUR_AMT
+							,0									AS SUM_PUR_QTY
+							,NULL								as SUPR_CD
+							,NULL								as CUSTMR_NM
+							,'1' AS SEQ
+					FROM T_SALE_MAST SM
+					INNER JOIN T_SALE_MAST_DETL SMD
+						ON SM.ORD_CD = SMD.ORD_CD
+					WHERE SM.REG_TYPE = 'C06'
+				) T
+				GROUP BY
+						ORGN_DIV_CD
+						,ORGN_CD
+						,DATE
+						,SUPR_CD
+						,SUPR_CD
+						,CUSTMR_NM
+						,SEQ
+			)
+	) TT
+	WHERE 1=1
+		<if test='ORGN_DIV_CD != ""'>
+		AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+		</if>
+		<if test='ORGN_CD != ""'>
+		AND ORGN_CD = #{ORGN_CD}
+		</if>
+		AND DATE BETWEEN #{DATE_FR} AND #{DATE_TO}
+<choose>
+	<when test='TYPE == "SALE"'>
+		AND SEQ = '2'
+	</when>
+	<when test='TYPE == "PUR"'>
+		AND SEQ = '1'
+	</when>
+</choose>
+	ORDER BY DATE DESC
+	</select>
+	
+	
+	<select id="getEBRDList" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getEBRDList 공병회수반납조회 디테일영역 조회*/
+	SELECT 
+		*
+	FROM (
+		SELECT
+				ORGN_CD
+				,DATE
+				,SALE_TOT_AMT
+				,SALE_QTY
+				,PAY_SUM_AMT
+				,PUR_QTY
+				,SUPR_CD
+				,CUSTMR_NM
+				,BCD_NM
+				,SEQ
+		FROM (
+				SELECT 
+						PM.ORGN_CD
+						,CONVERT(NVARCHAR(10),CONVERT(DATETIME2,PM.PUR_DATE),120)	AS DATE
+						,0															AS SALE_TOT_AMT
+						,0															AS SALE_QTY
+						,IFNULL(PD.PAY_SUM_AMT,0)									AS PAY_SUM_AMT
+						,IFNULL(PD.PUR_QTY,0)										AS PUR_QTY
+						
+						,PM.SUPR_CD as SUPR_CD
+						,SMC.CUSTMR_NM as CUSTMR_NM
+						,SMB.BCD_NM
+						,'2' AS SEQ
+				FROM T_PUR_MAST PM
+				INNER JOIN T_PUR_DETL PD 
+					ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD AND PM.ORGN_CD = PD.ORGN_CD AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+				INNER JOIN T_STD_MAST_CUSTMR  SMC
+					ON PM.SUPR_CD = SMC.CUSTMR_CD
+				INNER JOIN T_STD_MAST_BCD SMB
+					ON SMB.BCD_CD = PD.BCD_CD
+				WHERE PD.BCD_CD IN (
+					SELECT
+						BCD_CD
+					FROM T_STD_MAST_BCD
+					WHERE GOODS_NO IN (
+						SELECT GOODS_NO FROM T_STD_MAST_GOODS
+							WHERE EMPTY_BOTTLE_YN = 'Y'
+						)
+				)
+		) T1
+		UNION
+		(
+				SELECT
+						ORGN_CD
+						,DATE
+						,SUM(SALE_TOT_AMT)		SALE_TOT_AMT
+						,SUM(SALE_QTY)			SALE_QTY
+						,SUM(PAY_SUM_AMT)		PAY_SUM_AMT
+						,SUM(PUR_QTY)			PUR_QTY
+						,SUPR_CD
+						,CUSTMR_NM
+						,BCD_NM
+						,SEQ
+				FROM (
+						SELECT
+							SM.ORGN_CD
+							,CONVERT(NVARCHAR(10),SM.ORD_DATE)	AS DATE
+							,IFNULL(SMD.SALE_TOT_AMT,0)			AS SALE_TOT_AMT
+							,IFNULL(SMD.SALE_QTY,0)				AS SALE_QTY
+							,0									AS PAY_SUM_AMT
+							,0									AS PUR_QTY
+							,NULL								as SUPR_CD
+							,NULL								as CUSTMR_NM
+							,SM.POS_NO
+							,SMB.BCD_NM
+							,'1' AS SEQ
+						FROM T_SALE_MAST SM
+						INNER JOIN T_SALE_MAST_DETL SMD
+							ON SM.ORD_CD = SMD.ORD_CD
+						INNER JOIN T_STD_MAST_BCD SMB
+							ON SMB.BCD_CD = SMD.BCD_CD
+						WHERE SM.REG_TYPE = 'C06'
+					) T
+					GROUP BY 
+						ORGN_CD
+						,DATE
+						,SUPR_CD
+						,CUSTMR_NM
+						,BCD_NM
+						,SEQ
+		)
+	) TT
+	WHERE 1=1
+		AND ORGN_CD = #{ORGN_CD}
+		AND DATE = #{DATE}
+		<if test='SEQ != 1'>	
+		AND SUPR_CD = #{SUPR_CD}
+		</if>
+		AND SEQ = #{SEQ}
+	</select>
+
+</mapper>

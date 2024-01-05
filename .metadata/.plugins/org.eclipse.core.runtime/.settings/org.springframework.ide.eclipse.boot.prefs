@@ -1,0 +1,4 @@
+default.install=Boot 1.5.9.RELEASE
+eclipse.preferences.version=1
+installs=http\://repo.spring.io/release/org/springframework/boot/spring-boot-cli/1.5.9.RELEASE/spring-boot-cli-1.5.9.RELEASE-bin.zip\\;Boot 1.5.9.RELEASE\\;;
+org.springframework.ide.eclipse.boot.wizard.initializr.url=https\://start.spring.io\n

@@ -1,0 +1,16 @@
+//prefix.http\://www.springframework.org/schema/aop=aop
+//prefix.http\://www.springframework.org/schema/beans=beans
+//prefix.http\://www.springframework.org/schema/c=c
+//prefix.http\://www.springframework.org/schema/cache=cache
+//prefix.http\://www.springframework.org/schema/context=context
+//prefix.http\://www.springframework.org/schema/jdbc=jdbc
+//prefix.http\://www.springframework.org/schema/jee=jee
+//prefix.http\://www.springframework.org/schema/jms=jms
+//prefix.http\://www.springframework.org/schema/lang=lang
+//prefix.http\://www.springframework.org/schema/mvc=mvc
+//prefix.http\://www.springframework.org/schema/oxm=oxm
+//prefix.http\://www.springframework.org/schema/p=p
+//prefix.http\://www.springframework.org/schema/task=task
+//prefix.http\://www.springframework.org/schema/tx=tx
+//prefix.http\://www.springframework.org/schema/util=util
+eclipse.preferences.version=1

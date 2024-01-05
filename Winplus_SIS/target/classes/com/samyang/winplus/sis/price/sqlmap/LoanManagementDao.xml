@@ -1,0 +1,715 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.price.dao.LoanManagementDao">
+	<select id="getMemberLoanAllList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMemberLoanAllList */
+		<choose>
+		<when test='SEARCH_TYPE == "CUSTMR"'>
+			DECLARE @LOAN_START NVARCHAR(20)
+					, @LOAN_END NVARCHAR(20)
+						
+			SET @LOAN_START = CONCAT(REPLACE(#{LOAN_START}, ',', '') , '000')
+			SET @LOAN_END = CONCAT(REPLACE(#{LOAN_END}, ',', ''), '000')
+			
+			SELECT A.LOAN_CD
+					, D.OBJ_CD
+					, D.OBJ_NM
+					,A.[LOAN_SEQ]
+					,A.[USE_YN]
+					,IFNULL(A.[INDE_AMT], 0)AS [INDE_AMT]
+					,IFNULL(A.[BAL_AMT], 0)AS [BAL_AMT]
+					,IFNULL(A.[LOAN_AMT], 0)AS [LOAN_AMT]
+					,IFNULL(A.[TRUST_CNT], 0)AS [TRUST_CNT]
+					,IFNULL(A.[TRUST_LIMIT], 0)AS [TRUST_LIMIT]
+					,IFNULL(A.[CREDIT_AMT], 0) AS [CREDIT_AMT]
+					,IFNULL(A.[CASH_AMT], 0) AS [CASH_AMT]
+					,IFNULL(A.[GRNT_AMT], 0) AS [GRNT_AMT]
+					,A.[IO_TYPE]
+					,A.[LOAN_APPLY_TYPE]
+					,IFNULL(A.[EVI_FILE_NM], '') AS EVI_FILE_NM
+					,IFNULL(A.[EVI_FILE_PATH], '') AS EVI_FILE_PATH
+					,A.[LOCK_FLAG]
+					,A.[CPROGRM]
+					,A.[CUSER]
+					,CONVERT(NVARCHAR(10), A.[CDATE], 120) AS CDATE
+					,A.[MPROGRM]
+					,A.[MUSER]
+					,CONVERT(NVARCHAR(10), A.[MDATE], 120) AS MDATE
+					,A.LOAN_CD + '_' + CAST(A.LOAN_SEQ AS NVARCHAR(MAX)) AS LOAN_GROUP
+			FROM T_STD_MAST_CREDITLOAN A
+			INNER JOIN (
+				SELECT B.LOAN_CD 
+					, B.OBJ_CD
+					, C.CUSTMR_CD
+					, C.CUSTMR_NM AS OBJ_NM
+				FROM T_STD_MAST_CREDITLOAN_DETL B
+				INNER JOIN T_STD_MAST_CUSTMR C 
+				ON B.OBJ_CD = C.CUSTMR_CD AND B.USE_YN = 'Y'
+				<if test='SEARCH_CUSTMR != ""'>
+				AND C.CUSTMR_CD = #{SEARCH_CUSTMR_CD}
+				</if>
+			) D ON D.LOAN_CD = A.LOAN_CD
+			WHERE 1=1 
+			AND A.LOAN_APPLY_TYPE = 'C'
+			<choose>
+				<when test='LOAN_START != "" and LOAN_END != ""'>
+					AND A.BAL_AMT BETWEEN CONVERT(numeric,@LOAN_START) AND CONVERT(numeric,@LOAN_END)
+				</when>
+				<when test='LOAN_START != "" and LOAN_END == ""'>
+					AND A.BAL_AMT <![CDATA[>=]]> CONVERT(numeric,@LOAN_START)
+				</when>
+				<when test='LOAN_START == "" and LOAN_END != ""'>
+					AND A.BAL_AMT <![CDATA[<=]]> CONVERT(numeric,@LOAN_END)
+				</when>
+			</choose>
+			AND A.USE_YN = 'Y'
+			<choose>
+				<when test='SearchDateFrom != "" and SearchDateTo != ""'>
+					AND A.[CDATE] BETWEEN DATEADD(DD,0, #{SearchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{SearchDateTo}))
+				</when>
+				<when test='SearchDateFrom == "" and SearchDateTo != ""'>
+					AND <![CDATA[ A.[CDATE] <= #{SearchDateTo} ]]>
+				</when>
+				<when test='SearchDateFrom != "" and SearchDateTo == ""'>
+					AND <![CDATA[ A.[CDATE] >= #{SearchDateFrom} ]]>
+				</when>
+			</choose>
+			ORDER BY A.LOAN_CD ASC, A.LOAN_SEQ DESC
+		</when>
+		<when test='SEARCH_TYPE == "MEM"'>
+			DECLARE @LOAN_START NVARCHAR(20)
+				, @LOAN_END NVARCHAR(20)
+						
+			SET @LOAN_START = REPLACE(#{LOAN_START}, ',', '') + '000'
+			SET @LOAN_END = REPLACE(#{LOAN_END}, ',', '') + '000'
+			
+			SELECT A.LOAN_CD
+					, D.OBJ_CD
+					, D.OBJ_NM
+					,A.[LOAN_SEQ]
+					,A.[USE_YN]
+					,IFNULL(A.[INDE_AMT], 0)AS [INDE_AMT]
+					,IFNULL(A.[BAL_AMT], 0)AS [BAL_AMT]
+					,IFNULL(A.[LOAN_AMT], 0)AS [LOAN_AMT]
+					,IFNULL(A.[TRUST_CNT], 0)AS [TRUST_CNT]
+					,IFNULL(A.[TRUST_LIMIT], 0)AS [TRUST_LIMIT]
+					,IFNULL(A.[CREDIT_AMT], 0) AS [CREDIT_AMT]
+					,IFNULL(A.[CASH_AMT], 0) AS [CASH_AMT]
+					,IFNULL(A.[GRNT_AMT], 0) AS [GRNT_AMT]
+					,A.[IO_TYPE]
+					,A.[LOAN_APPLY_TYPE]
+					,IFNULL(A.[EVI_FILE_NM], '') AS EVI_FILE_NM
+					,IFNULL(A.[EVI_FILE_PATH], '') AS EVI_FILE_PATH
+					,A.[LOCK_FLAG]
+					,A.[CPROGRM]
+					,A.[CUSER]
+					,CONVERT(NVARCHAR(10), A.[CDATE], 120) AS CDATE
+					,A.[MPROGRM]
+					,A.[MUSER]
+					,CONVERT(NVARCHAR(10), A.[MDATE], 120) AS MDATE
+					,A.LOAN_CD + '_' + CAST(A.LOAN_SEQ AS NVARCHAR(MAX)) AS LOAN_GROUP
+			FROM T_STD_MAST_CREDITLOAN AS A
+			INNER JOIN (
+				SELECT B.LOAN_CD 
+					,B.OBJ_CD
+					, C.MEM_NM AS OBJ_NM
+					, C.MEM_NO
+					, C.ORGN_CD
+				FROM T_STD_MAST_CREDITLOAN_DETL B
+				INNER JOIN T_STD_MAST_MEM C ON RIGHT(B.OBJ_CD, LEN(B.OBJ_CD)-7) = C.MEM_NO AND C.ORGN_CD = #{ORGN_CD}
+				WHERE LEFT(B.OBJ_CD, 6) = #{ORGN_CD} AND B.USE_YN = 'Y'
+			) D ON A.LOAN_CD = D.LOAN_CD
+			WHERE 1=1 
+			AND A.LOAN_APPLY_TYPE = 'M'
+			<choose>
+				<when test='LOAN_START != "" and LOAN_END != ""'>
+					AND A.BAL_AMT BETWEEN CONVERT(numeric,@LOAN_START) AND CONVERT(numeric,@LOAN_END)
+				</when>
+				<when test='LOAN_START != "" and LOAN_END == ""'>
+					AND A.BAL_AMT <![CDATA[>=]]> CONVERT(numeric,@LOAN_START)
+				</when>
+				<when test='LOAN_START == "" and LOAN_END != ""'>
+					AND A.BAL_AMT <![CDATA[<=]]> CONVERT(numeric,@LOAN_END)
+				</when>
+			</choose>
+			AND A.USE_YN = 'Y'
+			<if test='SEARCH_MEM != ""'>
+			 AND OBJ_CD = #{ORGN_CD} + '_' + #{SEARCH_MEM_NO}
+			 </if>
+			<choose>
+				<when test='SearchDateFrom != "" and SearchDateTo != ""'>
+					AND A.[CDATE] BETWEEN DATEADD(DD,0, #{SearchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{SearchDateTo}))
+				</when>
+				<when test='SearchDateFrom == "" and SearchDateTo != ""'>
+					AND <![CDATA[ A.[CDATE] <= #{SearchDateTo} ]]>
+				</when>
+				<when test='SearchDateFrom != "" and SearchDateTo == ""'>
+					AND <![CDATA[ A.[CDATE] >= #{SearchDateFrom} ]]>
+				</when>
+			</choose>
+			ORDER BY A.LOAN_CD ASC, A.LOAN_SEQ DESC
+		</when>
+		</choose>
+		
+	</select>
+	
+	<select id="getMemberLoanNewList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMemberLoanNewList */
+		DECLARE @LOAN_START NVARCHAR(20)
+			, @LOAN_END NVARCHAR(20)
+		
+		SET @LOAN_START = REPLACE(#{LOAN_START}, ',', '') + '000'
+		SET @LOAN_END = REPLACE(#{LOAN_END}, ',', '') + '000'
+		
+		SELECT * 
+		FROM (
+				SELECT D.OBJ_CD
+					,D.OBJ_NM
+					,A.LOAN_APPLY_TYPE
+					,A.LOAN_CD
+					,A.LOAN_SEQ
+					,A.USE_YN
+					,A.INDE_AMT
+					,A.BAL_AMT
+					,A.LOAN_AMT
+					,A.TRUST_CNT
+				    ,A.TRUST_LIMIT
+					,A.CREDIT_AMT
+					,A.CASH_AMT
+					,A.GRNT_AMT
+					,A.IO_TYPE
+					,IFNULL(A.[EVI_FILE_NM], '') AS EVI_FILE_NM
+				 	,IFNULL(A.[EVI_FILE_PATH], '') AS EVI_FILE_PATH
+					,A.LOCK_FLAG
+					,A.CUSER
+					,CONVERT(NVARCHAR(10), A.CDATE, 120) AS CDATE
+					,A.MUSER
+					,CONVERT(NVARCHAR(10), A.MDATE, 120) AS MDATE
+					,ROW_NUMBER() OVER(PARTITION BY D.OBJ_CD ORDER BY A.CDATE DESC ,D.LOAN_CD) AS r_num
+					,A.LOAN_CD + '_' + CAST(A.LOAN_SEQ AS NVARCHAR(MAX)) AS LOAN_GROUP
+				FROM T_STD_MAST_CREDITLOAN A
+				<choose>
+					<when test='SEARCH_TYPE == "MEM"'>
+					INNER JOIN (
+						SELECT B.LOAN_CD 
+							, B.OBJ_CD
+							, C.MEM_NO
+							, C.MEM_NM AS OBJ_NM
+							, C.ORGN_CD
+						FROM T_STD_MAST_CREDITLOAN_DETL B
+						INNER JOIN T_STD_MAST_MEM C 
+						ON RIGHT(B.OBJ_CD, LEN(B.OBJ_CD)-7) = C.MEM_NO 
+						AND LEFT(B.OBJ_CD, 6) = C.ORGN_CD
+						AND C.MEM_STATE = 'Y'
+						<choose>
+							<when test='SEARCH_MEM_NO != ""'>
+								AND C.ORGN_CD = #{MEM_ORGN_CD}
+								AND C.MEM_NO = RIGHT(#{SEARCH_MEM_NO}, LEN(#{SEARCH_MEM_NO})-7)
+							</when>
+							<otherwise>
+								AND C.ORGN_CD = #{ORGN_CD}
+							</otherwise>
+						</choose>
+						WHERE B.USE_YN = 'Y'
+					) D ON D.LOAN_CD = A.LOAN_CD
+					</when>
+					<when test='SEARCH_TYPE == "CUSTMR"'>
+					INNER JOIN (
+						SELECT B.LOAN_CD
+							, B.OBJ_CD
+							, C.CUSTMR_CD
+							, C.CUSTMR_NM AS OBJ_NM
+						FROM T_STD_MAST_CREDITLOAN_DETL B
+						INNER JOIN T_STD_MAST_CUSTMR C ON B.OBJ_CD = C.CUSTMR_CD 
+						<if test='SEARCH_CUSTMR_CD != ""'>
+						AND C.CUSTMR_CD = #{SEARCH_CUSTMR_CD}
+						</if>
+						WHERE B.USE_YN = 'Y'
+					) D ON D.LOAN_CD = A.LOAN_CD
+					</when>
+				</choose>
+				WHERE 1=1
+				<choose>
+					<when test='LOAN_START != "" and LOAN_END != ""'>
+						AND BAL_AMT BETWEEN CONVERT(numeric,@LOAN_START) AND CONVERT(numeric,@LOAN_END)
+					</when>
+					<when test='LOAN_START != "" and LOAN_END == ""'>
+						AND BAL_AMT <![CDATA[>=]]> CONVERT(numeric,@LOAN_START)
+					</when>
+					<when test='LOAN_START == "" and LOAN_END != ""'>
+						AND BAL_AMT <![CDATA[<=]]> CONVERT(numeric,@LOAN_END)
+					</when>
+				</choose>
+				<if test='SEARCH_TYPE == "MEM"'>
+				AND A.LOAN_APPLY_TYPE = 'M'
+				</if>
+				<if test='SEARCH_TYPE == "CUSTMR"'>
+				AND A.LOAN_APPLY_TYPE = 'C'
+				</if>
+			) AS E
+			WHERE E.r_num = '1' AND E.USE_YN = 'Y'
+			ORDER BY E.LOAN_CD, E.LOAN_SEQ
+	</select>
+	
+	<update id="saveLoanInfoList" parameterType="java.util.Map">
+		/* saveLoanInfoList */
+		DECLARE @LOAN_CD NVARCHAR(10)
+			, @LOAN_SEQ BIGINT
+			, @CRUD NVARCHAR(1)					
+			, @LOAN_AMT DECIMAL(19, 6)			/* 여신한도 */	
+			, @BAL_AMT DECIMAL(19, 6)			/* 여신잔액 */
+			, @TRUST_CNT INT					/* 외상횟수 */
+			, @TRUST_LIMIT INT					/* 외상횟수제한 */
+			, @CREDIT_AMT DECIMAL(19, 6)		/* 신용보증 */
+			, @CASH_AMT DECIMAL(19, 6)			/* 현금보증 */
+			, @GRNT_AMT DECIMAL(19, 6)			/* 보증증권 */
+			, @INDE_AMT DECIMAL(19, 6)			/* 증감금액 */
+			, @OBJ_CD NVARCHAR(20)
+			
+		SET @OBJ_CD = #{OBJ_CD}
+		
+		SELECT @CREDIT_AMT = CONVERT(DECIMAL(19, 6), (CASE WHEN #{CREDIT_AMT} = null THEN 0 ELSE #{CREDIT_AMT} END))
+		SELECT @CASH_AMT = CONVERT(DECIMAL(19, 6), (CASE WHEN #{CASH_AMT} = null THEN 0 ELSE #{CASH_AMT} END))
+		SELECT @GRNT_AMT = CONVERT(DECIMAL(19, 6), (CASE WHEN #{GRNT_AMT} = null THEN 0 ELSE #{GRNT_AMT} END))
+		SELECT @INDE_AMT = CONVERT(DECIMAL(19, 6), (CASE WHEN #{INDE_AMT} = null THEN 0 ELSE #{INDE_AMT} END))
+		
+		SET @LOAN_CD = #{LOAN_CD}						/* 여신코드 */
+		SET @LOAN_SEQ = CONVERT(BIGINT,#{LOAN_SEQ})		/* 기존여신순번 */
+		SET @CRUD = #{CRUD}								/* 삭제, 수정 구분 */
+		
+		IF @CRUD = 'U'
+			BEGIN
+				SELECT @LOAN_SEQ = MAX(LOAN_SEQ)						/* 기존여신순번 */
+				FROM T_STD_MAST_CREDITLOAN
+				WHERE LOAN_CD = @LOAN_CD
+				
+				SELECT @BAL_AMT = BAL_AMT								/* 이전잔액 */
+				FROM T_STD_MAST_CREDITLOAN
+				WHERE LOAN_CD = @LOAN_CD AND LOAN_SEQ = @LOAN_SEQ
+				
+				SELECT @LOAN_AMT = LOAN_AMT								/* 이전여신한도 */
+				FROM T_STD_MAST_CREDITLOAN
+				WHERE LOAN_CD = @LOAN_CD AND LOAN_SEQ = @LOAN_SEQ
+					
+				SELECT @TRUST_CNT = TRUST_CNT							/* 이전외상횟수 */
+				FROM T_STD_MAST_CREDITLOAN
+				WHERE LOAN_CD = @LOAN_CD AND LOAN_SEQ = @LOAN_SEQ
+					
+				SELECT @TRUST_LIMIT = TRUST_CNT							/* 이전외상횟수제한 */
+				FROM T_STD_MAST_CREDITLOAN
+				WHERE LOAN_CD = @LOAN_CD AND LOAN_SEQ = @LOAN_SEQ
+				
+				SELECT @LOAN_SEQ = MAX(LOAN_SEQ)+1 					/* 신규등록할 여신순번 */
+				FROM T_STD_MAST_CREDITLOAN
+				WHERE LOAN_CD = @LOAN_CD AND LOAN_SEQ = @LOAN_SEQ
+				GROUP BY LOAN_CD
+					
+		
+				INSERT INTO T_STD_MAST_CREDITLOAN (
+					[LOAN_CD]
+					,[LOAN_SEQ]
+					,[LOAN_APPLY_TYPE]
+					,[INDE_AMT]
+					,[BAL_AMT]
+					,[LOAN_AMT]
+					,[TRUST_CNT]
+					,[TRUST_LIMIT]
+					,[CREDIT_AMT]
+					,[CASH_AMT]
+					,[GRNT_AMT]
+					,[IO_TYPE]
+					,[EVI_FILE_NM]
+					,[USE_YN]
+					,[LOCK_FLAG]
+					,[CPROGRM]
+					,[CUSER]
+					,[CDATE]
+				) VALUES (
+					@LOAN_CD
+					,@LOAN_SEQ
+					,#{LOAN_APPLY_TYPE}
+					<choose>
+						<when test='IO_TYPE == "I03" or IO_TYPE == "D02"'>
+						,((@CREDIT_AMT + @CASH_AMT + @GRNT_AMT) - @LOAN_AMT)
+						,((@CREDIT_AMT + @CASH_AMT + @GRNT_AMT - @LOAN_AMT) + @BAL_AMT)
+						,(@CREDIT_AMT + @CASH_AMT + @GRNT_AMT)
+						</when>
+						<when test='IO_TYPE == "I04" or IO_TYPE == "D03"'>
+							,@INDE_AMT
+							,(@BAL_AMT + @INDE_AMT)
+							,@LOAN_AMT
+						</when>
+					</choose>
+					,@TRUST_CNT
+					,@TRUST_LIMIT
+					,@CREDIT_AMT
+					,@CASH_AMT
+					,@GRNT_AMT
+					,#{IO_TYPE}
+					<choose>
+						<when test='FILE_GRUP_NO == null or FILE_GRUP_NO == ""'>
+							, null
+						</when>
+						<otherwise>
+							, #{FILE_GRUP_NO}
+						</otherwise>
+					</choose>
+					,#{USE_YN}
+					,#{LOCK_FLAG}
+					,'saveLoanInfoList'
+					,#{EMP_NO}
+					,NOW()
+				)
+			END
+		ELSE IF (@CRUD = 'D')
+			BEGIN
+				UPDATE T_STD_MAST_CREDITLOAN_DETL
+				SET USE_YN = 'N'
+					, MUSER = #{EMP_NO}
+					, MPROGRM = 'saveLoanInfoList'
+					, MDATE = NOW()
+				WHERE LOAN_CD = @LOAN_CD AND OBJ_CD = IFNULL(@OBJ_CD, '')
+				
+				DECLARE @DETL_CNT INT
+				
+				SELECT @DETL_CNT = COUNT(*)
+				FROM T_STD_MAST_CREDITLOAN_DETL
+				WHERE LOAN_CD = @LOAN_CD
+				
+				IF(@DETL_CNT = 0)
+					BEGIN
+						UPDATE T_STD_MAST_CREDITLOAN
+						SET USE_YN = 'N'
+						, MUSER = #{EMP_NO}
+						, MPROGRM = 'saveLoanInfoList'
+						, MDATE = NOW()	
+						WHERE LOAN_CD = @LOAN_CD
+					END
+			END
+	</update>
+	
+	<insert id="saveLoanFromPopup" parameterType="java.util.Map">
+		/* saveLoanFromPopup */
+		DECLARE 
+			 @CREDIT_AMT DECIMAL(19, 6)
+			, @CASH_AMT DECIMAL(19, 6)
+			, @GRNT_AMT DECIMAL(19, 6)
+			, @LOAN_AMT DECIMAL(19, 6)
+			, @BAL_AMT DECIMAL(19, 6)
+			, @INDE_AMT DECIMAL(19, 6)
+			
+			SELECT @CREDIT_AMT = CONVERT(DECIMAL(19, 6), IFNULL(#{CREDIT_AMT}, 0))
+			SELECT @CASH_AMT = CONVERT(DECIMAL(19, 6), IFNULL(#{CASH_AMT}, 0))
+			SELECT @GRNT_AMT = CONVERT(DECIMAL(19, 6), IFNULL(#{GRNT_AMT}, 0))
+			SELECT @LOAN_AMT = CONVERT(DECIMAL(19, 6), IFNULL(#{LOAN_AMT}, 0))
+			SELECT @BAL_AMT = CONVERT(DECIMAL(19, 6), IFNULL(#{BAL_AMT}, 0))
+			SELECT @INDE_AMT = CONVERT(DECIMAL(19, 6), IFNULL(#{INDE_AMT}, 0))
+		
+		INSERT INTO T_STD_MAST_CREDITLOAN (
+			[LOAN_CD]
+			,[LOAN_SEQ]
+			,[INDE_AMT]
+			,[BAL_AMT]
+			,[LOAN_AMT]
+			,[TRUST_CNT]
+			,[TRUST_LIMIT]
+			,[CREDIT_AMT]
+			,[CASH_AMT]
+			,[GRNT_AMT]
+			,[IO_TYPE]
+			,[LOAN_APPLY_TYPE]
+			,[EVI_FILE_NM]
+			,[USE_YN]
+			,[LOCK_FLAG]
+			,[RESN_KEY]
+			,[REMK]
+			,[CPROGRM]
+			,[CUSER]
+			,[CDATE]
+		) VALUES (
+			#{NEW_LOAN_CD}
+			,#{LOAN_SEQ}
+			<choose>
+			<when test='IO_TYPE == "I03" or IO_TYPE == "D02"'>
+			, (@CREDIT_AMT + @CASH_AMT + @GRNT_AMT - @LOAN_AMT)
+			, (@BAL_AMT + (@CREDIT_AMT + @CASH_AMT + @GRNT_AMT - @LOAN_AMT))
+			, @CREDIT_AMT + @CASH_AMT + @GRNT_AMT
+			</when>
+			<otherwise>
+			, @INDE_AMT
+			, (@VAL_AMT + @INDE_AMT)
+			, @LOAN_AMT
+			</otherwise>
+			</choose>
+			,0
+			,3
+			,@CREDIT_AMT
+			,@CASH_AMT
+			,@GRNT_AMT
+			,#{IO_TYPE}
+			,#{LOAN_APPLY_TYPE}
+			<choose>
+				<when test='FILE_GRUP_NO == null or FILE_GRUP_NO == ""'>
+					, null
+				</when>
+				<otherwise>
+					, #{FILE_GRUP_NO}
+				</otherwise>
+			</choose>
+			,#{USE_YN}
+			,#{LOCK_FLAG}
+			,''
+			,''
+			,'saveLoanInfoList'
+			,#{EMP_NO}
+			,NOW()
+		)
+
+		INSERT INTO T_STD_MAST_CREDITLOAN_DETL (
+			[LOAN_CD]
+			,[OBJ_CD]
+			,[ETC1]
+			,[ETC2]
+			,[USE_YN]
+			,[CPROGRM]
+			,[CUSER]
+			,[CDATE]
+		) VALUES (
+			#{NEW_LOAN_CD}
+			<choose>
+				<when test='LOAN_APPLY_TYPE == "M"'>
+				, CONCAT(#{ORGN_CD}, '_', #{OBJ_CD})
+				</when>
+				<otherwise>
+				, #{OBJ_CD}
+				</otherwise>
+			</choose>
+			, ''
+			, ''
+			, 'Y'
+			, 'saveLoanInfoList'
+			, #{EMP_NO}
+			, NOW()
+		)
+	</insert>
+	
+	<update id="uploadLoanEviFile" parameterType="java.util.Map">
+		UPDATE T_STD_MAST_CREDITLOAN 
+		SET EVI_FILE_NM = #{FILE_NM}
+			, EVI_FILE_PATH = #{FILE_PATH}
+			, MDATE = NOW()
+			, MUSER = #{EMP_NO}
+		WHERE LOAN_CD = #{LOAN_CD} AND LOAN_SEQ = #{LOAN_SEQ}
+	</update>
+	
+	<select id="getCustmrNmList" parameterType="java.lang.String" resultType="java.util.Map">
+		DECLARE @CNT INT
+			,@OBJ_NM NVARCHAR(50)
+
+		SET @OBJ_NM = (
+			SELECT CUSTMR_NM
+			FROM T_STD_MAST_CUSTMR
+			WHERE CUSTMR_CD = #{CUSTMR_CD}
+		)
+
+		SET @CNT = (
+			SELECT COUNT(*) AS CNT 
+			FROM T_STD_MAST_CREDITLOAN_DETL
+			WHERE OBJ_CD = #{CUSTMR_CD}
+		)
+		
+		IF @CNT > 0
+			BEGIN
+				SELECT @OBJ_NM AS CUSTMR_NM 
+					,'사용불가' AS CUSTMR_CD
+			END
+		
+		ELSE
+			BEGIN
+				SELECT * 
+				FROM T_STD_MAST_CUSTMR
+				WHERE CUSTMR_CD = #{CUSTMR_CD}
+			END
+	</select>
+	
+	<select id="getMemberNmList" parameterType="java.util.Map" resultType="java.util.Map">
+		DECLARE @CNT INT
+			,@OBJ_NM NVARCHAR(50)
+
+		SET @OBJ_NM = (
+			SELECT MEM_NM
+			FROM T_STD_MAST_MEM
+			WHERE ORGN_CD = #{ORGN_CD} AND MEM_NO = #{MEM_NO}
+		)
+
+		SET @CNT = (
+			SELECT COUNT(*) AS CNT 
+			FROM T_STD_MAST_CREDITLOAN_DETL
+			WHERE 1=1 
+			AND OBJ_CD = #{ORGN_CD} + '_' + #{MEM_NO}
+		)
+		
+		IF @CNT > 0
+			BEGIN
+				SELECT @OBJ_NM AS MEM_NM
+					, '사용불가' AS OBJ_CD
+					, #{ORGN_CD} AS ORGN_CD
+			END
+		
+		ELSE
+			BEGIN
+				IF EXISTS (
+					SELECT  CONCAT(ORGN_CD, '_', MEM_NO) AS OBJ_CD
+					, MEM_NM
+					FROM T_STD_MAST_MEM
+					WHERE MEM_NO = #{MEM_NO} AND ORGN_CD = #{ORGN_CD}
+				)
+					BEGIN
+						SELECT  CONCAT(ORGN_CD, '_', MEM_NO) AS OBJ_CD
+						, CASE WHEN MEM_NM = '' THEN CORP_NM ELSE MEM_NM END AS MEM_NM
+						FROM T_STD_MAST_MEM
+						WHERE MEM_NO = #{MEM_NO} AND ORGN_CD = #{ORGN_CD}
+					END
+				ELSE 
+					BEGIN
+						SELECT #{ORGN_CD} + '_' + #{MEM_NO} AS OBJ_CD
+							, '미등록회원' AS MEM_NM
+					END
+			END
+	</select>
+	
+	<select id="getNewLoanCd" parameterType = "java.util.Map" resultType="java.lang.String">
+		DECLARE @APPLY_TYPE NVARCHAR(10)
+				, @NEW_LOAN_NO INT
+				, @NEW_LOAN_CD NVARCHAR(10)
+		
+		SET @APPLY_TYPE = #{LOAN_APPLY_TYPE}
+		
+		IF @APPLY_TYPE = 'C'
+			BEGIN
+				SELECT @NEW_LOAN_NO = NEXT VALUE
+				FOR [dbo].[SEQ_CUSTMR_LOAN_NO]
+		
+				SET @NEW_LOAN_CD = (
+					SELECT 'C' + REPLICATE('0', 9-LEN(CONVERT(NVARCHAR(9),@NEW_LOAN_NO))) + CONVERT(NVARCHAR(9),@NEW_LOAN_NO) AS NEW_LOAN_CD
+				)
+		
+				SELECT @NEW_LOAN_CD AS NEW_LOAN_CD
+			END
+		
+		ELSE IF @APPLY_TYPE = 'M'
+			BEGIN
+				SELECT @NEW_LOAN_NO = NEXT VALUE
+				FOR [dbo].[SEQ_MEM_LOAN_NO]
+				
+				SET @NEW_LOAN_CD = (
+					SELECT 'M' + REPLICATE('0', 9-LEN(CONVERT(NVARCHAR(9),@NEW_LOAN_NO))) + CONVERT(NVARCHAR(9),@NEW_LOAN_NO) AS NEW_LOAN_CD
+				)
+				
+				SELECT @NEW_LOAN_CD AS NEW_LOAN_CD
+			END
+	</select>
+	
+	<select id="CustmrCdValidationCheck" resultType="java.util.Map" parameterType="java.lang.String">
+		/* CustmrCdValidationCheck */
+			DECLARE @CNT INT
+			
+			SET @CNT = (
+				SELECT COUNT(*) AS CNT 
+				FROM T_STD_MAST_CREDITLOAN_DETL
+				WHERE OBJ_CD = #{CUSTMR_CD} AND USE_YN = 'Y'
+			)
+			
+			IF @CNT > 0
+				BEGIN 
+					SELECT 'Unavailable' AS resultMessage 
+						, #{CUSTMR_CD} AS OBJ_CD
+						, A.CUSTMR_NM AS OBJ_NM
+					FROM T_STD_MAST_CUSTMR AS A
+					WHERE 1=1
+					AND CUSTMR_CD = #{CUSTMR_CD}
+				END
+			
+			ELSE
+				BEGIN
+					SELECT 'Available' AS resultMessage
+						, #{CUSTMR_CD} AS OBJ_CD
+						, A.CUSTMR_NM AS OBJ_NM
+					FROM T_STD_MAST_CUSTMR AS A
+					WHERE 1=1
+					AND CUSTMR_CD = #{CUSTMR_CD}
+				END
+	</select>
+	
+	<select id="MemberCdValidationCheck" resultType="java.util.Map" parameterType="java.util.Map">
+		/* MemberCdValidationCheck */
+			DECLARE @CNT INT
+			
+			SET @CNT = (
+				SELECT COUNT(*) AS CNT 
+				FROM T_STD_MAST_CREDITLOAN_DETL
+				WHERE OBJ_CD = #{CUSTMR_CD} AND USE_YN = 'Y'
+			)
+			
+			IF @CNT > 0
+				BEGIN 
+					SELECT 'Unavailable' AS resultMessage 
+						, #{CUSTMR_CD} AS OBJ_CD
+						, A.MEM_NM AS OBJ_NM
+					FROM T_STD_MAST_MEM AS A
+					WHERE 1=1 
+					AND ORGN_CD = LEFT(#{CUSTMR_CD}, CHARINDEX('_', #{CUSTMR_CD})-1)
+					AND MEM_NO = RIGHT(#{CUSTMR_CD},CHARINDEX('_', REVERSE(#{CUSTMR_CD}))-1)
+				END
+			
+			ELSE
+				BEGIN
+					SELECT 'Available' AS resultMessage
+						, #{CUSTMR_CD} AS OBJ_CD
+						, A.MEM_NM AS OBJ_NM
+					FROM T_STD_MAST_MEM AS A
+					WHERE 1=1 
+					AND ORGN_CD = LEFT(#{CUSTMR_CD}, CHARINDEX('_', #{CUSTMR_CD})-1)
+					AND MEM_NO = RIGHT(#{CUSTMR_CD},CHARINDEX('_', REVERSE(#{CUSTMR_CD}))-1)
+				END
+	</select>
+	
+	<insert id="addLoanDetailObj" parameterType="java.util.Map">
+		INSERT INTO T_STD_MAST_CREDITLOAN_DETL (
+			LOAN_CD
+			, OBJ_CD
+			, USE_YN
+			, ETC1
+			, ETC2
+			, CPROGRM
+			, CUSER
+			, CDATE
+		) VALUES (
+			#{LOAN_CD}
+			, #{OBJ_CD}
+			, 'Y'
+			, ''
+			, ''
+			, 'addLoanDetailObj'
+			, #{EMP_NO}
+			, NOW()
+		)
+	</insert>
+	
+	<select id="getLoanInfo" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getLaonInfo */
+		select TOP 1 *, EVI_FILE_NM AS FILE_GRUP_NO 
+		FROM T_STD_MAST_CREDITLOAN
+		WHERE 1=1 
+		AND LOAN_CD = #{LOAN_CD}
+		ORDER BY LOAN_SEQ DESC
+	</select>
+	
+	<select id="getLoanEviFileList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getLoanEviFileList */
+		select * 
+		FROM COM_UPLOAD_FILE
+		WHERE FILE_GRUP_NO = #{FILE_GRUP_NO}
+		ORDER BY FILE_SEQ
+	</select>
+</mapper>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.mq.dao.RabbitMqDao">
+		<update id="updateCallInf" parameterType="java.util.Map">
+			/* updateCallInf */
+			UPDATE CALL_INF
+			SET Call_Record = #{file_name},
+				Call_PumpingFlag = 'N',
+				Call_Record_file = <![CDATA[('http://210.223.33.43:8050/recording/stream']]> + #{q} + <![CDATA['dv=f&fileName=']]> + #{file_name}),
+				MOD_DT = GETDATE(),
+				MOD_ID = 'MQ'
+			WHERE Call_Seq = #{client_seq}
+		</update>	
+</mapper>

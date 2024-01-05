@@ -1,0 +1,10 @@
+# Database 를 포함한 각종 계정 정보는 형상관리 대상에 올리시면 안됩니다.
+# 보안상 취약점으로 취급됩니다.
+
+# URL 관리
+url:
+  uploadAttachFileSaveRootDirectoryList:
+    board: '\\\\192.168.210.17\\sis_file\\attachFiles\\board'
+    contract: '\\\\192.168.210.17\\sis_file\\attachFiles\\contract'
+    loan : '\\\\192.168.210.17\\sis_file\\attachFiles\\loan'
+    goods: '\\\\192.168.210.17\\sis_file\\attachFiles\\goods'

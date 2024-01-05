@@ -1,0 +1,287 @@
+package com.samyang.winplus.sis.sales.controller;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.samyang.winplus.common.system.model.EmpSessionDto;
+import com.samyang.winplus.common.system.util.CommonUtil;
+import com.samyang.winplus.sis.sales.service.SalesService;
+
+@RequestMapping("sis/sales")
+@RestController
+public class SalesController {
+	
+	@Autowired
+	protected CommonUtil commonUtil;
+	
+	private final static String DEFAULT_PATH = "sis/sales";
+	
+	@Autowired
+	SalesService salesService;
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
+	/**
+	 * salesByRealtime - 판매현황(실시간)
+	 * @author 강신영
+	 * @param  request
+	 * @return ModelAndView
+	 */
+	@RequestMapping(value="salesByRealtime.sis", method=RequestMethod.POST)
+	public ModelAndView WpPreset(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "salesByRealtime");
+		return mav;
+	}
+	
+	/**
+	  * 판매현황(실시간) - 판매목록 조회
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getSalesByRealtimeList.do", method=RequestMethod.POST)
+	public Map<String, Object> getSalesByRealtimeList(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		String ORD_DATE = request.getParameter("ORD_DATE");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		String ORGN_DIV_CD = request.getParameter("ORGN_DIV_CD");
+		String POS_NO = request.getParameter("POS_NO");
+		
+		paramMap.put("ORD_DATE", ORD_DATE);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		paramMap.put("ORGN_DIV_CD", ORGN_DIV_CD);
+		paramMap.put("POS_NO", POS_NO);
+		
+		try {
+			List<Map<String, Object>> gridDataList = salesService.getSalesByRealtimeList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		return resultMap;
+	}
+
+	/**
+	  * 판매현황(실시간) - 판매목록 detail 조회
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getSalesByRealtimeDetailList.do", method=RequestMethod.POST)
+	public Map<String, Object> getSalesByRealtimeDetailList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		try {
+			List<Map<String, Object>> gridDataList = salesService.getSalesByRealtimeDetailList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * salesByMember - 판매내역조회(회원)
+	  * @author 최지민
+	  * @param  request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="salesByMember.sis", method=RequestMethod.POST)
+	public ModelAndView salesByMember(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "salesByMember");
+		return mav;
+	}
+	
+	/**
+	  * 판매내역조회(회원) - 내역조회
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getSalesByMemList.do", method=RequestMethod.POST)
+	public Map<String, Object> getSalesByMemList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap){
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		try {
+			List<Map<String, Object>> gridDataList = salesService.getSalesByMemList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * 판매내역조회(회원) - 내역디테일조회
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getSalesByMemSubList.do", method=RequestMethod.POST)
+	public Map<String, Object> getSalesByMemSubList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap){
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		try {
+			List<Map<String, Object>> gridDataList = salesService.getSalesByMemSubList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		return resultMap;
+	}
+	
+	/**
+	 * 판매내역조회(회원) - 외상매출결제 입력 저장
+	 * @author 최지민
+	 * @param request
+	 * @return Integer
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@ResponseBody
+	@RequestMapping(value="saveTrustSales.do", method=RequestMethod.POST)
+	public Map<String, Object> saveTrustSales(HttpServletRequest request, @RequestBody Map<String,Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String CUSER = empSessionDto.getEmp_no();
+		String CPROGRM = "saveTrustSales";
+
+		paramMap.put("CPROGRM", CPROGRM);
+		paramMap.put("CUSER", CUSER);
+		
+		int resultRowCnt = salesService.saveAddTrustSales(paramMap);
+		resultMap.put("resultRowCnt", resultRowCnt);
+		return resultMap;
+	}
+	
+	/**
+	 * 판매내역조회(회원) - 외상매출결제 입력 수정
+	 * @author 최지민
+	 * @param request
+	 * @return Integer
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@ResponseBody
+	@RequestMapping(value="saveUpdateTrustSales.do", method=RequestMethod.POST)
+	public Map<String, Object> saveUpdateTrustSales(HttpServletRequest request, @RequestBody Map<String,Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String MUSER = empSessionDto.getEmp_no();
+		String MPROGRM = "saveTrustSales";
+
+		int resultRowCnt=0;
+
+		paramMap.put("MPROGRM", MPROGRM);
+		paramMap.put("MUSER", MUSER);
+		
+		resultRowCnt = salesService.saveUpdateTrustSales(paramMap);
+		resultMap.put("resultRowCnt", resultRowCnt);
+		return resultMap;
+	}
+	
+	/**
+	 * 판매내역조회(회원) - 외상매출결제 입력 삭제
+	 * @author 최지민
+	 * @param request
+	 * @return Integer
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@ResponseBody
+	@RequestMapping(value="saveDeleteTrustSales.do", method=RequestMethod.POST)
+	public Map<String, Object> saveDeleteTrustSales(HttpServletRequest request, @RequestBody Map<String,Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+	
+		int resultRowCnt=0;
+		resultRowCnt = salesService.saveDeleteTrustSales(paramMap);
+		resultMap.put("resultRowCnt", resultRowCnt);
+		return resultMap;
+	}
+	
+	/**
+	  * salesByStore - 판매현황조회
+	  * @author 한정훈
+	  * @param  request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="salesByStore.sis", method=RequestMethod.POST)
+	public ModelAndView salesByStore(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "salesByStore");
+		return mav;
+	}
+	/**
+	* 판매현황조회(직영점) - 헤더조회
+	* @author 한정훈
+	* @param paramMap
+	* @return List<Map<String, Object>>
+	* @throws SQLException
+	* @throws Exception
+	*/
+	@RequestMapping(value="getsalesByStoreHeaderList.do", method=RequestMethod.POST)
+	public Map<String, Object> getsalesByStoreHeaderList(HttpServletRequest request, @RequestParam Map<String,Object> paramMap) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> gridDataList = salesService.getsalesByStoreHeaderList(paramMap);
+		resultMap.put("gridDataList", gridDataList);
+		
+		return resultMap;
+	}
+	/**
+	* 판매현황조회(직영점) - 디테일조회
+	* @author 한정훈
+	* @param paramMap
+	* @return List<Map<String, Object>>
+	* @throws SQLException
+	* @throws Exception
+	*/
+	@RequestMapping(value="getsalesByStoreDetailList.do", method=RequestMethod.POST)
+	public Map<String, Object> getsalesByStoreDetailList(HttpServletRequest request, @RequestParam Map<String,Object> paramMap) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> gridDataList = salesService.getsalesByStoreDetailList(paramMap);
+		resultMap.put("gridDataList", gridDataList);
+		
+		return resultMap;
+	}
+}

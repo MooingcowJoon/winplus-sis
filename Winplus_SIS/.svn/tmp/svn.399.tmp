@@ -1,0 +1,425 @@
+/** 
+ * Description 
+ * @Resource Crownix Report Script
+ * @since 2019.05.09
+ * @author 정혜원
+ *
+ *********************************************
+ * 코드 수정 히스토리
+ * 날짜 / 작업자 / 상세
+ * 2019.05.09 / 정혜원 / 신규 생성
+ *********************************************
+ */
+
+var EHR_REPORT_SERVER_URL = "http://192.168.210.14:8090/ReportingServer/service";
+var EHR_REPORT_RD_URL = "http://192.168.210.14:8090/DataServer/rdagent.jsp";
+
+/** 
+ * Description 
+ * @function openCrownixReport
+ * @function_Description 리포트뷰어 열기
+ * @author 정혜원
+ */
+var report = function () {
+//	this.ReportViewer = function(conf){
+//		var reportName = conf.reportName;
+//		var parent = conf.parent;
+//		var param = conf.param;
+//		var option = conf.option;
+//		
+//		var viewer = null;
+//		if(reportName && parent){
+//		    reportName = reportName + ".mrd";
+//		    
+//		    viewer = new m2soft.crownix.Viewer(EHR_REPORT_SERVER_URL, parent);
+//			var paramString = ""; 
+//			if (param && typeof param === 'object') {
+//				paramString = this.getParameterString(param);
+//			} else if (param && typeof param === 'string') {
+//			    paramString = param;
+//			}
+//			if (option && option != "") {
+//				paramString = paramString + " " + option;
+//			}
+//			viewer.openFile(reportName, paramString);
+//		}
+//		return viewer;
+//	}
+//	
+//	this.getParameterString = function(param){
+//		var paramString = "";
+//		var bcode_param = "";
+//		if(param && typeof param === 'object'){
+//			for(var key in param){
+//				var value = param[key];
+//				var bcode_Array = value.split(',');
+//				if(bcode_Array.length < 300){
+//					for(var i = 0 ; i < bcode_Array.length ; i++) {
+//						if(i != 0) {
+//							bcode_param = bcode_param + ",'" + bcode_Array[i] + "'";
+//						} else {
+//							bcode_param = bcode_param + "'" + bcode_Array[i] + "'";
+//						}
+//					}
+//										
+//					return bcode_param;
+//				}else {
+//					return "";
+//				}
+//			}
+//		}
+//	}
+	
+	/** 
+	 * Description 
+	 * @function openLablePrint
+	 * @function_Description  라벨출력
+	 * @param Map<String, Object> - reportParam(reportParam(바코드 String), ORGN_DIV_CD, ORGN_CD)
+	 * @author 정혜원
+	 */
+	this.openLablePrint = function (reportName, reportParam, reportWindowName, reportOption) {
+        if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        //reportParam = encodeURIComponent(reportParam);
+        //gf_OpenModalDialog("/Crownix/crownix_report.aspx?reportName=" + reportName + "&reportParam=" + reportParam + "&reportWindowName=" + reportWindowName + "&reportOption=" + reportOption, 849, 800, function () {});
+        var mrdFileName = reportParam.mrdFileName;
+        var rfnValue = "  ";
+        var rsnValue = " [SIS] ";
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/label_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/"+mrdFileName+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv barcode['" + reportParam.reportParam + "'] ORGN_DIV_CD['"+ reportParam.ORGN_DIV_CD +"'] ORGN_CD['" + reportParam.ORGN_CD + "']";
+        paramData = encodeURIComponent(paramData);
+        
+        ApprovalURL = ApprovalURL + paramData;
+
+        //var a = gf_OpenModalDialog2("/Crownix/crownix_report.aspx?reportName=" + reportName + "&reportParam=" + reportParam + "&reportWindowName=" + reportWindowName + "&reportOption=" + reportOption, window, gf_GetModalStyle(849, 800));
+        return ApprovalURL;
+    }
+	
+	/** 
+	 * Description 
+	 * @function openOrderSheet
+	 * @function_Description  발주서 출력
+	 * @param String - PARAM_ORD_NO(선택한 발주서(주문서)번호 내역)
+	 * @param String - PARAM_ORGN_DIV_CD(선택한 발주서 조직구분코드)
+	 * @param String - PARAM_ORGN_CD(선택한 발주서 조직코드)
+	 * @author 정혜원
+	 */
+	this.openOrderSheet = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        
+        console.log(reportParam);
+        
+        var mrdFileName = reportParam.mrdFileName;
+        console.log(mrdFileName);
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/order_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/"+mrdFileName+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv PARAM_ORGN_DIV_CD['" + reportParam.ORGN_DIV_CD + "'] PARAM_ORGN_CD['" + reportParam.ORGN_CD + "'] PARAM_ORD_NO['" + reportParam.ORD_NO_LIST+ "']";
+        paramData = encodeURIComponent(paramData);
+        
+        ApprovalURL = ApprovalURL + paramData;
+
+        return ApprovalURL;
+	}
+	
+	/** 
+	 * Description 
+	 * @function openTradeStatement
+	 * @function_Description  거래명세서 출력
+	 * @param CUSTMR_CD (String) - 선택한 거래건의 거래처코드
+	 * @param ORGN_CD (String) - 선택한 거래건의 조직코드
+	 * @param ORD_CD (String) - 선택한 거래건의 조직코드
+	 * @param SEARCH_DATE_FROM (String) - 조회 시작날짜
+	 * @param SEARCH_DATE_TO (String) - 조회 종료날짜
+	 * @author 정혜원
+	 */
+	this.openTradeStatement = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        
+        console.log(reportParam);
+        
+        var mrdFileName = reportParam.mrdFileName;
+        console.log(mrdFileName);
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/trade_statement_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/"+mrdFileName+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv CUSTMR_CD['" + reportParam.CUSTMR_CD + "'] ORGN_CD['" + reportParam.ORGN_CD + "'] ORD_CD['" + reportParam.ORD_CD_LIST+ "'] SEARCH_DATE_FROM['" + reportParam.SEARCH_DATE_FROM + "'] SEARCH_DATE_TO['" + reportParam.SEARCH_DATE_TO + "']";
+        console.log(ApprovalURL + paramData);
+        paramData = encodeURIComponent(paramData);
+        
+        ApprovalURL = ApprovalURL + paramData;
+
+        return ApprovalURL;
+	}
+	
+	 /** 
+	 * Description 
+	 * @function PrintCustmrEnd
+	 * @function_Description  판매현황 출력
+	 * @param reportParam
+	 * @author 최지민
+	 */
+	this.openSupplyConfirmSheet = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+			reportName = "";
+		}
+		if (reportParam == undefined || reportParam == null) {
+			reportParam = "";
+		}
+		if (reportWindowName == undefined || reportWindowName == null) {
+			reportWindowName = "";
+		}
+		if (reportOption == undefined || reportOption == null) {
+			reportOption = "";
+		}
+		console.log(reportParam);
+//		var mrdFileName = reportParam.mrdFileName;
+		var rfnValue = "  ";
+		var rsnValue = " [SIS] ";
+		var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/supply_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/supplyConfirm.mrd"+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+		var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv ORD_DATE['" + reportParam.ORD_DATE + "'] ORGN_CD['"+ reportParam.ORGN_CD +"'] CUSTMR_CD['" + reportParam.CUSTMR_CD + "'] SEARCH_DATE_FROM['" + reportParam.SEARCH_DATE_FROM + "'] SEARCH_DATE_TO['" + reportParam.SEARCH_DATE_TO + "']";
+		paramData = encodeURIComponent(paramData);
+		
+		ApprovalURL = ApprovalURL + paramData;
+
+		return ApprovalURL;
+	}
+	
+	/** 
+	 * Description 
+	 * @function PrintCustmrEnd
+	 * @function_Description  특정 고객사 관리대장(거래명세서별) 출력
+	 * @param reportName
+	 * @param reportParam
+	 * @param reportWindowName
+	 * @param reportOption
+	 * @author 한정훈
+	 */
+	this.PrintCustmrEnd = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        var mrdFileName = reportParam.mrdFileName;
+        var rfnValue = "  ";
+        var rsnValue = " [SIS] ";	//DB
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/Custmr_CreditLoan_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/"+mrdFileName+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv searchDateFrom['" + reportParam.searchDateFrom + "'] searchDateTo['"+ reportParam.searchDateTo +"'] CUSTMR_CD['" + reportParam.CUSTMR_CD + "'] emp_nm['" + reportParam.emp_nm + "'] orgn_div_nm['" + reportParam.orgn_div_nm + "']";
+        paramData = encodeURIComponent(paramData);
+        
+        var ApprovalURL = ApprovalURL + paramData;
+        return ApprovalURL;
+	}
+		
+	/** 
+	 * Description 
+	 * @function openMemOrderSheet
+	 * @function_Description  (직영점)전화주문 주문내역서 출력
+	 * @param String - ORD_NO_LIST(선택한 주문서번호 리스트)
+	 * @param String - ORGN_CD(주문자 조직코드)
+	 * @author 정혜원
+	 */
+	this.openMemOrderSheet = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        
+        console.log(reportParam);
+        
+        var mrdFileName = reportParam.mrdFileName;
+        console.log(mrdFileName);
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/order_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/"+mrdFileName+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv ORD_CD_LIST['" + reportParam.ORD_CD_LIST + "'] ORGN_CD['" + reportParam.ORGN_CD + "'] MEM_NO['" + reportParam.MEM_NO + "']";
+        paramData = encodeURIComponent(paramData);
+        
+        ApprovalURL = ApprovalURL + paramData;
+
+        return ApprovalURL;
+	}
+	
+	/** 
+	 * Description 
+	 * @function openCsOrderSheet
+	 * @function_Description  주문서 출력
+	 * @param String - ORGN_CD(출력할 주문서 조직코드)
+	 * @param String - ORD_NO_LIST(출력할 주문서 코드)
+	 * @param String - RESP_USER(주문서 담당자 코드)
+	 * @param String - SEARCH_DATE_FROM(주문조회 시작일자)
+	 * @param String - SEARCH_DATE_TO(주문조회 종료일자)
+	 * @author 정혜원
+	 */
+	this.openCsOrderSheet = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        
+        console.log(reportParam);
+        
+        var mrdFileName = reportParam.mrdFileName;
+        console.log(mrdFileName);
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/order_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/"+mrdFileName+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv ORGN_CD['" + reportParam.ORGN_CD + "'] RESP_USER['" + reportParam.RESP_USER + "'] ORD_NO['" + reportParam.ORD_NO_LIST+ "'] SEARCH_DATE_FROM['" + reportParam.SEARCH_DATE_FROM + "'] SEARCH_DATE_TO['" + reportParam.SEARCH_DATE_TO + "']";
+        paramData = encodeURIComponent(paramData);
+        
+        ApprovalURL = ApprovalURL + paramData;
+
+        return ApprovalURL;
+	}
+	
+	/** 
+	 * Description 
+	 * @function openCsTradeStatement
+	 * @function_Description  협력사포탈 거래명세서 출력
+	 * @param ORGN_DIV_CD (String) - 선택한 거래건의 조직구분코드
+	 * @param ORD_CD (String) - 선택한 거래건의 조직코드
+	 * @param SEARCH_DATE_FROM (String) - 조회 시작날짜
+	 * @param SEARCH_DATE_TO (String) - 조회 종료날짜
+	 * @author 정혜원
+	 */
+	this.openCsTradeStatement = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        
+        var mrdFileName = reportParam.mrdFileName;
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/trade_statement_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/"+mrdFileName+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv ORGN_DIV_CD['" + reportParam.ORGN_DIV_CD + "'] ORD_CD['" + reportParam.ORD_CD_LIST+ "'] SEARCH_DATE_FROM['" + reportParam.SEARCH_DATE_FROM + "'] SEARCH_DATE_TO['" + reportParam.SEARCH_DATE_TO + "']";
+        paramData = encodeURIComponent(paramData);
+        
+        ApprovalURL = ApprovalURL + paramData;
+
+        return ApprovalURL;
+	}
+	
+	/** 
+	 * Description 
+	 * @function PrintCustmrEnd
+	 * @function_Description  판매내역(회원) 출력
+	 * @param reportParam
+	 * @author 최지민
+	 */
+	this.openSalesByMemberSheet = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+			reportName = "";
+		}
+		if (reportParam == undefined || reportParam == null) {
+			reportParam = "";
+		}
+		if (reportWindowName == undefined || reportWindowName == null) {
+			reportWindowName = "";
+		}
+		if (reportOption == undefined || reportOption == null) {
+			reportOption = "";
+		}
+		console.log(reportParam);
+//		var mrdFileName = reportParam.mrdFileName;
+		var rfnValue = "  ";
+		var rsnValue = " [SIS] ";
+		var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/supply_viewer.html?mrd_path=http://192.168.210.14:8090/" + reportParam.mrdPath +"/salesByMember.mrd"+"&server_url=http://192.168.210.14:8090/ReportingServer/service&reportWindowName="+ reportWindowName +"&mrd_param=";
+		var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv ORD_DATE['" + reportParam.ORD_DATE + "'] ORGN_CD['"+ reportParam.ORGN_CD +"'] ORD_CD['" + reportParam.ORD_CD + "'] SEARCH_FROM_DATE['" + reportParam.SEARCH_FROM_DATE + "'] SEARCH_TO_DATE['" + reportParam.SEARCH_TO_DATE + "'] MEM_NO['" + reportParam.MEM_NO + "'] UNIQUE_MEM_NM['" + reportParam.UNIQUE_MEM_NM + "']";
+		paramData = encodeURIComponent(paramData);
+		
+		ApprovalURL = ApprovalURL + paramData;
+
+		return ApprovalURL;
+	}
+	
+	/** 
+	 * Description 
+	 * @function openPriceLablePrint
+	 * @function_Description  기준단가변경예약관리 선택된 상품 출력
+	 * @param bcd_cd_list (String) - 선택한 거래건의 조직코드
+	 * @param goods_nm_list (String) - 선택한 거래건의 조직코드
+	 * @param sale_price_list (String) - 선택한 거래건의 조직코드
+	 * @author 정혜원
+	 */
+	this.openPriceLablePrint = function(reportName, reportParam, reportWindowName, reportOption){
+		if (reportName == undefined || reportName == null) {
+            reportName = "";
+        }
+        if (reportParam == undefined || reportParam == null) {
+            reportParam = "";
+        }
+        if (reportWindowName == undefined || reportWindowName == null) {
+            reportWindowName = "";
+        }
+        if (reportOption == undefined || reportOption == null) {
+            reportOption = "";
+        }
+        
+        var mrdFileName = reportParam.mrdFileName;
+        var ApprovalURL = "http://192.168.210.14:8090/ReportingServer/html5/sample/popup/label_viewer.html?mrd_path=http://192.168.210.14:8090/" + "price_label_print" +"/" + "price_label.mrd" +"&server_url=http://192.168.210.14:8090/ReportingServer/service&mrd_param=";
+        var paramData = "/rfn [http://192.168.210.14:8090/DataServer/rdagent.jsp] /rsn [SIS] /rv BCD_CD_LIST['" + reportParam.bcd_cd_list + "'] GOODS_NM_LIST['" + reportParam.goods_nm_list + "'] SALE_PRICE_LIST['" + reportParam.sale_price_list + "']";
+        paramData = encodeURIComponent(paramData);
+        
+        ApprovalURL = ApprovalURL + paramData;
+
+        return ApprovalURL;
+	}
+	
+}
+
+var $CROWNIX_REPORT = new report();

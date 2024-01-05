@@ -1,0 +1,496 @@
+html {
+	margin:0;
+	padding:0;
+	width:100%;
+	height:100%;
+}
+body {
+	margin:0;
+	padding:0;	
+	font-family: Malgun Gothic, 맑은 고딕;
+	font-size : 12px;	
+	width:100%;
+	height:100%;
+}
+div {
+	margin:0;
+	padding:0;
+}
+textarea{
+	resize: none;
+	font-family: Malgun Gothic, 맑은 고딕;
+	ime-mode:active;
+}
+input[type=text]{
+	padding:0 2px;
+	ime-mode:active;
+}
+input[type=button]:disabled{
+	opacity: 0.5;
+    cursor: not-allowed;
+}
+.body_erp_default{
+	min-width : 1280px;
+	/* min-height : 920px; */
+	min-height : 790px;
+	background-image: url('/resources/common/img/default/bg.gif');
+}
+#div_erp_top_wrapper{
+	position:absolute;
+	margin:auto;
+	top:0;
+	width:100%;
+	height:60px;
+	z-index: 10;
+	min-width: 1280px;
+}
+.span_erp_info_text{
+	display: inline-block;
+	vertical-align: top;
+	font-size:12px;
+}
+#div_erp_sub_top{
+	margin:auto;
+	width:100%;
+}
+#div_erp_sub_top_contents{
+	padding:13px;
+	height: 18px;
+}
+#span_sub_top_title{
+	font-size:13px;
+	width:400px;
+}
+#sub_erp_sub_top_left_bar{	
+	float:left;
+}
+#sub_erp_sub_top_right_bar{	
+	float:right
+}
+#div_sub_top_button{
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	padding-left:15px;
+	border-bottom-left-radius: 10px;	
+}
+#tb_sub_top_button{
+	font-size:12px;
+}
+#tb_sub_top_button td{
+	padding:3px 10px;
+}
+.span_sub_top_button{
+	cursor:pointer;
+}
+.span_sub_top_button:HOVER{
+	text-decoration: underline;
+}
+#img_erp_logout_button{
+	cursor:pointer;
+}
+#div_erp_top_logo_wrapper{
+	float:left;
+ 	margin:2px;
+ 	width:230px;
+ 	height:50px
+}
+#img_erp_top_logo{
+
+}
+#div_erp_navi_wrapper{
+	height:24px;
+}
+#div_erp_navi_empty_space{
+	width:208px;
+	height:100%;
+	float:left;
+}
+#div_erp_navi_contents{
+	margin-left:208px;
+	padding-left:41px;
+	padding-top:3px;
+	color:#333;
+	font-size:12px;
+	height:100%;
+}
+.span_erp_navi_close:hover{
+	color:#AA0;
+	font-weight: bold;
+	cursor: pointer;
+}
+#div_erp_left_wrapper{
+	width:100%;
+	height:100%;
+	float:left;
+}
+#div_erp_contents_tabbar_wrapper{
+	width:100%;
+	height:100%;
+}
+.div_erp_contents_index{
+	padding:0px !important;
+}
+.div_erp_contents_search{
+	padding:0px 5px;
+	overflow:hidden;
+}
+.table_search{
+	width:100%;
+	margin:5px 0px 5px 0px;
+	table-layout:fixed;
+	border-spacing: 0px;
+	border-collapse: collapse;
+}
+.table_search th{
+	color:#333;
+	font-size:12px;
+	text-align:right;
+	padding:5px;
+	overflow:hidden;
+	white-space:nowrap;
+}
+.table_search .th_separate{
+	border-right:1px solid #999;
+	color:#444;	
+	text-align:center;
+}
+.table_search td{
+	overflow:hidden;
+	white-space:nowrap;
+}
+.div_common_contents_full_size{
+	width:100%;
+	height:100%;	
+	overflow: auto;
+}
+.div_toolbar_full_size{
+	width:100%;
+	height:100%;
+}
+.div_tabbar_full_size{
+	width:100%;
+	height:100%;
+}
+.div_ribbon_full_size{
+	width:100%;
+	height:100%;
+}
+.div_ribbon_full_size .dhxrb_background_area{
+	width:100%;
+}
+.div_ribbon_full_size .dhxrb_g_area{
+	width:100%;
+}
+.div_ribbon_full_size .dhxrb_block_base{
+	width:100%;
+}
+.div_ribbon_full_size .dhxrb_block_items{
+	width:100%;
+}
+.div_ribbon_full_size .dhxrb_block_rows{
+	width:100%;
+}
+.div_ribbon_full_size .dhxrb_block_row{
+	width:100%;
+}
+.dhxrb_in_row_right{
+	float:right !important;
+}
+
+.div_tree_full_size{
+	width:100%;
+	height:100%;
+}
+.div_layout_full_size{
+	width:100%;
+	height:100%;
+	overflow:hidden;
+}
+.div_grid_full_size{
+	width:100% !important;
+	overflow:hidden;
+	height:100% !important;
+	border: 0px solid #fff !important;
+}
+.div_grid_split > div:nth-child(1) {
+	float:left;
+	position : static !important;
+}
+.div_grid_split > div:nth-child(2) {
+	width:auto !important;
+	position : static !important;
+}
+.div_grid_split > div:nth-child(2) > div {
+	width:auto !important;
+}
+.div_label{
+	padding:2px;
+}
+.label_common{
+	height:16px;
+	font-size:12px;
+	vertical-align: middle;
+}
+.div_grid_footer_paging_wrapper {
+	width:100%;		
+}
+.div_paging_block{
+	padding:2px;
+	vertical-align: middle;
+}
+.anchor_grid_paging_arrow{
+	vertical-align: top;
+	display: inline-block;
+}
+.span_grid_paging_arrow{
+	vertical-align: top;
+}
+.input_paging{
+	border:1px solid #ccc;
+	height:13px;
+	font-size:12px;
+	width:30px;
+}
+.input_common{
+	border:1px solid #ccc;
+	height:16px;
+	font-size:12px;
+	vertical-align: middle;
+	width:130px;
+}
+.input_readonly{
+	background-color:#F6F6F6;
+}
+.input_essential{
+	background-color:#FFFFE4
+}
+.input_essential[readonly="readonly"]{
+	background-color:#fbfbf0;
+}
+.combo_essential input[type="text"]{
+	background-color:#fffff4 !important;
+}
+.dhx_vault_files.dhx_vault_essential{
+	background-color:#fffff4 !important;
+}
+
+.hr_common_message {
+	border: 0;
+    height: 1px;
+}
+.common_full_size{
+	width:100%;
+	height: 100%;
+}
+.tb_erp_common{
+	width:100%;
+	border-spacing: 0px;
+	border-collapse: collapse;
+	margin-top:10px;
+	/* table-layout:fixed; */
+}
+.tb_erp_common th{
+	font-size:12px;
+	text-align:right;
+	padding:2px;
+	/* white-space:nowrap; */
+}
+.tb_erp_common td{
+	font-size:12px;
+	padding:2px;
+	/* white-space:nowrap; */
+}
+.tb_erp_common input[type=text]{
+	/* min-width:130px; */
+	font-family: "Malgun Gothic";
+	font-size:12px;
+}
+.tb_erp_common textarea{
+	width:98%;
+	height:95%;
+	font-family: "Malgun Gothic";
+	font-size:12px;
+}
+.tb_portal_common{
+	width:850%;
+	border-spacing: 0px;
+	border-collapse: collapse;
+	margin-top:10px;
+	/* table-layout:fixed; */
+}
+.tb_portal_common th{
+	font-size:12px;
+	text-align:center;
+	padding:2px 5px;
+	/* white-space:nowrap; */
+}
+.tb_portal_common td{
+	font-size:12px;
+	padding:5px;
+	/* white-space:nowrap; */
+}
+.tb_portal_common input[type=text]{
+	/* min-width:130px; */
+	font-family: "Malgun Gothic";
+	font-size:12px;
+}
+.div_popup_wrapper{
+	width:100%;
+	height:100%;
+}
+.img_emp_search_icon{
+	
+}
+.img_search_icon{
+	height:17px;
+	width:17px;	
+	vertical-align: middle;
+}
+.img_emp_search_icon:hover{
+	cursor: pointer;
+}
+.dhx_popup:hover{	
+	background-image: url('/resources/common/img/default/search.gif');
+	background-position: right center;
+	background-repeat: no-repeat;
+	cursor:pointer;
+}
+.img_erp_calendar_button{
+	vertical-align: middle;
+	cursor:pointer;
+}
+.input_number{
+	ime-mode:disabled;
+}
+.input_decimal{
+	ime-mode:disabled;
+}
+.input_calendar{
+	max-width:70px !important;
+	min-width:70px !important;
+	ime-mode:disabled;
+}
+.input_calendar_ym{
+	max-width:50px !important;
+	min-width:50px !important;
+	ime-mode:disabled;
+}
+.input_money {
+	text-align:right;
+}
+.input_money_m {
+	text-align:right;
+}
+.input_phone {
+	width:90px;
+}
+.textarea_common{
+	width:99%;
+	height:100%;
+}
+#img_index_logo{
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+.common_left{
+	text-align:left !important;
+}
+.common_right{
+	text-align:right !important;
+}
+.div_grid_no_data_message_no_split{
+	text-align:left;
+}
+.div_grid_no_data_message_split{
+	text-align:left;
+}
+.common_center{
+	text-align:center;
+}
+.div_grid_footer_wrapper{
+	font-style: normal;
+}
+.span_grid_footer_row_count{
+	padding-left : 5px;
+}
+.div_layout_half_size{	
+	width:50%;
+	height:70%;
+	margin:auto;
+}
+.dhx_cal_header .div_width_full{
+	width:100% !important;
+}
+.dhx_cal_data .div_width_full{
+	width:100% !important;
+}
+.div_sub_layout .dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr.dhx_cell_hdr_hidden{
+	border-left-width: 0px;
+	border-right-width: 0px;
+}
+.div_sub_layout .dhxlayout_cont .dhx_cell_layout .dhx_cell_cont_layout{
+	border:0px solid #fff !important;
+}
+.div_daum_post_addr_form{
+	width: 100% !important;
+	height: 100% !important;
+}
+.grid_cell_bold_pointer{
+	font-weight:bold;
+	cursor:pointer;
+}
+.input_cell_hide{
+	background-color:#dfe8f6;
+	border:0px;
+}
+.img_qmark{
+	cursor:help;
+}
+.tb_cti{
+	width:100%;
+	height:100%;
+	border: 0px solid #fff;
+	border-collapse: 0px;
+	border-spacing: 0px;
+	padding:0px;
+	margin:0px;
+}
+.td_cti{
+	border:0px solid #fff !important;
+	text-align: center;
+	cursor: pointer;
+}
+.img_phone {
+	vertical-align:middle;
+	cursor:pointer;
+}
+.img_mobile {
+	vertical-align:middle;
+	cursor:pointer;
+}
+#div_erp_index_consult_status{
+	position:absolute;
+	top:0px;
+	left:45%;
+	width:250px;
+	background-color:#8baeda;
+	padding:0px 20px;
+	text-align:center;
+	border-bottom-left-radius: 10px;
+	border-bottom-right-radius: 10px;
+}
+#div_erp_index_consult_status table{
+	color:#fff;
+}
+#div_erp_index_consult_status td{
+	padding:0px;
+}
+#div_erp_index_consult_status .title{
+	
+}
+.tb_cti_reserve{
+	width:100%;
+	border-spacing: 0;
+}

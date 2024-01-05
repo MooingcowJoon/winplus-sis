@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.basic.dao.CustomerAcntManagementDao">
+
+	<insert id="insertStdCustomrAcnt" parameterType="java.util.Map">
+		/* insertStdCustomrAcnt */
+		INSERT INTO T_STD_CUSTMR_ACNT (
+			   SEQ               /* 일련번호   */
+			 , CUSTMR_CD         /* 거래처코드 */
+			 , ACNT_NO           /* 계좌       */
+			 , BANK_CD           /* 코드       */
+			 , ACTN_NM           /* 예금주     */
+			 , DEPO_TYPE         /* 입금유형   */
+			 , USE_YN            /* 사용여부   */
+			 , CPROGRM           /* 프로       */
+			 , CUSER             /* 작업자     */
+			 , CDATE             /* 일시       */
+		) VALUES (
+			   #{SEQ}            /* 일련번호   */
+			 , #{CUSTMR_CD}      /* 거래처코드 */
+			 , #{ACNT_NO}        /* 계좌       */
+			 , #{BANK_CD}        /* 코드       */
+			 , #{ACTN_NM}        /* 예금주     */
+			 , #{DEPO_TYPE}      /* 입금유형   */
+			 , #{USE_YN}         /* 여부       */
+			 , #{PARAM_PROGRM}   /* 프로       */
+			 , #{REG_ID}         /* 작업자     */
+			 , GETDATE()         /* 일시       */
+		)
+	</insert>
+	
+	<insert id="insertStdCustomrAcntAppr" parameterType="java.util.Map">
+		/* insertStdCustomrAcntAppr */
+		INSERT INTO T_STD_CUSTMR_ACNT_APPR  (
+			   SEQ               /* 일련번호   */
+			 , CUSTMR_CD         /* 거래처코드 */
+			 , ACNT_NO           /* 계좌       */
+			 , BANK_CD           /* 코드       */
+			 , ACTN_NM           /* 예금주     */
+			 , DEPO_TYPE         /* 입금유형   */
+			 , REQ_DATE          /* 일시       */
+			 , REQ_EMP_NO        /* 사원번호   */
+			 , APPR_EMP_NO		 /* 승인사원 */
+			 , APPR_STATE        /* 승인상태   */
+			 , REMK              /* 비고       */
+			 , CPROGRM           /* 프로       */
+			 , CUSER             /* 작업자     */
+			 , CDATE             /* 일시       */
+		) VALUES (
+			   #{SEQ}            /* 일련번호   */
+			 , #{CUSTMR_CD}      /* 거래처코드 */
+			 , #{ACNT_NO}        /* 계좌       */
+			 , #{BANK_CD}        /* 코드       */
+			 , #{ACTN_NM}        /* 예금주     */
+			 , #{DEPO_TYPE}      /* 입금유형   */
+			 , GETDATE()         /* 일시       */
+			 , #{REG_ID}         /* 사원번호   */
+			 , #{APPR_EMP_NO}	 /* 승인사원 */ 
+			 , 'N'               /* 승인상태   */
+			 , #{REMK}           /* 비고       */
+			 , #{PARAM_PROGRM}   /* 프로       */
+			 , #{REG_ID}         /* 작업자     */
+			 , GETDATE()         /* 일시       */
+		)
+	</insert>	
+	
+	<update id="updateStdCustomrAcnt" parameterType="java.util.Map">
+		/* updateStdCustomrAcnt */
+		UPDATE T_STD_CUSTMR_ACNT
+		SET    ACNT_NO    = #{ACNT_NO}    /* 계좌번호 */
+		     , BANK_CD    = #{BANK_CD}    /* 은행코드 */
+		     , ACTN_NM    = #{ACTN_NM}    /* 예금주   */
+		     , DEPO_TYPE  = #{DEPO_TYPE}  /* 입금유형 */
+		     , USE_YN     = #{USE_YN}
+		  	 , MPROGRM    = #{PARAM_PROGRM}
+			 , MUSER      = #{REG_ID}
+			 , MDATE      = GETDATE()
+		 WHERE SEQ        = #{SEQ}
+	 	   AND CUSTMR_CD =  #{CUSTMR_CD}
+	</update>
+	
+	<update id="updateStdCustomrAcntAppr" parameterType="java.util.Map">
+		/* updateStdCustomrAcntAppr */
+		UPDATE T_STD_CUSTMR_ACNT_APPR
+		SET    ACNT_NO     = #{ACNT_NO}    /* 계좌번호 */
+		     , BANK_CD     = #{BANK_CD}    /* 은행코드 */
+		     , ACTN_NM     = #{ACTN_NM}    /* 예금주   */
+		     , DEPO_TYPE   = #{DEPO_TYPE}  /* 입금유형 */
+		     , APPR_DATE   = GETDATE()
+		     , APPR_EMP_NO = #{REG_ID}
+		     , APPR_STATE  = 'Y'
+		  	 , MPROGRM     = #{PARAM_PROGRM}
+			 , MUSER       = #{REG_ID}
+			 , MDATE       = GETDATE()
+		 WHERE SEQ         = #{SEQ}
+	 	   AND CUSTMR_CD   = #{CUSTMR_CD}
+	</update>
+		
+	
+	<delete id="deleteStdCustomrAcnt" parameterType="java.util.Map">
+		/* "deleteStdCustomrAcnt" */
+		DELETE T_STD_CUSTMR_ACNT
+		 WHERE SEQ        = #{SEQ}
+	 	   AND CUSTMR_CD =  #{CUSTMR_CD}
+	</delete>
+
+	<delete id="deleteStdCustomrAcntAppr" parameterType="java.util.Map">
+		/* "deleteStdCustomrAcntAppr" */
+		DELETE T_STD_CUSTMR_ACNT_APPR
+		 WHERE SEQ        = #{SEQ}
+	 	   AND CUSTMR_CD =  #{CUSTMR_CD}
+	</delete>
+
+	<select id="getSearchCustomerAcntApprList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchCustomerAcntApprList */
+		SELECT   AA.SEQ                                        /* 일련번호   */
+			   , AA.CUSTMR_CD                                  /* 거래처코드 */
+			   , AA.USE_YN                                     /* 사용여부   */
+			   , AA.BANK_CD                                    /* 코드       */
+			   , AA.ACNT_NO                                    /* 계좌번호   */
+			   , AA.ACTN_NM                                    /* 예금주     */
+			   , AA.DEPO_TYPE                                  /* 입금유형   */
+			   , CONVERT(CHAR(19), BB.REQ_DATE, 20) REQ_DATE  /* 승인요청일시*/
+			   , BB.REQ_EMP_NO                                 /* 사원번호   */
+			   , BB.APPR_DATE                                  /* 일시       */
+			   , CONVERT(CHAR(19), BB.APPR_DATE, 20) APPR_DATE /* 승인일시   */
+			   , BB.APPR_EMP_NO                                /* 사원번호   */
+			   , BB.APPR_STATE                                 /* 여부       */
+			   , BB.REMK                                       /* 메모       */
+			   , CONVERT(CHAR(19), AA.CDATE, 120) CDATE        /* 생성일시   */
+			   , CONVERT(CHAR(19), AA.MDATE, 120) MDATE        /* 수정일시   */
+			   , AA.CUSER
+			   , AA.MUSER
+		FROM   T_STD_CUSTMR_ACNT AA                                                            
+		       LEFT OUTER JOIN T_STD_CUSTMR_ACNT_APPR BB ON AA.SEQ = BB.SEQ AND AA.CUSTMR_CD = BB.CUSTMR_CD
+		WHERE  1 =  1                                                                           
+          AND  AA.CUSTMR_CD  = #{PARAM_CUSTMR_CD}	
+		ORDER  BY AA.SEQ
+	</select>
+	
+</mapper>

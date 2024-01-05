@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.basic.dao.CardCorpDao">
+	
+	<select id="getCardCorpInfoList" parameterType="Map" resultType="CMap">
+		SELECT 
+			ORGN_DIV_CD
+			, ORGN_CD
+			, CARDCORP_CD
+			, CARDCORP_NM
+			, NICK_NM
+			, FEE_RATE
+			, CARDCORP_STATE
+			, SLIP_PUR_TYPE
+			, DEPO_TERM
+			, CDATE
+			, MDATE
+		FROM T_STD_CARDCORP
+		WHERE
+			1=1
+			<if test='ORGN_DIV_CD != ""'>
+				AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='ORGN_CD != ""'>
+				AND ORGN_CD = #{ORGN_CD} 
+			</if>
+	</select>
+	
+	<insert id="insertCardCorpInfoList" parameterType="Map">
+		<foreach collection="list" item="map">
+			INSERT INTO T_STD_CARDCORP(
+				ORGN_DIV_CD
+				, ORGN_CD
+				, CARDCORP_CD
+				, CARDCORP_NM
+				, NICK_NM
+				, FEE_RATE
+				, DEPO_TERM
+				, SLIP_PUR_TYPE
+				, CDATE
+			)VALUES(
+				#{map.ORGN_DIV_CD}
+				, #{map.ORGN_CD}
+				, #{map.CARDCORP_CD}
+				, #{map.CARDCORP_NM}
+				, #{map.NICK_NM}
+				, #{map.FEE_RATE}
+				, #{map.DEPO_TERM}
+				, #{map.SLIP_PUR_TYPE}
+				, GETDATE()
+			)
+		</foreach>
+	</insert>
+	
+	<update id="updateCardCorpInfoList" parameterType="Map">
+		<foreach collection="list" item="map">
+			UPDATE T_STD_CARDCORP
+			SET
+				CARDCORP_NM = #{map.CARDCORP_NM}
+				, NICK_NM = #{map.NICK_NM}
+				, FEE_RATE = #{map.FEE_RATE}
+				, DEPO_TERM = #{map.DEPO_TERM}
+				, SLIP_PUR_TYPE = #{map.SLIP_PUR_TYPE}
+				, MDATE = GETDATE()
+			WHERE
+				1=1
+				AND ORGN_DIV_CD = #{map.ORGN_DIV_CD}
+				AND ORGN_CD = #{map.ORGN_CD}
+				AND CARDCORP_CD = #{map.CARDCORP_CD}
+		</foreach>
+		
+	</update>
+	
+	<delete id="deleteCardCorpInfoList" parameterType="Map">
+		<foreach collection="list" item="map">
+			DELETE 
+			FROM T_STD_CARDCORP
+			WHERE 
+				1=1
+				AND ORGN_DIV_CD = #{map.ORGN_DIV_CD}
+				AND ORGN_CD = #{map.ORGN_CD}
+				AND CARDCORP_CD = #{map.CARDCORP_CD}
+		</foreach>
+	</delete>
+	
+</mapper>

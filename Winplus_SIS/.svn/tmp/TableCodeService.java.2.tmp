@@ -1,0 +1,22 @@
+package com.samyang.winplus.sis.code.service;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+@Service("TableCodeService")
+public interface TableCodeService {
+
+	List<Map<String, Object>> getPosNoList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getCardIssuerCorpList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getCardAcquirerCorpList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getSearchableOrgnDivCdList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getSearchableOrgnCdList(Map<String, Object> paramMap);
+
+	List<Map<String, Object>> getBoardPublishScope(Map<String, Object> paramMap);
+}

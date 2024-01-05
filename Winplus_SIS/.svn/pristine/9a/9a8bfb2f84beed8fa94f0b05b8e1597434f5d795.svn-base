@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.standardInfo.dao.CorpInformationDao">
+	<select id="getCorpInformationFromKeyword" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCorpInformationFromKeyword */
+		DECLARE @RS_CNT INT
+		
+		SELECT
+			@RS_CNT = COUNT(A.CUSTMR_CD)
+		FROM T_STD_MAST_CUSTMR A
+		WHERE USE_YN = 'Y'
+		<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CORP_NO")'>
+			AND A.CORP_NO = #{CORP_NO}
+		</if>
+		<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CUSTMR_NM")'>
+			AND A.CUSTMR_NM = #{CUSTMR_NM}
+		</if>
+		
+		IF(@RS_CNT > 1)
+		BEGIN
+			SELECT TOP 1 A.*
+			FROM T_STD_MAST_CUSTMR A
+			WHERE USE_YN = 'Y'
+			<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CORP_NO")'>
+			AND A.CORP_NO = #{CORP_NO}
+			</if>
+			<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CUSTMR_NM")'>
+				AND A.CUSTMR_NM = #{CUSTMR_NM}
+			</if>
+			AND SUBSTRING(CUSTMR_CD, 2, 1) = 'P'
+		END
+		
+		ELSE
+		BEGIN
+			SELECT A.*
+			FROM T_STD_MAST_CUSTMR A
+			WHERE USE_YN = 'Y'
+			<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CORP_NO")'>
+			AND A.CORP_NO = #{CORP_NO}
+			</if>
+			<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CUSTMR_NM")'>
+				AND A.CUSTMR_NM = #{CUSTMR_NM}
+			</if>
+		END
+
+		SELECT
+			A.*
+		FROM T_STD_MAST_CUSTMR A
+		WHERE USE_YN = 'Y'
+		<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CORP_NO")'>
+			AND A.CORP_NO = #{CORP_NO}
+		</if>
+		<if test='KEY_WORD != null and KEY_WORD != "" and KEY_WORD.equals("CUSTMR_NM")'>
+			AND A.CUSTMR_NM = #{CUSTMR_NM}
+		</if>
+	</select>
+</mapper>

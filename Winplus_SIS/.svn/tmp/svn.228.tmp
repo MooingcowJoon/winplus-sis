@@ -1,0 +1,264 @@
+package com.samyang.winplus.sis.order.controller;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.samyang.winplus.common.system.base.controller.BaseController;
+import com.samyang.winplus.common.system.model.EmpSessionDto;
+import com.samyang.winplus.common.system.util.CommonUtil;
+import com.samyang.winplus.sis.order.service.PurchaseCloseService;
+
+@RequestMapping("/sis/order/purchaseClose")
+@RestController
+public class PurchaseCloseController extends BaseController {
+
+	@Autowired
+	protected CommonUtil commonUtil;
+	
+	@Autowired
+	PurchaseCloseService purchaseCloseService;
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
+	private final static String DEFAULT_PATH = "sis/order/purchaseClose";
+	
+	/**
+	  * 구매관리 - 구매마감 - 구매확정
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="purchaseConfirm.sis", method=RequestMethod.POST)
+	public ModelAndView purchaseConfirm(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "purchaseConfirm");
+		return mav;
+	}
+	
+	/**
+	  * 구매관리 - 구매마감 - 구매확정 - 업체별구매내역 헤더조회
+	  * @author 정혜원
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="getSuprByPurchaseHeaderList.do", method=RequestMethod.POST)
+	public Map<String, Object> getSuprByPurchaseHeaderList(HttpServletRequest request,@RequestParam Map<String, Object> paramMap) {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> SuprByPurchaseHeaderList = new ArrayList<Map<String, Object>>();
+		
+		try {
+			SuprByPurchaseHeaderList = purchaseCloseService.getSuprByPurchaseHeaderList(paramMap);
+			resultMap.put("dataMap", SuprByPurchaseHeaderList);
+		}catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	 * openPurchaseDetailList - 구매확정 - 구매내역 상세조회 팝업
+	 * @author 강신영
+	 * @param request
+	 * @return ModelAndView
+	 */
+	@RequestMapping(value = "openPurchaseDetailList.sis", method = RequestMethod.POST)
+	public ModelAndView openAddInspData(HttpServletRequest request) throws SQLException, Exception {
+		ModelAndView mav = new ModelAndView();
+		
+		String purInfoString = request.getParameter("purInfo");
+		mav.addObject("purInfo", purInfoString);
+		
+		mav.setViewName(DEFAULT_PATH + "/" + "openPurchaseDetailList");
+		return mav;
+	}
+	
+	
+	/**
+	  * 구매관리 - 구매마감 - 구매확정 - 업체별구매내역 디테일 조회
+	  * @author 정혜원
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="getSuprByPurchaseDetailList.do", method=RequestMethod.POST)
+	public Map<String, Object> getSuprByPurchaseDetailList(HttpServletRequest request,@RequestParam Map<String, Object> paramMap) {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> SuprByPurchaseDetailList = new ArrayList<Map<String, Object>>();
+		
+		try {
+			SuprByPurchaseDetailList = purchaseCloseService.getSuprByPurchaseDetailList(paramMap);
+			resultMap.put("dataMap", SuprByPurchaseDetailList);
+		}catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	 * approvalSuprByPurchase - 구매확정 - 구매확정 처리
+	 * @author 강신영
+	 * @param request
+	 * @param paramList
+	 * @return Map<String, Object>
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@Transactional
+	@RequestMapping(value="approvalSuprByPurchase.do", method=RequestMethod.POST)
+	public Map<String, Object> approvalSuprByPurchase(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		int successCnt = 0;
+		String resultMsg = "";
+		
+		String[] paramDateList = request.getParameterValues("paramDateList");
+		String[] paramSuprList = request.getParameterValues("paramSuprList");
+		String[] paramOrgnList = request.getParameterValues("paramOrgnList");
+		
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String RESP_USER = empSessionDto.getEmp_no();
+		
+		paramMap.put("RESP_USER", RESP_USER);
+		
+		try {
+			for(int i = 0 ; i < paramDateList.length ; i++) {
+				paramMap.put("PUR_DATE", paramDateList[i]);
+				paramMap.put("SUPR_CD", paramSuprList[i]);
+				paramMap.put("ORGN_CD", paramOrgnList[i]);
+				resultMsg = purchaseCloseService.approvalSuprByPurchase(paramMap);
+				if(resultMsg != null && resultMsg.equals("SUCCESS")) {
+					successCnt++;
+				}
+			}
+			if(successCnt == paramDateList.length) {
+				resultMap.put("resultMsg", "SUCCESS");
+			}else {
+				String errMesage = messageSource.getMessage("error.common.sqlError", new Object[1], commonUtil.getDefaultLocale());
+				String errCode = "1999";
+				resultMap = commonUtil.getErrorMap(errMesage, errCode);
+				TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+			}
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	 * cancelSuprByPurchase - 구매확정 - 구매확정 취소 처리
+	 * @author 강신영
+	 * @param request
+	 * @param paramList
+	 * @return Map<String, Object>
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@Transactional
+	@RequestMapping(value="cancelSuprByPurchase.do", method=RequestMethod.POST)
+	public Map<String, Object> cancelSuprByPurchase(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		int successCnt = 0;
+		String resultMsg = "";
+		
+		String[] paramDateList = request.getParameterValues("paramDateList");
+		String[] paramSuprList = request.getParameterValues("paramSuprList");
+		String[] paramOrgnList = request.getParameterValues("paramOrgnList");
+		
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String RESP_USER = empSessionDto.getEmp_no();
+		
+		paramMap.put("RESP_USER", RESP_USER);
+		
+		try {
+			for(int i = 0 ; i < paramDateList.length ; i++) {
+				paramMap.put("PUR_DATE", paramDateList[i]);
+				paramMap.put("SUPR_CD", paramSuprList[i]);
+				paramMap.put("ORGN_CD", paramOrgnList[i]);
+				resultMsg = purchaseCloseService.cancelSuprByPurchase(paramMap);
+				if(resultMsg != null && resultMsg.equals("SUCCESS")) {
+					successCnt++;
+				}
+			}
+			if(successCnt == paramDateList.length) {
+				resultMap.put("resultMsg", "SUCCESS");
+			}else {
+				String errMesage = messageSource.getMessage("error.common.sqlError", new Object[1], commonUtil.getDefaultLocale());
+				String errCode = "1999";
+				resultMap = commonUtil.getErrorMap(errMesage, errCode);
+				TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+			}
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	 * confirmPurSendErp - 구매확정 - 구매확정 ERP전송
+	 * @author 강신영
+	 * @param request
+	 * @param paramList
+	 * @return Map<String, Object>
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@RequestMapping(value="confirmPurSendErp.do", method=RequestMethod.POST)
+	public Map<String, Object> confirmPurSendErp(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		String resultMsg = "";
+		
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String RESP_USER = empSessionDto.getEmp_no();
+		
+		paramMap.put("RESP_USER", RESP_USER);
+		
+		try {
+			resultMsg = purchaseCloseService.confirmPurSendErp(paramMap);
+			resultMap.put("resultMsg", resultMsg);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+}

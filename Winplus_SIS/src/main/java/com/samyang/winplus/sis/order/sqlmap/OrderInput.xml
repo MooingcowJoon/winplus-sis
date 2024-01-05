@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.order.dao.OrderInputDao">
+
+    <insert id="insertTpurOrd" parameterType="java.util.Map">
+        /* insertTpurOrd [ OrderInput.xml ] */
+        INSERT INTO T_PUR_ORD (
+               ORGN_DIV_CD               /* 조직영역코드   */
+             , ORGN_CD                   /* 조직코드       */
+             , ORD_NO                    /* 발주번호       */
+             , ORD_TITLE                 /* 발주제목       */
+             , DELI_DATE                 /* 납기일자       */
+             , ORD_DATE                  /* 발주일시       */
+             , RESP_USER                 /* 담당자코드     */
+             , SUPR_CD                   /* 협력사코드     */
+             , PROJ_CD                   /* 프로젝트코드   */
+             , OUT_WARE_CD               /* 출하창고코드   */
+             , IN_WARE_CD                /* 입고창고코드   */
+             , MEMO                      /* 메모           */
+             , ORD_TYPE                  /* 발주유형       */
+             , ORD_STATE                 /* 발주상태       */
+             , RETN_YN                   /* 반품여부       */
+             , RESN_CD                   /* 반품사유코드   */
+             , SEND_FAX_STATE            /* 펙스발송상태(여부)  */
+             , SEND_EMAIL_STATE          /* Email발송상태(여부) */
+             , PRINT_STATE               /* PRINT인쇄상태(여부)  */
+             , SUPR_AMT                  /* 공급가액       */
+             , VAT_AMT                   /* 부가세         */
+             , TOT_AMT                   /* 합계금액       */
+             , ORD_CUSTMR                /* 발행구분       */
+             , CPROGRM
+             , CUSER
+             , CDATE
+        ) VALUES (
+               #{ORGN_DIV_CD}
+             , #{ORGN_CD    }
+             , #{ORD_NO     }            /* 발주번호 yyyymmddhhhmmssms */
+             , #{ORD_TITLE  }            /* 발주제목       */
+             , #{DELI_DATE  }            /* 납기일자       */
+             , NOW()                 /* 발주일시       */
+             , #{RESP_USER  }            /* 담당자코드     */
+             , #{SUPR_CD    }            /* 협력사코드     */
+             , #{PROJ_CD    }            /* 프로젝트코드   */
+             , #{OUT_WARE_CD}            /* 출하창고코드   */
+             , #{IN_WARE_CD }            /* 입고창고코드   */
+             , #{MEMO       }            /* 메모           */
+             , #{ORD_TYPE   }            /* 발주유형       */
+             , #{ORD_STATE  }            /* 발주상태       */
+             , #{RETN_YN    }            /* 반품여부       */
+             , #{RESN_CD    }            /* 반품사유코드   */
+             , #{SEND_FAX_STATE  }       /* 펙스발송상태(여부)  */
+             , #{SEND_EMAIL_STATE}       /* Email발송상태(여부) */
+             , #{PRINT_STATE }           /* PRINT인쇄상태(여부)  */
+             , #{SUPR_AMT    }           /* 공급가액       */
+             , #{VAT_AMT     }           /* 부가세         */
+             , #{TOT_AMT     }           /* 합계금액       */
+             , #{ORD_CUSTMR  }           /* 발행구분       */
+             , #{PARAM_PROGRM}
+             , #{REG_ID}
+             , NOW()
+        )
+    </insert>
+
+    <insert id="insertTpurOrdGoods" parameterType="java.util.Map">
+        /* insertTpurOrdGoods [ OrderInput.xml ]*/
+        INSERT INTO T_PUR_ORD_GOODS (
+               ORGN_DIV_CD               /* 조직영역코드     */
+             , ORGN_CD                   /* 조직코드         */
+             , ORD_NO                    /* 발주번호         */
+             , GOODS_CD                  /* 상품코드         */
+             , BCD_CD                    /* 바코드(자)       */
+             , ORD_QTY                   /* 발주수량         */
+             , DIMEN_NM                  /* 상품규격단위수량 */
+             , PUR_PRICE                 /* 매입단가         */
+             , SUPR_AMT                  /* 공급가액         */
+             , VAT_AMT                   /* 부가세           */
+             , TOT_AMT                   /* 합계금액         */
+             , ORD_SEQ                   /* 발주순번         */
+             , LAND_CHG_TYPE             /* 착지변경여부     */
+             , REMK                      /* 적요             */
+             , CPROGRM                   /* 생성프로그램     */
+             , CUSER                     /* 생성자           */
+             , CDATE                     /* 생성일시         */
+        ) VALUES (
+               #{ORGN_DIV_CD   }
+             , #{ORGN_CD       }
+             , #{ORD_NO        }         /* 발주번호         */
+             , #{GOODS_CD      }         /* 상품코드         */
+             , #{BCD_CD        }         /* 바코드(자)       */
+             , #{ORD_QTY       }         /* 발주수량         */
+             , #{DIMEN_NM      }         /* 상품규격단위수량 */
+             , #{PUR_PRICE     }         /* 매입단가         */
+             , #{SUPR_AMT      }         /* 공급가액         */
+             , #{VAT_AMT       }         /* 부가세           */
+             , #{TOT_AMT       }         /* 합계금액         */
+             , #{ORD_SEQ       }         /* 발주순번         */
+             , #{LAND_CHG_TYPE }         /* 착지변경여부     */
+             , #{REMK          }         /* 적요             */
+             , #{PARAM_PROGRM  }
+             , #{REG_ID        }
+             , NOW()
+        )
+    </insert>
+
+    <update id="updateTpurOrd" parameterType="java.util.Map">
+        /* updateTpurOrd [ OrderInput.xml ]*/
+        UPDATE T_PUR_ORD
+        SET    ORD_TITLE        = #{ORD_TITLE       }         /* 발주제목       */
+             , DELI_DATE        = #{DELI_DATE       }         /* 납기일자       */
+             , RESP_USER        = #{RESP_USER       }         /* 담당자코드     */
+             , SUPR_CD          = #{SUPR_CD         }         /* 협력사코드     */
+             , PROJ_CD          = #{PROJ_CD         }         /* 프로젝트코드   */
+             , OUT_WARE_CD      = #{OUT_WARE_CD     }         /* 출하창고코드   */
+             , IN_WARE_CD       = #{IN_WARE_CD      }         /* 입고창고코드   */
+             , MEMO             = #{MEMO            }         /* 메모           */
+             , ORD_TYPE         = #{ORD_TYPE        }         /* 발주유형       */
+             , ORD_STATE        = #{ORD_STATE       }         /* 발주상태       */
+             , RETN_YN          = #{RETN_YN         }         /* 반품여부       */
+             , RESN_CD          = #{RESN_CD         }         /* 반품사유코드   */
+             , SEND_FAX_STATE   = #{SEND_FAX_STATE  }         /* 펙스발송상태(여부)  */
+             , SEND_EMAIL_STATE = #{SEND_EMAIL_STATE}         /* Email발송상태(여부) */
+             , PRINT_STATE      = #{PRINT_STATE     }         /* PRINT인쇄상태(여부)  */
+             , SUPR_AMT         = #{SUPR_AMT        }         /* 공급가액       */
+             , VAT_AMT          = #{VAT_AMT         }         /* 부가세         */
+             , TOT_AMT          = #{TOT_AMT         }         /* 합계금액       */
+             , ORD_CUSTMR       = #{ORD_CUSTMR      }         /* 발행구분       */
+             , MPROGRM          = #{PARAM_PROGRM}
+             , MUSER            = #{REG_ID}
+             , MDATE            = NOW()
+         WHERE ORGN_DIV_CD      = #{ORGN_DIV_CD}
+           AND ORGN_CD          = #{ORGN_CD}
+           AND ORD_NO           = #{ORD_NO}
+    </update>
+
+    <update id="updateTpurOrdState" parameterType="java.util.Map">
+        /* updateTpurOrdState [ OrderInput.xml  발주서 진행상태Update]*/
+        UPDATE T_PUR_ORD
+        SET    ORD_STATE        = #{ORD_STATE   }         /* 발주상태       */
+             , MPROGRM          = #{PARAM_PROGRM}
+             , MUSER            = #{REG_ID}
+             , MDATE            = NOW()
+         WHERE ORGN_DIV_CD      = #{ORGN_DIV_CD}
+           AND ORGN_CD          = #{ORGN_CD}
+           AND ORD_NO           = #{ORD_NO}
+    </update>
+
+    <update id="updateReqGoodsTmpFlag" parameterType="java.util.Map">
+        /* updateReqGoodsTmpFlag [ OrderInput.xml 주문요청서 처리상태 수정 ] */
+        UPDATE T_REQ_GOODS_TMP
+           SET FLAG            =  #{FLAG        }     /* 요청상태       */
+              <if test='FLAG == "1" or FLAG == "2" '>
+              ,RESV_DATE       =  NULL
+              </if>
+              ,MUSER           =  #{REG_ID      }     /* 작업자         */
+              ,MDATE           =  NOW()           /* 일시           */
+         WHERE ORD_NO          =  #{PARAM_ORD_NO}
+           AND FLAG            =  #{PARAM_CURR_FLAG}  /* 현재상태 */
+           AND ORD_TYPE        =  #{PARAM_ORD_TYPE}   /* 발주유형 */
+    </update>
+
+    <update id="deleteTpurOrdByCancel" parameterType="java.util.Map">
+        /* deleteTpurOrdByCancel [ OrderInput.xml  주문서 취소에 의한 발주서삭제처리  ]*/
+        DELETE T_PUR_ORD
+         WHERE ORD_NO = #{ORD_NO}
+    </update>
+
+    <update id="deleteTpurOrdGoodsByCancel" parameterType="java.util.Map">
+        /* deleteTpurOrdGoodsByCancel [ OrderInput.xml  주문서 취소에 의한 발주서삭제처리  ]*/
+        DELETE T_PUR_ORD_GOODS
+         WHERE ORD_NO  = #{ORD_NO}
+    </update>
+
+    <update id="updateTpurOrdGoods" parameterType="java.util.Map">
+        /* updateTpurOrdGoods [OrderInput.xml] */
+        UPDATE T_PUR_ORD_GOODS
+        SET    GOODS_CD        = #{GOODS_CD      }          /* 발주제목       */
+             , BCD_CD          = #{BCD_CD        }          /* 바코드(자)       */
+             , ORD_QTY         = #{ORD_QTY       }          /* 발주수량         */
+             , DIMEN_NM        = #{DIMEN_NM      }          /* 상품규격단위수량 */
+             , PUR_PRICE       = #{PUR_PRICE     }          /* 매입단가         */
+             , SUPR_AMT        = #{SUPR_AMT      }          /* 공급가액         */
+             , VAT_AMT         = #{VAT_AMT       }          /* 부가세           */
+             , TOT_AMT         = #{TOT_AMT       }          /* 합계금액         */
+             , LAND_CHG_TYPE   = #{LAND_CHG_TYPE }          /* 착지변경여부     */
+             , REMK            = #{REMK          }          /* 적요             */
+             , MPROGRM         = #{PARAM_PROGRM}
+             , MUSER           = #{REG_ID}
+             , MDATE           = NOW()
+         WHERE ORGN_DIV_CD     = #{ORGN_DIV_CD}
+           AND ORGN_CD         = #{ORGN_CD}
+           AND ORD_NO          = #{ORD_NO}
+           AND ORD_SEQ         = #{ORD_SEQ}
+    </update>
+
+    <delete id="deleteTpurOrd" parameterType="java.util.Map">
+        /* deleteTpurOrd [ OrderInput.xml] */
+        DELETE T_PUR_ORD
+         WHERE ORGN_DIV_CD      = #{ORGN_DIV_CD}
+           AND ORGN_CD          = #{ORGN_CD}
+           AND ORD_NO           = #{ORD_NO}
+    </delete>
+
+    <delete id="deleteTpurOrdGoods" parameterType="java.util.Map">
+        /* deleteTpurOrdGoods [ OrderInput.xml]*/
+        DELETE T_PUR_ORD_GOODS
+         WHERE ORGN_DIV_CD     = #{ORGN_DIV_CD}
+           AND ORGN_CD         = #{ORGN_CD}
+           AND ORD_NO          = #{ORD_NO}
+           AND ORD_SEQ         = #{ORD_SEQ}
+    </delete>
+
+    <select id="getTpurOrdCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+        /* getTpurOrdCount [ OrderInput.xml 발주건수 카운팅] */
+        SELECT  COUNT(ORD_NO)   SAVE_CNT
+          FROM  T_PUR_ORD
+         WHERE  ORGN_DIV_CD     = #{ORGN_DIV_CD}
+           AND  ORGN_CD         = #{ORGN_CD}
+           AND  ORD_NO          = #{ORD_NO}
+           AND  ORD_SEQ         = #{ORD_SEQ}
+    </select>
+
+    <select id="GetOrderNumber" resultType="java.lang.String" parameterType="java.util.Map">
+        /* GetOrderNumber [OrderInput.xml IDENTITI T_PUR_ORD_SEQ에서 발주서마스터 일련번호를 채번한다] */
+        SELECT REPLICATE('0', 11 - LEN(CONVERT(NVARCHAR(11) , NEXT VALUE FOR T_PUR_ORD_SEQ))) +
+               CONVERT(NVARCHAR(11) , NEXT VALUE FOR T_PUR_ORD_SEQ) ORD_NO
+    </select>
+
+    <select id="getSearchPdaOrderBarcodePriceList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchPdaOrderBarcodePriceList  [ OrderInput.xml 센타에서 협력사로 PDA발주서] */
+        SELECT  B.GOODS_NO      /* 상품코드       */
+              , B.BCD_CD        /* 자바코드       */
+              , B.BCD_M_CD      /* 모바코드       */
+              , B.BCD_NM        /* 상품이름       */
+              , B.DIMEN_NM      /* 규격           */
+              , B.UNIT_CD       /* 단위코드       */
+              , B.DIMEN_QTY     /* 규격수량       */
+              , B.DIMEN_WGT     /* 단위중량       */
+              , F.PUR_DSCD_TYPE DSCD_TYPE     /* 반품가능여부   */
+              , C.PUR_PRICE     /* 구매단가       */
+              , C.CUSTMR_CD     /* 현재협력사CD   */
+              , E.CUSTMR_NM     /* 현재협력사명   */
+        FROM   T_PUR_TRML A
+               JOIN T_STD_MAST_BCD       B ON B.BCD_CD    = A.BCD_CD    AND B.USE_YN      = 'Y'
+               JOIN T_STD_MAST_GOODS     F ON F.GOODS_NO  = B.GOODS_NO
+               JOIN T_STD_MAST_PUR_PRICE C ON C.BCD_CD    = B.BCD_CD    AND C.GOODS_NO    = B.GOODS_NO
+               /* T_STD_CUSTMR_MK        D ON D.CUSTMR_CD = C.CUSTMR_CD AND D.ORGN_DIV_CD = 'B01' AND D.ORGN_CD = #{PARAM_ORGN_CD} */
+               JOIN T_STD_MAST_CUSTMR    E ON E.CUSTMR_CD = C.CUSTMR_CD
+        WHERE  1 =  1
+          AND  A.SEND_TYPE = 'N'
+        <if test='PARAM_STR_YYYYMMDD != null and PARAM_STR_YYYYMMDD != ""'>
+          AND  CONVERT(CHAR(8),  A.CDATE,112) = #{PARAM_STR_YYYYMMDD}
+        </if>
+        ORDER  BY B.BCD_NM
+    </select>
+
+
+</mapper>

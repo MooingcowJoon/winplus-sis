@@ -1,0 +1,158 @@
+package com.samyang.winplus.sis.standardInfo.service;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.samyang.winplus.common.system.util.LoofInterface;
+import com.samyang.winplus.common.system.util.LoofUtilObject;
+import com.samyang.winplus.sis.standardInfo.dao.PresetDao;
+
+
+@Service("PresetService")
+public class PresetServiceImpl implements PresetService{
+	
+	@Autowired
+	PresetDao presetDao;
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
+	@Override
+	public List<Map<String, Object>> getPresetList(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.getPresetList(paramMap);
+	};
+	
+	@Override
+	public List<Map<String, Object>> getPresetGroupList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return presetDao.getPresetGroupList(paramMap);
+	};
+	
+	@Override
+	public List<Map<String, Object>> getPresetDetailList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return presetDao.getPresetDetailList(paramMap);
+	};
+	
+	@Override
+	public List<Map<String, Object>> getPresetTempList(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.getPresetTempList(paramMap);
+	};
+	
+	@Override
+	public Map<String, Object> getPresetinfoCheck(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.getPresetinfoCheck(paramMap);
+	}
+	
+	@Override
+	public Map<String, Object> getPresetDetailinfoCheck(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.getPresetDetailinfoCheck(paramMap);
+	}
+	
+	@Override
+	public List<Map<String, Object>> getDetailGoodsList(List<Map<String, Object>> paramMapList) throws SQLException, Exception {
+		List<Map<String, Object>> resultMapList = new ArrayList<Map<String, Object>>();
+		Map<String, Object> resultMap = null;
+		for(int i = 0 ; i < paramMapList.size() ; i++) {
+			resultMap = new HashMap<String, Object>();
+			resultMap = presetDao.getDetailGoodsList(paramMapList.get(i));
+			if(resultMap == null) {
+				resultMap = new HashMap<String, Object>();
+				resultMap.put("BCD_NM", "조회정보없음");
+				resultMap.put("BCD_CD", paramMapList.get(i).get("BCD_CD"));
+				resultMap.put("DIMEN_NM", "조회정보없음");
+				resultMap.put("SALE_PRICE", 0);
+				resultMap.put("EVENT_GOODS_PRICE", 0);
+				resultMap.put("GOODS_CD", "조회정보없음");
+			} 
+			resultMapList.add(resultMap);
+		}
+		return resultMapList;
+	}
+	
+	/**
+	 * getPasteDetailGoodsList - 프리셋 - 프리셋상세상품 바코드 복사붙여넣기
+	 * @author 정혜원
+	 * @param Map<String, Object>
+	 * @return List<Map<String, Object>>
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@Override
+	public List<Map<String, Object>> getPasteDetailGoodsList(Map<String, Object> paramMap) throws SQLException, Exception{
+		Map<String, Object> resultMap = null;
+		List<Map<String, Object>> lm = null;
+		String BCD_CD = paramMap.get("loadGoodsList").toString();
+		BCD_CD = BCD_CD.replace("[", "");
+		BCD_CD = BCD_CD.replace("]", "");
+		BCD_CD = BCD_CD.replaceAll(" ", "");
+		String[] BCD_CD_LIST = BCD_CD.split(",");
+		
+		List<Map<String, Object>> goods_list = new ArrayList<Map<String, Object>>();
+		for(String bcd_cd : BCD_CD_LIST) {
+			resultMap = new HashMap<String, Object>();
+			if(!bcd_cd.equals("")) {
+				resultMap.put("ORGN_CD", paramMap.get("ORGN_CD"));
+				resultMap.put("BCD_CD", bcd_cd);
+				goods_list.add(resultMap);
+			}
+		}
+		LoofUtilObject l = new LoofUtilObject();
+		lm = l.selectAfterLoofBigMapList((List<Map<String, Object>>) goods_list, new LoofInterface() {
+			@Override
+			public Object exec(Object... obj) {
+				return presetDao.getPasteDetailGoodsList((List<Map<String,Object>>) obj[0]);
+			}
+		});
+		return lm;
+	}
+	
+	@Override
+	public int AddPresetMaster(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.AddPresetMaster(paramMap);
+	}
+	
+	@Override
+	public int deletePresetMaster(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.deletePresetMaster(paramMap);
+	}
+	
+	
+	@Override
+	public int updatePresetMaster(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.updatePresetMaster(paramMap);
+	}
+	
+	@Override
+	public int AddPresetDetailGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.AddPresetDetailGoods(paramMap);
+	}
+	
+	@Override
+	public int deletePresetDetailGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		//logger.debug("delete presetDetail >>>> " + paramMap);
+		return presetDao.deletePresetDetailGoods(paramMap);
+	}
+	
+	
+	@Override
+	public int updatePresetDetailGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.updatePresetDetailGoods(paramMap);
+	}
+	
+	@Override
+	public List<Map<String, Object>> SearchGoods(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return presetDao.SearchGoods(paramMap);
+	}
+	
+	@Override
+	public Map<String, Object> getSearchMarketCD(Map<String, Object> paramMap) throws SQLException, Exception {
+		return presetDao.getSearchMarketCD(paramMap);
+	}
+	
+}

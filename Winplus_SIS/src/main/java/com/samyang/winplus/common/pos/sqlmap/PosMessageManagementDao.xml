@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.pos.dao.PosMessageManagementDao">
+	<select id="getPosMessageList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPosMessageList */
+		SELECT ORGN_CD 
+			, WORKDATE_SEQNO 
+			, MSG_CD 
+			, ARGUMENT_CNT 
+			, ARGUMENT_MASK
+			, MSG_KIND 
+			, MSG_KIND_2 
+			, DISP_FG
+			, CONFIRM_FG
+			, MSG
+			, CRUD_TYPE
+			, CPROGRM
+			, CUSER
+			, CDATE
+		FROM T_IF_POS_MSG
+		WHERE ORGN_CD = #{ORGN_CD}
+	</select>
+	
+	<insert id="AddMessageManagementList" parameterType="java.util.Map">
+		/* AddMessageManagementList */
+		INSERT INTO T_IF_POS_MSG
+			(MK_CD, WORKDATE_SEQNL, MSG_CD, ARGUMENT_CNT, ARGUMENT_MASK, MSG_KIND, MSG_KIND_2, DISP_FG, CONFIRM_FG, MSG, CRUD_TYPE, CPROGRM, CUSER, CDATE)
+		VALUES (#{MK_CD},#{WORKDATE_SEQNL},#{MSG_CD},#{ARGUMENT_CNT},#{ARGUMENT_MASK},#{MSG_KIND},#{MSG_KIND_2},#{DISP_FG},#{CONFIRM_FG},#{MSG},#{CRUD_TYPE},#{CPROGRM},#{CUSER},NOW())
+	</insert>
+	
+	<update id="UpdateMessageManagementList" parameterType="java.util.Map">
+		/* UpdateMessageManagementList */
+		UPDATE T_IF_POS_MSG
+		SET MSG_CD = #{MSG}
+			, ARGUMENT_CNT = #{ARGUMENT_CNT}
+			, ARGUMENT_MASK = #{ARGUMENT_MASK}
+			, MSG_KIND = #{MSG_KIND}
+			, MSG_KIND_2 = #{MSG_KIND_2}
+			, DISP_FG = #{DISP_FG}
+			, CONFIRM_FG = #{CONFIRM_FG}
+			, MSG = #{MSG}
+		WHERE MK_CD = #{MK_CD} AND WORKDATE_SEQNO= #{WORKDATE_SEQNO}
+	</update>
+	
+	<delete id="DeleteMessageManagementList" parameterType="java.util.Map">
+		/* DeleteMessageManagementList */
+		DELETE FROM T_IF_POS_MSG 
+		WHERE WORKDATE_SEQNO = #{WORKDATE_SEQNO} AND MK_CD = #{MK_CD}
+	</delete>
+</mapper>

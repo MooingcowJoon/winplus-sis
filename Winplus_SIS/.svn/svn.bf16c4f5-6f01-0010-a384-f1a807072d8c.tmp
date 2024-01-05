@@ -1,0 +1,2167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.popup.dao.CommonPopupDao">
+
+	<select id="searchMtrlPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchMtrlPopup */
+		SELECT 
+		  MI.MTRL_CD
+		  , MI.MTRL_NM
+		  , MI.RECIPE_UNIT
+		  , ROUND(AVG(MP.AVR_PRICE),2) MTRL_PRICE
+		  , MI.YIELD
+		  , CASE WHEN MI.RPST_MTRL_YN = 'Y' THEN '대표' ELSE '' END AS RPST_MTRL_YN
+		FROM MTRL_INFO MI
+		LEFT JOIN (
+			SELECT 
+					RPST_MTRL_CD MTRL_CD
+					, AVG(AVR_PRICE) AVR_PRICE
+				FROM (			 	
+					SELECT
+						ISNULL(MPH.RPST_MTRL_CD, MI2.RPST_MTRL_CD) RPST_MTRL_CD
+						, ISNULL(MPH.AVR_PRICE, INPUT_PRICE/ORDER_EXCH/YIELD*100) AVR_PRICE
+					FROM MTRL_INFO MI2
+				 	LEFT JOIN (
+						SELECT 
+							RPST_MTRL_CD
+							, ISNULL(AVG(AVR_PRICE/ORDER_EXCH/YIELD*100),0) AVR_PRICE
+						FROM VIEW_MTRL_AVR_PRICE_HIS
+						WHERE RPST_MTRL_YN = 'N' AND STND_MON = (SELECT MAX(STND_MON) FROM VIEW_MTRL_AVR_PRICE_HIS)
+						GROUP BY RPST_MTRL_CD, STND_MON
+					) MPH  
+					ON MI2.RPST_MTRL_CD = MPH.RPST_MTRL_CD
+					WHERE MI2.RPST_MTRL_YN = 'N'
+				) A 
+				GROUP BY RPST_MTRL_CD
+			UNION ALL
+			SELECT 
+					MTRL_CD
+					, AVG(AVR_PRICE) AVR_PRICE
+				FROM (			 	
+					SELECT
+						ISNULL(MPH.MTRL_CD, MI2.MTRL_CD) MTRL_CD
+						, ISNULL(MPH.AVR_PRICE, INPUT_PRICE/ORDER_EXCH/YIELD*100) AVR_PRICE
+					FROM MTRL_INFO MI2
+				 	LEFT JOIN (
+						SELECT 
+							MTRL_CD
+							, ISNULL(AVG(AVR_PRICE/ORDER_EXCH/YIELD*100),0) AVR_PRICE
+						FROM VIEW_MTRL_AVR_PRICE_HIS
+						WHERE RPST_MTRL_YN = 'N' AND STND_MON = (SELECT MAX(STND_MON) FROM VIEW_MTRL_AVR_PRICE_HIS)
+						GROUP BY MTRL_CD, STND_MON
+					) MPH  
+					ON MI2.MTRL_CD = MPH.MTRL_CD
+					WHERE MI2.RPST_MTRL_YN = 'N'
+				) A 
+				GROUP BY MTRL_CD
+			) MP
+		ON MI.MTRL_CD = MP.MTRL_CD
+		WHERE 
+			(MI.MTRL_NM LIKE CONCAT('%',#{MTRL_NM},'%') OR MI.MTRL_CD LIKE CONCAT('%',#{MTRL_NM},'%'))
+			AND MI.USE_YN = 'Y'
+		<if test='RPST_MTRL_YN == "Y" and RECIPE == ""'>
+			AND MI.RPST_MTRL_YN = 'Y'
+		</if>
+		<if test='RPST_MTRL_YN == "Y" and RECIPE == "RECIPE"'>
+			AND MI.RPST_MTRL_CD = MI.MTRL_CD
+		</if>
+		GROUP BY MI.MTRL_CD, MI.MTRL_NM, MI.RECIPE_UNIT, MI.YIELD, MI.RPST_MTRL_YN
+	</select>
+	
+	<select id="searchMtrlDetailPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchMtrlDetailPopup */
+		SELECT 
+		  MI.MTRL_CD
+		  , MI.MTRL_NM
+		  , MI.MTRL_NM_DESC
+		  , MI.RPST_MTRL_CD
+		  , RNM.RPST_MTRL_NM
+		  , MI.RPST_MTRL_YN
+		  , MI.USE_YN
+		  , MD.CMMN_DETAIL_CD_NM AS DIVISION
+		  , MG.CMMN_DETAIL_CD_NM AS GROUP_CD
+		  , MG2.CMMN_DETAIL_CD_NM AS GROUP_CD2
+		  , MI.ORDER_UNIT
+		  , MI.RECIPE_UNIT
+		  , MI.STOCK_UNIT
+		  , MI.ORDER_EXCH
+		  , MI.RECIPE_EXCH
+		  , MI.STOCK_EXCH
+		  , MI.MAX_ORDER_QTY
+		  , MI.INPUT_PRICE
+		  , MI.LST_WHS_PRICE
+		  , MI.YIELD
+		  , MI.STOCK_INVTG
+		  , FAC.FAC_NM AS MTRL_KEEP
+		  , CONVERT(VARCHAR,MI.REG_REQ_DT, 120) REG_REQ_DT
+		  , MI.REG_REQ_ID
+		  , CONVERT(VARCHAR,MI.MOD_REQ_DT, 120) MOD_REQ_DT
+		  , MI.MOD_REQ_ID
+		  , MI.COST_APL_YN
+		  , MI.SURTAX_APL_YN
+		  , MI.DMDTAX_USE_YN
+		  , MI.NOTE
+		FROM MTRL_INFO MI 
+		  LEFT OUTER JOIN (
+		    SELECT 
+		      MFI.MTRL_CD, GROUP_CONCAT(OI.FAC_NM) AS FAC_NM
+		    FROM MTRL_FAC_INFO MFI
+		      JOIN (
+		        SELECT ORGN_CD AS FAC_CD, ORGN_NM AS FAC_NM
+		        FROM COM_ORGN_INFO 
+		        WHERE ORGN_DIV_CD = 'OD0002'
+		      )OI
+		      ON MFI.FAC_CD = OI.FAC_CD
+		    WHERE MFI.MTRL_CD = #{MTRL_CD}
+		    GROUP BY MFI.MTRL_CD
+		  )FAC 
+		  ON MI.MTRL_CD = FAC.MTRL_CD
+		  LEFT OUTER JOIN (
+		    SELECT CMMN_DETAIL_CD, CMMN_DETAIL_CD_NM FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'MTRL_DIV_CD'
+		  )MD
+		  ON MI.DIVISION = MD.CMMN_DETAIL_CD
+		  LEFT OUTER JOIN (
+		    SELECT CMMN_DETAIL_CD, CMMN_DETAIL_CD_NM FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'MTRL_GROUP_CD'
+		  )MG
+		  ON MI.GROUP_CD = MG.CMMN_DETAIL_CD
+		  LEFT OUTER JOIN (
+		    SELECT CMMN_DETAIL_CD, CMMN_DETAIL_CD_NM FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'MTRL_GROUP_CD2'
+		  )MG2
+		  ON MI.GROUP_CD2 = MG2.CMMN_DETAIL_CD
+		  LEFT OUTER JOIN (
+		    SELECT
+		      MTRL_CD AS RPST_MTRL_CD
+		      ,MTRL_NM AS RPST_MTRL_NM
+		    FROM MTRL_INFO
+		    WHERE MTRL_CD = RPST_MTRL_CD
+		  )RNM
+		  ON MI.RPST_MTRL_CD = RNM.RPST_MTRL_CD
+		WHERE MI.MTRL_CD = #{MTRL_CD}
+	</select>
+	
+	<select id="searchMtrlPricePopup_BAK" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchMtrlPricePopup */
+		SELECT 
+			MTRL_CD as MTRL_CD
+			, MTRL_NM as MTRL_NM
+			, ORDER_EXCH as ORDER_EXCH
+			, RPST_MTRL_CD AS RPST_MTRL_CD
+		FROM MTRL_INFO
+		WHERE MTRL_NM LIKE CONCAT('%',#{MTRL_NM},'%')		
+			AND RPST_MTRL_YN = 'N'
+	</select>
+	
+	<select id="searchMtrlPricePopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchMtrlPricePopup */
+		SELECT 
+			MI.MTRL_CD
+			, MI.MTRL_NM
+			, MI.ORDER_UNIT
+			, MI.ORDER_EXCH
+			, MI.RPST_MTRL_CD AS RPST_MTRL_CD
+			, ISNULL(LWP.DLV_BSN_CD,'') AS DLV_BSN_CD
+			, ISNULL(LWP.DLV_BSN_NM,'') AS DLV_BSN_NM
+			, ISNULL(LWP.PRICE,0) AS PRICE
+		FROM MTRL_INFO MI
+		LEFT JOIN (
+			SELECT
+				B.DLV_BSN_CD
+				, A.MTRL_CD
+				, B.DLV_BSN_NM
+				, A.LST_WHS_PRICE AS PRICE
+			FROM MTRL_CSTM_INFO A
+			LEFT JOIN COM_DLV_BSN_INFO B
+				ON A.CSTM_CD = B.DLV_BSN_CD
+			WHERE A.USE_YN = 'Y' AND B.USE_YN = 'Y'
+		) LWP 
+			ON MI.MTRL_CD = LWP.MTRL_CD
+		WHERE (
+			MI.MTRL_NM LIKE CONCAT('%',#{MTRL_NM},'%') 
+			OR MI.MTRL_CD LIKE CONCAT('%',#{MTRL_NM},'%')
+		)
+			AND MI.RPST_MTRL_YN = 'N'
+			AND MI.USE_YN = 'Y'
+	</select>
+	
+	<select id="searchPrdcPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchPrdcPopup */
+		SELECT 
+			PRDC_CD
+			, PRDC_NM
+		FROM PRDC_INFO
+		WHERE (
+			PRDC_NM LIKE CONCAT('%',#{PRDC_NM},'%')
+			OR PRDC_CD LIKE CONCAT('%',#{PRDC_NM},'%')
+		)
+			AND USE_YN = 'Y'
+		<if test='PRDC_TIME != "" or PRDC_TIME != null'>
+			AND PRDC_DVIS = 'PD0001'
+		</if>
+		<if test='PRDC_TIME == "PD0001"'>
+			AND (RECIPE_CD IS NULL OR RECIPE_CD = '')
+		</if >
+		<if test='PRDC_TIME == "Y"'>
+			AND PRDC_CD NOT IN (
+				SELECT 
+					PRDC_CD 
+				FROM PRDC_CTGR 
+				WHERE STND_CTGR_CD = '3001' 
+					AND USE_YN = 'Y'
+			)
+		</if>
+	</select>
+	
+	<select id="searchPrdcProcessPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchPrdcProcessPopup */
+		SELECT 
+			A.PRDC_CD
+			, A.PRDC_NM
+			, B.PRDC_PROCESS_COST
+		FROM PRDC_INFO A
+		LEFT JOIN (
+			SELECT 
+				A.PRDC_CD
+				, SUM(A.PRDC_LABOR_COST + A.PRDC_FACTORY_COST 
+				+ A.PRDC_LABOR_COMM_COST + A.PRDC_FACTORY_COMM_COST) AS PRDC_PROCESS_COST
+			FROM MON_ERP_PRDC_PROCESS_COST A
+			WHERE A.USE_YN = 'Y' 
+				AND CONCAT(A.YYYY, A.MM) = (
+					SELECT 
+						MAX(CONCAT(YYYY,MM)) 
+					FROM MON_ERP_PRDC_PROCESS_COST
+				)
+			GROUP BY PRDC_CD
+		) B
+			ON A.PRDC_CD = B.PRDC_CD
+		WHERE A.USE_YN = 'Y'
+			AND A.PRDC_DVIS = 'PD0001'
+			AND (
+				A.PRDC_NM LIKE CONCAT('%',#{PRDC_NM},'%')
+				OR A.PRDC_CD LIKE CONCAT('%',#{PRDC_NM},'%')
+			)
+	</select>
+	
+	<select id="searchPrdcSessionPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchPrdcSessionPopup */
+		SELECT 		
+			A.PRDC_CD							PRDC_CD
+			,A.PRDC_NM							PRDC_NM
+			,B.FAC_CD							FAC_CD
+			,FN_GET_ORGN_CD_NM(B.FAC_CD)		FAC_NM
+			,CONVERT(VARCHAR,GETDATE(), 120)	CURR_DATE
+		FROM PRDC_INFO A ,PRDC_FAC_INFO B
+		WHERE A.PRDC_CD = B.PRDC_CD
+		<if test='PRDC_NM != null and PRDC_NM != ""'>
+			AND	(	
+				A.PRDC_NM LIKE CONCAT('%',#{PRDC_NM},'%')
+				OR A.PRDC_CD LIKE CONCAT('%',#{PRDC_NM},'%')
+			)
+		</if>
+			AND A.USE_YN = 'Y'
+		<if test='PRDC_TIME == "PD0001"'>
+			AND A.PRDC_DVIS = #{PRDC_TIME}
+			AND A.RECIPE_CD IS NOT NULL
+		</if >
+			AND B.FAC_CD = #{FAC_CD}
+	</select>
+	 
+	<select id="searchDlvBsnPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchDlvBsnPopup */
+		SELECT 
+			DLV_BSN_CD
+			, DLV_BSN_NM 
+		FROM COM_DLV_BSN_INFO 
+		WHERE 1=1
+		<if test='MTRL_YN == null or MTRL_YN == "" or MTRL_YN == "N"'>
+			AND (
+				DLV_BSN_CD LIKE CONCAT('%',#{DLV_BSN_NM},'%') 
+				OR DLV_BSN_NM LIKE CONCAT('%',#{DLV_BSN_NM},'%')
+			)
+		</if>
+		<if test='MTRL_YN != null and MTRL_YN == "Y"'>
+			AND (
+				DLV_BSN_CD IN (
+					SELECT 
+						CSTM_CD 
+					FROM MTRL_CSTM_INFO 
+					WHERE MTRL_CD = #{MTRL_CD} 
+						AND USE_YN = 'Y'
+				)
+			)
+		</if>
+		<if test='ORGN_DIV_CD == null or ORGN_DIV_CD == ""'>
+			AND DLV_BSN_DIV_CD = 'DBD001'
+		</if>
+		<if test='ORGN_DIV_CD != null and ORGN_DIV_CD != ""'>
+			AND DLV_BSN_DIV_CD = #{ORGN_DIV_CD}
+		</if>
+	</select>
+	
+	<select id="searchDlvBsnPricePopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchDlvBsnPricePopup */
+		SELECT   
+			INFO.LST_WHS_PRICE         AS INFO_LST_WHS_PRICE
+			,BSN.DLV_BSN_CD             AS DLV_BSN_CD
+			,BSN.DLV_BSN_NM             AS DLV_BSN_NM
+		FROM MTRL_CSTM_INFO INFO
+		JOIN COM_DLV_BSN_INFO BSN 
+			ON INFO.CSTM_CD = BSN.DLV_BSN_CD
+		WHERE INFO.MTRL_CD =#{MTRL_CD}
+	</select>
+	
+	<select id="searchFacYPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchFacYPopup */
+		SELECT 
+			ORGN_CD AS FAC_CD
+			, ORGN_NM AS FAC_NM
+		FROM COM_ORGN_INFO
+		WHERE USE_YN = 'Y'
+			AND ORGN_NM LIKE CONCAT('%',#{FAC_NM},'%')
+	</select>
+	
+	<select id="searchFacNPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchFacNPopup */
+		SELECT 
+			DLV_BSN_CD AS FAC_CD
+		    , DLV_BSN_NM AS FAC_NM
+		FROM COM_DLV_BSN_INFO
+		WHERE USE_YN = 'Y'
+			AND (DLV_BSN_NM LIKE CONCAT('%',#{FAC_NM},'%') OR DLV_BSN_CD LIKE CONCAT('%',#{FAC_NM},'%'))
+		<if test='DLV_BSN_DIV_CD != null and DLV_BSN_DIV_CD != ""'>
+			AND DLV_BSN_DIV_CD = #{DLV_BSN_DIV_CD}
+		</if>
+	</select>
+	
+	<select id="searchRecipePopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchRecipePopup */
+		SELECT 
+			RECIPE_CD
+			, RECIPE_NM
+		FROM RECIPE_MST_INFO
+		WHERE (
+			RECIPE_NM LIKE CONCAT('%',#{RECIPE_NM},'%')
+			OR RECIPE_CD LIKE CONCAT('%',#{RECIPE_NM},'%')
+		)
+			AND USE_YN = 'Y'
+		<if test='NO_ACC != null and NO_ACC == "Y"'>
+			AND RECIPE_CD NOT IN (SELECT RECIPE_CD FROM PRDC_INFO WHERE RECIPE_CD IS NOT NULL)
+		</if>
+	</select>
+	
+	<select id="searchStndCtgrPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchStndCtgrPopup */
+		SELECT 
+			STND_CTGR_CD
+			, STND_CTGR_NM
+		FROM CTGR_STND
+		WHERE STND_CTGR_DIV = #{STND_CTGR_DIV}
+			AND STND_CTGR_NM LIKE CONCAT('%',#{STND_CTGR_NM},'%')
+	</select>
+	
+	<select id="searchDtlCtgrPopup" resultType="java.util.Map" parameterType="java.util.Map">
+  		/* searchDtlCtgrPopup */
+		SELECT
+			CD1.CTGR_CD AS DTL_CTGR_CD
+			, CD2.CTGR_NM AS UPPER_CTGR_NM
+			, CD1.CTGR_NM AS DTL_CTGR_NM
+		FROM CTGR_DTL CD1
+		LEFT JOIN CTGR_DTL CD2 
+			ON CD1.UPPER_CTGR_CD = CD2.CTGR_CD
+		WHERE CD1.STND_CTGR_CD = #{STND_CTGR_CD}
+		<if test='DTL_CTGR_NM != null and DTL_CTGR_NM != ""'>
+			AND (CD1.CTGR_CD LIKE CONCAT('%',#{DTL_CTGR_NM},'%') OR CD1.CTGR_NM LIKE CONCAT('%',#{DTL_CTGR_NM},'%'))
+		</if>
+			AND CD1.UPPER_CTGR_CD != ''
+			AND CD1.USE_YN = 'Y'
+ 	</select>
+	
+	<select id="getOrgnPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOrgnList */
+		SELECT 
+			A.ORGN_CD
+			, A.ORGN_NM
+			, DBO.FN_GET_ORGN_CD_NM_FULL(ORGN_CD) ORGN_NM_FULL
+			, ISNULL(DBO.FN_GET_ORGN_CD_NM(A.UPPER_ORGN_CD),'') UPPER_ORGN_NM
+			, ISNULL(ORGN_DIV_CD,'') ORGN_DIV_CD
+			, ISNULL(DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',A.ORGN_DIV_CD),'') ORGN_DIV_NM
+			, ISNULL(ZIP_NO,'') ORGN_ZIP_NO
+			, ISNULL(ADDR,'') ORGN_ADDRESS
+			, ISNULL(ADDR2,'') ORGN_ADDRESS_DETAIL
+			, ISNULL(TEL_NO,'') ORGN_TEL_NO
+			, A.ORGN_STEP
+			, A.ORGN_ORDER
+			, 'N' FOLDER_YN
+			, A.USE_YN
+			, CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+			, A.REG_ID
+			, CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+			, A.MOD_ID
+			, CONVERT(VARCHAR,A.INST_DT, 120) INST_DT
+		FROM COM_ORGN_INFO A
+		WHERE USE_YN = 'Y'
+			AND (
+				ORGN_CD LIKE CONCAT('%',#{ORGN_NM},'%') 
+				OR ORGN_NM LIKE CONCAT('%',#{ORGN_NM},'%')
+			)
+			<if test='ORGN_DIV_CD != null and ORGN_DIV_CD != ""'>
+				AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+		ORDER BY ORGN_CD
+	</select>
+	
+	<select id="searchCstmPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchCstmPopup */
+		SELECT
+			DLV_BSN_CD AS CSTM_CD
+			, DLV_BSN_NM AS CSTM_NM
+		FROM COM_DLV_BSN_INFO
+		WHERE (
+			DLV_BSN_CD LIKE CONCAT('%',#{CSTM_NM},'%') OR DLV_BSN_NM LIKE CONCAT('%',#{CSTM_NM},'%')
+		)
+	</select>
+	
+	<select id="searchCstmByMtrlPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchCstmByMtrlPopup */
+		SELECT
+			A.MTRL_CD
+			, B.MTRL_NM
+			, A.CSTM_MTRL_CD
+			, A.CSTM_DELI_PRICE
+			, A.LST_WHS_PRICE
+			, A.USE_YN
+			, A.REG_DT
+			, A.REG_ID
+			, A.MOD_DT
+			, A.MOD_ID
+		FROM MTRL_CSTM_INFO A
+		JOIN MTRL_INFO B
+			ON A.MTRL_CD = B.MTRL_CD
+		WHERE B.MTRL_NM LIKE CONCAT('%',#{MTRL_NM},'%')
+			AND A.USE_YN = 'Y'
+	</select>
+	
+	<select id="searchDlvBsnPrices" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchDlvBsnPrices */
+		SELECT 
+		    Q.PRICE AS PRICE
+		    ,Q.DLV_BSN_CD AS DLV_BSN_CD
+		    ,Q.MTRL_CD AS MTRL_CD
+		    ,BSN.DLV_BSN_NM AS DLV_BSN_NM
+		FROM (
+			SELECT 
+				MIN(A.INFO_LST_WHS_PRICE) as PRICE,
+	            MIN(A.DLV_BSN_CD) AS DLV_BSN_CD,
+	            A.MTRL_CD
+		    FROM (
+		    	SELECT 
+		        	INFO.LST_WHS_PRICE AS INFO_LST_WHS_PRICE,
+		            BSN.DLV_BSN_CD AS DLV_BSN_CD,
+		            INFO.MTRL_CD AS MTRL_CD
+		    	FROM MTRL_CSTM_INFO INFO, COM_DLV_BSN_INFO BSN
+				WHERE INFO.CSTM_CD = BSN.DLV_BSN_CD 
+					AND INFO.USE_YN='Y'
+			) A, (
+				SELECT 
+		        	MIN(INFO.LST_WHS_PRICE) AS INFO_LST_WHS_PRICE,
+		            INFO.MTRL_CD AS MTRL_CD
+			    FROM MTRL_CSTM_INFO INFO, COM_DLV_BSN_INFO BSN
+			    WHERE INFO.CSTM_CD = BSN.DLV_BSN_CD
+		    	GROUP BY INFO.MTRL_CD
+		    ) B
+		    WHERE A.INFO_LST_WHS_PRICE = B.INFO_LST_WHS_PRICE
+				AND A.MTRL_CD = B.MTRL_CD
+		    GROUP BY A.MTRL_CD
+		) Q
+		JOIN COM_DLV_BSN_INFO BSN 
+			ON Q.DLV_BSN_CD = BSN.DLV_BSN_CD
+		ORDER BY PRICE ASC
+	</select>
+	
+	<select id="searchEmpPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchEmpPopup */
+		SELECT 
+			A.EMP_NO
+			, A.EMP_NM
+			, DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',B.ORGN_DIV_CD) ORGN_DIV_NM
+			, B.ORGN_NM
+      		, C.DLV_BSN_NM
+		FROM COM_EMP_INFO A
+		LEFT JOIN COM_ORGN_INFO B
+			ON A.DEPT_CD = B.ORGN_CD
+    	LEFT JOIN COM_DLV_BSN_INFO C
+      		ON A.DLV_BSN_CD = C.DLV_BSN_CD
+      	LEFT JOIN COM_EMP_ACNT D
+			ON A.EMP_NO = D.EMP_NO
+		WHERE 1=1
+			AND A.USE_YN = 'Y'
+			AND (A.EMP_NO LIKE CONCAT('%',#{EMP_NM},'%') OR EMP_NM LIKE CONCAT('%',#{EMP_NM},'%'))
+	</select>
+	
+	<select id="searchEmpLoginAddListPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchEmpLoginAddListPopup */
+		SELECT
+			EMA.EMP_NO
+			, A.EMP_NO EMP_NO_LOGIN_ADD
+			, A.EMP_NM
+			, A.DEPT_CD
+			, ISNULL(B.ORGN_DIV_CD,'') ORGN_DIV_CD 
+			, DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',B.ORGN_DIV_CD) ORGN_DIV_NM
+			, B.ORGN_NM
+			, A.DLV_BSN_CD
+			, C.DLV_BSN_NM
+			, A.USE_YN
+			, CONVERT(VARCHAR,EMA.REG_DT, 120) REG_DT
+			, EMA.REG_ID
+			, CONVERT(VARCHAR,EMA.MOD_DT, 120) MOD_DT
+			, EMA.MOD_ID
+			, CONVERT(VARCHAR,EMA.INST_DT, 120) INST_DT
+		FROM COM_EMP_LOGIN_ADD EMA
+		LEFT JOIN COM_EMP_INFO A
+			ON EMA.EMP_NO_LOGIN_ADD = A.EMP_NO
+		LEFT JOIN COM_ORGN_INFO B
+			ON A.DEPT_CD = B.ORGN_CD
+		LEFT JOIN COM_DLV_BSN_INFO C
+      		ON A.DLV_BSN_CD = C.DLV_BSN_CD
+		WHERE 1=1
+		 	AND EMA.USE_YN = 'Y'
+			AND A.USE_YN = 'Y'
+			AND EMA.EMP_NO = #{EMP_NO_ORIZ}
+		ORDER BY ORGN_DIV_CD, EMA.EMP_NO_LOGIN_ADD
+	</select>
+	
+	<select id="searchMtrlAvgModPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchMtrlAvgModPopup */
+		SELECT 
+			MAPH.MTRL_CD
+			, MI.MTRL_NM
+			, MAPH.ORGN_CD
+			, OI.ORGN_NM
+			, MAPH.STND_MON
+			, MAPH.DFRC_NUM
+			, MAPH.AVR_PRICE
+			, MAPH.USE_YN
+			, CONVERT(VARCHAR,MAPH.REG_DT, 120) REG_DT
+			, MAPH.REG_ID
+		FROM MTRL_AVR_PRICE_HIS MAPH 
+		JOIN MTRL_INFO MI
+			ON MAPH.MTRL_CD = MI.MTRL_CD
+		JOIN COM_ORGN_INFO OI
+			ON MAPH.ORGN_CD = OI.ORGN_CD
+		WHERE MAPH.STND_MON = #{STND_MON}
+			AND MAPH.MTRL_CD = #{MTRL_CD}
+			AND MAPH.ORGN_CD = #{ORGN_CD}
+		ORDER BY MAPH.DFRC_NUM DESC
+	</select>
+	
+	<select id="searchInputPricePopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchInputPricePopup */
+		SELECT 
+			MIPH.MTRL_CD
+			, MI.MTRL_NM
+			, CONVERT(VARCHAR,MIPH.STR_DT,120) STR_DT
+			, CONVERT(VARCHAR,MIPH.END_DT,120) END_DT
+			, MIPH.INPUT_PRICE
+			, MIPH.USE_YN
+			, CONVERT(VARCHAR,MIPH.REG_DT, 120) REG_DT
+			, MIPH.REG_ID
+		FROM MTRL_INPUT_PRICE_HIS MIPH
+		JOIN MTRL_INFO MI
+			ON MIPH.MTRL_CD = MI.MTRL_CD
+		WHERE MIPH.MTRL_CD = #{MTRL_CD}
+		ORDER BY MIPH.INST_DT DESC
+	</select>
+	
+	<select id="searchCstmInfoPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchCstmInfoPopup */
+		SELECT 
+			MAI.FROM_CD AS CSTM_CD
+			, DBI.DLV_BSN_NM AS CSTM_NM
+			, MAI.MTRL_CD
+			, MI.MTRL_NM
+			, MAI.ORDER_EXCH
+			, MAI.UNIT_AMT
+			, CONVERT(VARCHAR,MAI.RELEASE_DT, 120) RELEASE_DT
+			, MAI.STATUS_CD
+		FROM MATERIAL_IO MAI
+		LEFT OUTER JOIN MTRL_INFO MI
+			ON MAI.MTRL_CD = MI.MTRL_CD
+		LEFT OUTER JOIN COM_DLV_BSN_INFO DBI
+			ON MAI.FROM_CD = DBI.DLV_BSN_CD
+		WHERE MAI.STATUS_CD = 'MI0001'
+			AND MAI.MTRL_CD = #{MTRL_CD}
+		GROUP BY MAI.FROM_CD, DBI.DLV_BSN_NM, MAI.MTRL_CD, MI.MTRL_NM, MAI.ORDER_EXCH, MAI.UNIT_AMT, MAI.RELEASE_DT, MAI.STATUS_CD
+		ORDER BY MAI.RELEASE_DT
+	</select>
+	
+	<select id="searchPrdcTimePopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchPrdcPopup */
+		SELECT 
+			PRDC_CD
+			, PRDC_NM
+		FROM PRDC_INFO
+		WHERE (
+			PRDC_NM LIKE CONCAT('%',#{PRDC_NM},'%')
+			OR PRDC_CD LIKE CONCAT('%',#{PRDC_NM},'%')
+		)
+		<if test='PRDC_TIME == "PD0001"'>
+			AND PRDC_DVIS = 'PD0001'
+		</if>
+	</select>
+	
+	<select id="getOpenSearchDeliProcPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSearchDeliProcPopup */
+		SELECT 
+			A.ORDER_DSEND,
+			A.ORDER_DSENDRDATE,
+			ISNULL(B.ORDER_DNAME, '') AS ORDER_DNAME,
+			A.ORDER_DCCODE,
+			ISNULL(A.ORDER_DESCRIPTION, '') AS ORDER_DESCRIPTION,
+			ISNULL(A.ORDER_DMEMO, '') AS ORDER_DMEMO,
+			A.ORDER_DSEND,
+			ISNULL(A.ORDER_DSENDNO, '''') AS ORDER_DSENDNO
+		FROM ORDER_DETAIL A(NOLOCK)
+		INNER JOIN ORDER_DELIVERY B(NOLOCK) 
+			ON A.ORDER_DSENDAIDX = B.ORDER_DIDX
+		WHERE A.ORDER_DCIDX = #{ORDER_DCIDX} 
+			AND A.ORDER_DJSANCTION = 1
+	</select>
+	
+	<select id="searchCallHistoryPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchCallHistoryPopup */
+		SELECT 
+			* 
+		FROM (
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY Call_Idx DESC) AS 'CHK_ROWNUMBER'
+				, A.Call_MCode
+				, Call_Code
+				, Call_Idx
+				, A.Call_Gubun1
+				, A.Call_Gubun2
+				, convert(nvarchar(10), A.Call_Date , 120) as Call_Date2
+				, convert(nvarchar(20), A.Call_Date , 108) as Call_Time
+				, A.Call_Date
+				, A.Call_InOut
+				, A.Call_PDS
+				, Customer_Name
+				, A.Call_GCode1
+				, Call_GName
+				, A.Call_GCode2
+				, Call_GSName
+				, A.Call_Memo
+				, E.Member_Name
+				, A.Call_Complete
+				, ISNULL(Claim_CMemo3,'') AS 'Claim_CMemo3'
+				, ISNULL(Claim_CMemo4,'') AS 'Claim_CMemo4'
+				, ISNULL(Claim_CMemo5,'') AS 'Claim_CMemo5'
+				, ISNULL((
+					SELECT 
+						COUNT(Call_RCIdx) 
+					FROM CALL_RECORD WITH (NOLOCK) 
+					WHERE Call_RCIdx = A.Call_Idx 
+					GROUP BY Call_RCIdx
+				),0) AS 'CRecord'
+			<if test='tableCode == "0"'>
+				FROM CALL_INF_2014 A WITH (NOLOCK)
+			</if>
+			<if test='tableCode == "1"'>
+				FROM CALL_INF_2015 A WITH (NOLOCK)
+			</if>
+			<if test='tableCode == "2"'>
+				FROM CALL_INF_2016 A WITH (NOLOCK)
+			</if>
+			<if test='tableCode != "0" and tableCode != "1" and tableCode != "2"'>
+				FROM CALL_INF A WITH (NOLOCK)
+			</if>
+			INNER JOIN CALL_GUBUN B (NOLOCK) 
+				ON A.Call_GCode1 = B.Call_GCode 
+			INNER JOIN CALL_SUB_GUBUN C(NOLOCK) 
+				ON A.Call_GCode2 = C.Call_GSCode 
+			INNER JOIN CUSTOMER_INF D(NOLOCK) 
+				ON A.Call_Code = D.Customer_Code 
+			INNER JOIN MEMBER_INF E(NOLOCK) 
+				ON A.Call_MCode = E.Member_Code 
+			LEFT JOIN CALL_CLAIM_INF F WITH (NOLOCK)
+				ON A.Call_Idx = F.Claim_CCIdx  
+			WHERE Call_Code = #{CUSTOMER_SCCODE}
+		)TA
+		ORDER BY Call_Idx DESC
+	</select>
+	
+	<select id="searchCallHistoryPopup2" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchCallHistoryPopup2 */
+		SELECT 
+			Customer_CIdx
+			, convert(nvarchar(20), Customer_CDate , 120) as 'Customer_CDate'
+			, ISNULL(Customer_CMemo, '') AS 'Customer_CMemo'
+		<if test='tableCode == "0"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_2008 WITH (NOLOCK)
+		</if>
+		<if test='tableCode == "1"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_2009 WITH (NOLOCK)
+		</if>
+		<if test='tableCode == "2"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_2010 WITH (NOLOCK)
+		</if>
+		<if test='tableCode == "3"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_2011 WITH (NOLOCK)
+		</if>
+		<if test='tableCode == "4"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_2012 WITH (NOLOCK)
+		</if>
+		<if test='tableCode == "5"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_2013 WITH (NOLOCK)
+		</if>
+		<if test='tableCode == "6"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_2014 WITH (NOLOCK)
+		</if>
+		<if test='tableCode != "0" and tableCode != "1" and tableCode != "2" and tableCode != "3" and tableCode != "4" and tableCode != "5" and tableCode != "6"'>
+			FROM PERFECT_STATISTICS.dbo.CUSTOMER_CALL_HISTORY_1 WITH (NOLOCK)
+		</if>
+        WHERE Customer_CCode = #{CUSTOMER_SCCODE}
+        ORDER BY Customer_CIdx, Customer_CDate
+	</select>
+	
+	<select id="getOpenSamplePopupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOpenSamplePopupList */
+		SELECT 
+			A.Customer_SCHK
+			, A.Customer_SCCode
+			, A.Customer_SOCode
+			, A.Customer_SDate
+			, D.Customer_Name
+			, B.Article_Name
+			, A.Customer_SAQa
+			, ISNULL(A.Customer_SDDate, '') AS 'Customer_SDDate'
+			, C.Member_Name
+			, A.Customer_SIdx
+			, Order_DName
+			, ISNULL(dbo.ECL_DECRYPT(Order_DHp), '') AS 'Order_DHP'
+			, Order_DAddress1
+			, dbo.ECL_DECRYPT(Order_DAddress2) AS 'Order_DAddress2'
+		FROM CUSTOMER_SAMPLE_INF A(NOLOCK)
+		INNER JOIN ARTICLE_INF B(NOLOCK) 
+			ON A.Customer_SACode = B.Article_Code
+		INNER JOIN MEMBER_INF C(NOLOCK) 
+			ON A.Customer_SMCode = C.Member_Code
+		INNER JOIN CUSTOMER_INF D(NOLOCK) 
+			ON A.Customer_SCCode = D.Customer_Code
+		INNER JOIN ORDER_DELIVERY E(NOLOCK) 
+			ON E.Order_DIdx = A.Customer_SAIdx  
+		WHERE Customer_SCCode = #{CUSTOMER_SCCODE}
+		ORDER BY A.Customer_SOCode, A.Customer_SDate 
+	</select>
+	
+	<select id="getAcceptDaySumManagementPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getAcceptDaySumManagementPopup */
+		SELECT 
+			ISNULL(C.Article_Code, '') AS 'Article_Code',
+			ISNULL(C.Article_OCode, '') AS 'Article_OCode',
+			SUM(B.Order_CQa) AS 'Order_CQa'
+		FROM ORDER_DETAIL A(NOLOCK)
+		INNER JOIN ORDER_COMMON B(NOLOCK) 
+			ON A.Order_DCIdx = B.Order_CIdx
+		LEFT JOIN ARTICLE_INF C(NOLOCK) 
+			ON B.Order_CArticle = C.Article_Code
+		INNER JOIN MEMBER_INF D(NOLOCK) 
+			ON A.Order_DMCode = D.Member_Code
+		WHERE (A.Order_DSendRDate BETWEEN #{STR_DT} AND #{END_DT})
+		AND (A.Order_DReturn = 0)
+		AND A.Order_DJSanction = 1
+		AND A.Order_DSendWay =  #{ORDER_DSENDWAY}
+		<if test='BUSINESS_INF != "ALL" and BUSINESS_INF != ""'>
+			AND A.Order_DWArea = #{BUSINESS_INF}  
+		</if>
+		<if test='ORDER_PRO == "1"'>
+			AND A.Order_DSend = 1    
+			AND A.Order_DSendKind = #{ORDER_DSENDWAY2} 
+		</if>
+		GROUP BY Article_Code, Article_OCode
+    </select>
+         
+	<select id="getResourcesBuyRegisterPopup" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getResourcesBuyRegisterPopup */
+		SELECT   
+			Subul_Idx,
+		    Subul_Date,
+		    Subul_BCode,
+		    Subul_ACode,
+		    SuBul_AOCode,
+		    SuBul_INQa,
+		    Subul_OUTQa,
+		    Subul_Cost,
+		    Subul_Amount,
+		    Subul_Pay,
+		    Subul_DPrice,
+		    Subul_Memo,
+		    Subul_Memo1,
+		    Subul_MCode,
+		    Subul_RDate,
+		    Subul_CHK,
+		    Subul_EDate,
+		    Subul_Com
+		FROM SUBUL_INOUT_INF 
+		WHERE Subul_Idx = #{SUBUL_IDX}
+    </select>
+    
+    <select id="getReturnRequestDetail" resultType="java.util.Map" parameterType="java.util.Map">
+    	/* getReturnRequestDetail */
+		SELECT MIN(Order_DIdx) AS 'Order_DIdx' 
+		FROM ORDER_DELIVERY 
+		WHERE Order_DCCode = #{custCode} 
+			AND Order_Flag = 0
+    </select>    
+    
+	<select id="searchSmsList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchSmsList */
+    	EXEC UP_GET_SMS_SEND_LIST 
+			#{PHONE1}	-- @PHONE1
+			, #{PHONE2}			-- @PHONE2
+			, #{PHONE3}			-- @PHONE3
+	</select>
+	
+	<select id="searchPreCallData" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchPreCallData */
+    	SELECT
+			CONVERT(NVARCHAR(10), A.Call_Date , 120) as CALL_DT
+		   	, CONVERT(NVARCHAR(20), A.Call_Date , 108) as CALL_TM
+			,CASE
+				WHEN A.Call_InOut = 0 THEN 'IN'
+				ELSE 'OUT'
+			END AS CALL_INOUT
+			,Customer_Name AS CUSTOMER_NM
+			,Call_GName AS CALL_GUBUN1
+			,Call_GSName AS CALL_GUBUN2
+			,A.Call_Memo AS CALL_MEMO
+			,E.Member_Name AS CALL_MEMBER
+		<if test='YEAR == "2014"'>
+			FROM CALL_INF_2014 A WITH (NOLOCK)
+        </if>
+        <if test='YEAR == "2015"'>
+			FROM CALL_INF_2015 A WITH (NOLOCK)
+        </if>
+        <if test='YEAR == "2016"'>
+			FROM CALL_INF_2016 A WITH (NOLOCK)
+        </if>
+        <if test='YEAR == "" or YEAR == null'>
+			FROM CALL_INF_2016 A WITH (NOLOCK)
+        </if>
+		INNER JOIN CALL_GUBUN B (NOLOCK) 
+			ON A.Call_GCode1 = B.Call_GCode 
+		INNER JOIN CALL_SUB_GUBUN C (NOLOCK) 
+			ON A.Call_GCode2 = C.Call_GSCode 
+		INNER JOIN CUSTOMER_INF D(NOLOCK) 
+			ON A.Call_Code = D.Customer_Code 
+		INNER JOIN VIEW_MEMBER_INF E(NOLOCK) 
+			ON A.Call_MCode = E.Member_Code 
+		WHERE Call_Code = #{CUSTOMER_CD}
+	</select>
+	
+	<select id="searchDetailCallData" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchDetailCallData */
+    	SELECT TOP 1
+			CASE
+				WHEN CI.Call_Gubun1=0 THEN 'Y'
+				ELSE 'N'
+			END												AS CALL_ORDER_YN			/* 고객주문여부(0:yes) */
+			,CASE
+				WHEN CI.Call_Gubun2=0 THEN 'Y'
+				ELSE 'N'
+			END												AS CALL_INFO				/* 개인정보제공동의(0:yes) */
+			,CI.Call_Memo									AS CALL_DATA				/* 통화기록 */ 
+			,ISNULL(CD.CMMN_DETAIL_CD_NM, '상담실')			AS CALL_ROUTE				/* 통화경로 */
+			,ISNULL(CI.Call_Transfer, 'N')					AS CALL_TRANSFER_YN			/* 이관여부(Y/N) */
+			,ISNULL(AI.Article_Name, '')					AS CALL_PRDT				/* 상품명 */
+			,CASE
+				WHEN ISNULL(CI.Call_Sensitivity, CS.Customer_SIYN)=1 THEN 'Y'
+				ELSE 'N'
+			END												AS CALL_SENSI_INFO			/* 민감정보제공동의(1:yes) */
+			,CASE
+				WHEN ISNULL(CI.Call_Marketing, CU.Customer_AB)=0 THEN 'Y'
+				ELSE 'N'
+			END												AS CALL_MARKETING			/* 마케팅동의(0:yes) */
+			,ISNULL(CI.Call_Claim, 'N')						AS CALL_CLAIM_YN			/* 클레임여부 */
+			,CONVERT(CHAR(10), CI.Call_Date, 126)			AS CALL_DT					/* 통화일자 */
+			,ISNULL(C.Call_GName,DBO.FN_GET_CTGR_DTL_UPPER_CTGR_NM(CI.Call_Category,'123123')) + '/' + ISNULL(D.Call_GSName,DBO.FN_GET_CTGR_DTL_UPPER_CTGR_NM_FULL(CI.Call_Category,'123123')) AS CALL_CATE	/* 통화유형 */
+		FROM CALL_INF AS CI(NOLOCK) 
+		LEFT OUTER JOIN ARTICLE_INF AS AI(NOLOCK) 
+			ON AI.Article_Code = CI.Call_Prdt
+		LEFT OUTER JOIN CUSTOMER_INF AS CU(NOLOCK) 
+			ON CI.Call_Code = CU.Customer_Code
+		LEFT OUTER JOIN CUSTOMER_SINFO AS CS(NOLOCK) 
+			ON CI.Call_Code = CS.Customer_SICode
+		LEFT OUTER JOIN COM_CMMN_CODE_DETAIL AS CD(NOLOCK) 
+			ON CI.Call_Route = CD.CMMN_DETAIL_CD
+		LEFT OUTER JOIN CALL_GUBUN AS C(NOLOCK) 
+			ON CI.Call_GCode1 = C.Call_GCode
+		LEFT OUTER JOIN CALL_SUB_GUBUN AS D(NOLOCK) 
+			ON CI.Call_GCode2 = D.Call_GSCode
+		WHERE CI.Call_Idx = #{CALL_DATA_IDX}
+	</select>
+	
+	<select id="searchCustomerOrderCallData" resultType="java.util.Map" parameterType="java.util.Map">
+    	/* searchCustomerOrderCallData */
+		SELECT 
+			CASE WHEN A.Call_Gubun1 = 0 THEN 'Y' ELSE 'N' END										as CALL_DATA_ORDER_YN			/* 주문여부(0:yes,1:no) */
+			,A.Call_Transfer																		as CALL_DATA_TRANSFER_YN		/* 이관여부(Y/N) */
+			,A.Call_Claim																			as CALL_DATA_CLAIM				/* 클레임여부(Y/N) */
+			,substring(CONVERT(varchar,A.Call_Date, 25),0,11)										as CALL_DATA_DT					/* 등록일자 */
+			,CASE WHEN A.Call_InOut = 1 THEN 'OUT' ELSE 'IN' END									as CALL_DATA_KIND				/* 콜유형(0:인,1:아웃) */
+			,ISNULL(C.Call_GName,DBO.FN_GET_CTGR_DTL_UPPER_CTGR_NM(A.Call_Category,'123123'))		as CALL_DATA_GUBUN1				/* 구분1(대분류명) */
+			,ISNULL(D.Call_GSName,DBO.FN_GET_CTGR_DTL_UPPER_CTGR_NM_FULL(A.Call_Category,'123123'))	as CALL_DATA_GUBUN2				/* 구분2(소분류명) */
+			,A.Call_Memo																			as CALL_DATA_MEMO				/* 통화내용 */
+			,E.Member_Name																			as CALL_DATA_COUNSELOR			/* 상담사명 */
+			,ISNULL(A.Call_LineDiv,'CLD001')														as CALL_LINE_DIV				/* 무선/유선 구분 */
+		FROM CALL_INF A
+		LEFT OUTER JOIN CALL_GUBUN C
+			ON A.Call_GCode1 = C.Call_GCode
+		LEFT OUTER JOIN CALL_SUB_GUBUN D
+			ON A.Call_GCode2 = D.Call_GSCode
+		INNER JOIN VIEW_MEMBER_INF E
+			ON A.Call_Mcode = E.Member_Code
+		WHERE A.Call_Code = #{CUSTOMER_CD}
+		ORDER BY A.Call_Date DESC
+	</select>
+	
+	<select id="searchCustomerOrderPaymentData" resultType="java.util.Map" parameterType="java.util.Map">
+    	/* searchCustomerOrderPaymentData */
+		SELECT 
+			PAYMENT_DIV				/* 결제수단 */
+			, PAYMENT_STAT			/* 결제상태 */
+			, PAYMENT_NM			/* 카드사명/은행명 */
+			, PAYMENT_PRICE			/* 결제금액 */
+			, CONVERT(VARCHAR,PAYMENT_DT,21) AS PAYMENT_DT		/* 결제일 */
+			, CONVERT(VARCHAR,REG_DT,21) AS REG_DT				/* 등록일 */
+			, PAYMENT_ORDER			/* LG에 전달한 주문번호 */
+			, PAYMENT_TID			/* 거래번호 */
+			, PAYMENT_MEMBER		/* 담당자 */
+		FROM (
+			SELECT
+				'단일_카드' AS PAYMENT_DIV
+				, CASE
+					WHEN A.Customer_CETC = 'A' THEN '승인'
+					WHEN A.Customer_CETC = 'C' THEN '승인취소'
+					WHEN A.Customer_CETC = 'R' THEN '재승인'
+					ELSE ''
+				END AS PAYMENT_STAT
+				, A.Customer_CRCard AS PAYMENT_NM
+				, A.Customer_CPrice AS PAYMENT_PRICE
+				, ISNULL(A.Customer_CRDate,'') AS PAYMENT_DT
+				, A.Customer_CDate AS REG_DT
+				, A.Customer_CSendOrderCd AS PAYMENT_ORDER
+				, A.Customer_CID AS PAYMENT_TID
+				, B.Member_Name AS PAYMENT_MEMBER
+			FROM CUSTOMER_CARD_HISTORY A(NOLOCK)
+			INNER JOIN VIEW_MEMBER_INF B(NOLOCK) 
+				ON A.Customer_CMCode = B.Member_Code
+			WHERE A.Customer_COrderCd = #{OCODE}
+		
+			UNION
+					
+			SELECT
+				'복합_카드1' AS PAYMENT_DIV
+				, CASE
+					WHEN A.Mix_Card1_Status = 'A' THEN '승인'
+					WHEN A.Mix_Card1_Status = 'C' THEN '승인취소'
+					WHEN A.Mix_Card1_Status = 'R' THEN '재승인'
+					ELSE ''
+				END AS PAYMENT_STAT
+				, A.Mix_Card1_Nm AS PAYMENT_NM
+				, A.Mix_Card1_Price AS PAYMENT_PRICE
+				, ISNULL(A.Mix_Card1_Date,'') AS PAYMENT_DT
+				, A.REG_DT AS REG_DT
+				, A.Mix_Card1_SendOrder AS PAYMENT_ORDER
+				, A.Mix_Card1_CID AS PAYMENT_TID
+				, B.Member_Name AS PAYMENT_MEMBER
+			FROM CUSTOMER_MIX_HISTORY A(NOLOCK)
+			INNER JOIN VIEW_MEMBER_INF B(NOLOCK) 
+				ON A.Mix_Member_Cd = B.Member_Code
+			WHERE A.Mix_Order_Cd = #{OCODE}
+				AND A.Mix_Card1_Price <![CDATA[ <> ]]> 0
+				AND A.Mix_Card1_Price IS NOT NULL
+				
+			UNION
+		
+			SELECT
+				'복합_카드2' AS PAYMENT_DIV
+				, CASE
+					WHEN A.Mix_Card2_Status = 'A' THEN '승인'
+					WHEN A.Mix_Card2_Status = 'C' THEN '승인취소'
+					WHEN A.Mix_Card2_Status = 'R' THEN '재승인'
+					ELSE ''
+				END AS PAYMENT_STAT
+				, A.Mix_Card2_Nm AS PAYMENT_NM
+				, A.Mix_Card2_Price AS PAYMENT_PRICE
+				, ISNULL(A.Mix_Card2_Date,'') AS PAYMENT_DT
+				, A.REG_DT AS REG_DT
+				, A.Mix_Card2_SendOrder AS PAYMENT_ORDER
+				, A.Mix_Card2_CID AS PAYMENT_TID
+				, B.Member_Name AS PAYMENT_MEMBER
+			FROM CUSTOMER_MIX_HISTORY A(NOLOCK)
+			INNER JOIN VIEW_MEMBER_INF B(NOLOCK) 
+				ON A.Mix_Member_Cd = B.Member_Code
+			WHERE A.Mix_Order_Cd = #{OCODE}
+				AND A.Mix_Card2_Price <![CDATA[ <> ]]> 0
+				AND A.Mix_Card2_Price IS NOT NULL
+		
+			UNION
+		
+			SELECT
+				'복합_가상' AS PAYMENT_DIV
+				, CASE
+					WHEN A.Mix_Virtual_Status = 'I' THEN '입금'
+					WHEN A.Mix_Virtual_Status = 'C' THEN '환불'
+					ELSE ''
+				END AS PAYMENT_STAT
+				, A.Mix_Virtual_Bank_Nm AS PAYMENT_NM
+				, A.Mix_Virtual_Deposit AS PAYMENT_PRICE
+				, ISNULL(A.Mix_Virtual_Deposit_Dt,'') AS PAYMENT_DT
+				, A.REG_DT AS REG_DT
+				, A.Mix_Virtual_SendOrder AS PAYMENT_ORDER
+				, A.Mix_Virtual_CID AS PAYMENT_TID
+				, B.Member_Name AS PAYMENT_MEMBER
+			FROM CUSTOMER_MIX_HISTORY A(NOLOCK)
+			INNER JOIN VIEW_MEMBER_INF B(NOLOCK) 
+				ON A.Mix_Member_Cd = B.Member_Code
+			WHERE A.Mix_Order_Cd = #{OCODE}
+				AND A.Mix_Virtual_Deposit <![CDATA[ <> ]]> 0
+				AND A.Mix_Virtual_Deposit IS NOT NULL
+		
+			UNION
+		
+			SELECT
+				'단일_가상' AS PAYMENT_DIV
+				, CASE
+					WHEN A.Virtual_Deal_Status = 'I' THEN '입금'
+					WHEN A.Virtual_Deal_Status = 'C' THEN '환불'
+					ELSE ''
+				END AS PAYMENT_STAT
+				, A.Virtual_Deposit_Bank_Nm AS PAYMENT_NM
+				, A.Virtual_Deposit_Price AS PAYMENT_PRICE
+				, ISNULL(A.Virtual_Deposit_Dt,'') AS PAYMENT_DT
+				, A.REG_DT AS REG_DT
+				, A.Virtual_Order_Param_Cd AS PAYMENT_ORDER
+				, A.Virtual_Deal_Cd AS PAYMENT_TID
+				, B.Member_Name AS PAYMENT_MEMBER
+			FROM CUSTOMER_VIRTUAL_HISTORY A(NOLOCK)
+			INNER JOIN VIEW_MEMBER_INF B(NOLOCK) 
+				ON A.Virtual_Member_Cd = B.Member_Code
+			WHERE A.Virtual_Order_Cd = #{OCODE}
+				AND A.Virtual_Deposit_Price <![CDATA[ <> ]]> 0
+				AND A.Virtual_Deposit_Price IS NOT NULL
+		) A
+		ORDER BY REG_DT ASC, PAYMENT_DT ASC
+	</select>
+	
+	<select id="searchDupliCustomerData" resultType="java.util.Map" parameterType="java.util.Map">
+    	/* searchDupliCustomerData */
+		SELECT 
+			A.Customer_Code AS CUSTOMER_CD
+			, A.Customer_Name AS CUSTOMER_NM
+			, A.Customer_Address1 AS CUSTOMER_ADDR
+			, A.Customer_BirthDay AS CUSTOMER_BIRTH
+			, B.Member_Name AS MEMBER_NM
+		FROM CUSTOMER_INF A(NOLOCK) 
+		INNER JOIN VIEW_MEMBER_INF B(NOLOCK) 
+			ON A.Customer_MCode = B.Member_Code
+		WHERE (
+			A.CUSTOMER_THP = DBO.ECL_ENCRYPT(#{PHONE_NM}) 
+			OR A.CUSTOMER_TCP = DBO.ECL_ENCRYPT(#{PHONE_NM}) 
+			OR A.CUSTOMER_TEHP = DBO.ECL_ENCRYPT(#{PHONE_NM})
+		)
+			AND A.ROUTE_DIV = #{ROUTE_DIV}
+	</select>
+	
+	<select id="searchCustomerModData" resultType="java.util.Map" parameterType="java.util.Map">
+		/* searchCustomerModData */
+    	SELECT TOP 1
+			A.Customer_Code AS CUSTOMER_CODE
+			,A.Customer_Name AS CUSTOMER_NAME
+			,A.Customer_Post AS CUSTOMER_POST
+			,A.Customer_Address1 AS CUSTOMER_ADDRESS1
+			,DBO.ECL_DECRYPT(A.Customer_Address2) AS CUSTOMER_ADDRESS2
+			,A.Customer_BirthDay + ' (' + (
+				CASE WHEN A.Customer_Gender = 1 THEN '남' ELSE '여' END
+			) + ')' AS CUSTOMER_BIRTH 
+			,A.Customer_Introduction + ' (' + B.Customer_Name + ')' AS CUSTOMER_INTRO
+			,A.Customer_Memo AS CUSTOMER_MEMO
+			,A.Customer_AMemo AS CUSTOMER_AMEMO
+			,A.Customer_MCode + ' (' + C.Member_Name + ')' AS MEMBER_NAME
+			,DBO.ECL_DECRYPT(A.Customer_THp) AS CUSTOMER_THP
+			,(CASE WHEN A.Customer_PCHK1 = 1 THEN ' (거부)' ELSE '' END) AS CUSTOMER_PCHK1
+			,DBO.ECL_DECRYPT(A.Customer_TCp)  AS CUSTOMER_TCP
+			,(CASE WHEN A.Customer_PCHK2 = 1 THEN ' (거부)' ELSE '' END) AS CUSTOMER_PCHK2
+			,DBO.ECL_DECRYPT(A.Customer_TEHp) AS CUSTOMER_TEHP
+			,(CASE WHEN A.Customer_PCHK3 = 1 THEN ' (거부)' ELSE '' END) AS CUSTOMER_PCHK3
+			,CASE WHEN CONVERT(char(1),A.Customer_THpT) = '1' THEN '결번' ELSE '' END AS CUSTOMER_TEHPT
+			,CASE WHEN CONVERT(char(1),A.Customer_TCpT) = '1' THEN '결번' ELSE '' END AS CUSTOMER_TCPT
+			,CASE WHEN CONVERT(char(1),A.Customer_TEHpT) = '1' THEN '결번' ELSE '' END AS CUSTOMER_TEHPT
+			,A.Customer_Medium AS CUSTOMER_MEDIUM
+			,ISNULL(A.Customer_In,'') AS CUSTOMER_IN
+			,A.Customer_Attention AS CUSTOMER_ATTENTION
+			,A.Customer_Fav AS CUSTOMER_FAV
+			,A.Customer_FavMemo AS CUSTOMER_FAVMEMO
+			,A.Customer_AB AS CUSTOMER_AB
+			,A.Customer_Agree AS CUSTOMER_AGREE
+			,A.Customer_PhoneDeny AS CUSTOMER_PHONEDENY
+			,A.Customer_MailChk AS CUSTOMER_MAILCHK
+			,A.Customer_SmsChk AS CUSTOMER_SMSCHK
+			,CONVERT(VARCHAR,A.REG_DT,120) AS MOD_DT
+			,A.REG_ID + ' (' + D.Member_Name + ')' AS MOD_ID
+			,A.CASH_RECEIPT AS CUSTOMER_CASH_RECEIPT
+		FROM CUSTOMER_INF_BACK A(NOLOCK)
+		LEFT JOIN CUSTOMER_INF B(NOLOCK)
+			ON A.Customer_Introduction = B.Customer_Code
+		LEFT JOIN VIEW_MEMBER_INF C(NOLOCK)
+			ON A.Customer_MCode = C.Member_Code
+		LEFT JOIN VIEW_MEMBER_INF D(NOLOCK)
+			ON A.REG_ID = D.Member_Code
+		WHERE A.Customer_Idx = #{IDX}
+	</select>
+	
+	
+	<!-- 윈플러스 개발 부분 -->
+	
+	
+	<select id="getGoodsCategoryTreeList" resultType="java.util.Map" parameterType="java.util.Map">
+    	/* getGoodsCategoryTreeList */
+		SET NOCOUNT ON;
+		
+		DECLARE @KEY_WORD NVARCHAR(50)
+		
+		SET @KEY_WORD = CONCAT('%',#{KEY_WORD},'%')
+		
+		-- 상품분류 전체 임시테이블 생성
+		DECLARE @TMP_CATE_ALL_TABLE TABLE (
+			UNI_KEY NVARCHAR(17)
+			,LVL INT
+			,UPPER_UNI_KEY NVARCHAR(17)
+			,GRUP_NM NVARCHAR(50)
+			,GRUP_CD NVARCHAR(5)
+			,GRUP_STATE NVARCHAR(1)
+		)
+		
+		-- 상품분류 전체 임시테이블 데이터 입력
+		INSERT INTO @TMP_CATE_ALL_TABLE (
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		)
+		SELECT
+			CONCAT(GRUP_TOP_CD,'_',GRUP_MID_CD,'_',GRUP_BOT_CD) AS UNI_KEY
+			,CASE
+				WHEN GRUP_MID_CD = '0' THEN 1
+				ELSE (CASE
+						WHEN GRUP_BOT_CD = '0' THEN 2
+						ELSE 3
+					END)
+			END AS LVL
+			,CASE
+				WHEN (GRUP_MID_CD != '0' AND GRUP_BOT_CD != '0') THEN CONCAT(GRUP_TOP_CD,'_',GRUP_MID_CD,'_','0')
+				WHEN (GRUP_MID_CD != '0' AND GRUP_BOT_CD = '0') THEN CONCAT(GRUP_TOP_CD,'_','0','_','0')
+				ELSE '0_0_0'
+			END AS UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		FROM T_STD_GOODSGRUP
+		<if test="GRUP_STATE != null and GRUP_STATE != ''">
+			WHERE GRUP_STATE = #{GRUP_STATE}
+		</if>
+		ORDER BY GRUP_TOP_CD,GRUP_MID_CD,GRUP_BOT_CD
+		
+		-- 상품분류 검색결과 임시 테이블
+		DECLARE @TMP_CATE_WORD_TABLE TABLE (
+			UNI_KEY NVARCHAR(17)
+			,LVL INT
+			,UPPER_UNI_KEY NVARCHAR(17)
+			,GRUP_NM NVARCHAR(50)
+			,GRUP_CD NVARCHAR(5)
+			,GRUP_STATE NVARCHAR(1)
+		)
+		
+		-- 상품분류 반환 임시 테이블
+		DECLARE @TMP_CATE_RETURN_TABLE TABLE (
+			UNI_KEY NVARCHAR(17)
+			,LVL INT
+			,UPPER_UNI_KEY NVARCHAR(17)
+			,GRUP_NM NVARCHAR(50)
+			,GRUP_CD NVARCHAR(5)
+			,GRUP_STATE NVARCHAR(1)
+		)
+		
+		-- 상품분류 검색결과 임시 테이블 데이터 입력(검색값)
+		INSERT INTO @TMP_CATE_WORD_TABLE (
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		)
+		SELECT
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		FROM @TMP_CATE_ALL_TABLE
+		WHERE GRUP_NM LIKE @KEY_WORD
+		
+		-- 상품분류 반환 임시 테이블 데이터 입력(검색값에 대한)
+		INSERT INTO @TMP_CATE_RETURN_TABLE (
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		)
+		SELECT
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		FROM @TMP_CATE_WORD_TABLE
+		
+		-- 상품분류 반환 임시 테이블 데이터 입력(검색값의 부모 코드)
+		INSERT INTO @TMP_CATE_RETURN_TABLE (
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		)
+		SELECT
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		FROM @TMP_CATE_ALL_TABLE
+		WHERE UNI_KEY IN (
+							SELECT 
+								UPPER_UNI_KEY 
+							FROM @TMP_CATE_WORD_TABLE
+						)
+		
+		-- 상품분류 반환 임시 테이블 데이터 입력(검색값의 부모의 부모 코드)
+		INSERT INTO @TMP_CATE_RETURN_TABLE (
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		)
+		SELECT
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		FROM @TMP_CATE_ALL_TABLE
+		WHERE UNI_KEY IN (
+							SELECT
+								UPPER_UNI_KEY
+							FROM @TMP_CATE_ALL_TABLE
+							WHERE UNI_KEY IN (
+												SELECT 
+													UPPER_UNI_KEY 
+												FROM @TMP_CATE_WORD_TABLE
+											)
+						)
+		
+		-- 상품분류 반환 임시 테이블 조회
+		SELECT DISTINCT
+			UNI_KEY
+			,LVL
+			,UPPER_UNI_KEY
+			,GRUP_NM
+			,GRUP_CD
+			,GRUP_STATE
+		FROM @TMP_CATE_RETURN_TABLE
+		ORDER BY LVL
+		
+		SET NOCOUNT OFF;
+	</select>
+	
+	<select id="getCustmrList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCustmrList */
+		DECLARE @Search_Type NVARCHAR(30)
+			,@Orgn_Cd NVARCHAR(20)
+
+		SET @Search_Type = #{SEARCH_TYPE}   /* custmr, group , user */
+		SET @Orgn_Cd = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_DIV_CD = #{ORGN_DIV_CD} AND ORGN_CD = #{ORGN_CD})
+		
+		IF (@Search_Type = 'custmr')
+		BEGIN
+			SELECT A.CUSTMR_CD
+				,A.CUSTMR_NM
+				,A.PUR_SALE_TYPE
+				,CASE A.PUR_SALE_TYPE
+					WHEN 1 THEN '협력사'
+					WHEN 2 THEN '고객사'
+					ELSE '미지정'
+					END AS PUR_SALE_NM
+				,A.USE_YN
+				,A.CORP_NO
+			FROM T_STD_MAST_CUSTMR AS A
+			WHERE 1=1
+			AND A.CUSTMR_NM LIKE '%' + #{KEY_WORD} + '%'
+			<if test='USE_YN != ""'>
+				AND A.USE_YN = #{USE_YN}
+			</if>
+			<if test='PUR_SALE_TYPE == "1" or PUR_SALE_TYPE == "2"'>
+				AND A.PUR_SALE_TYPE = #{PUR_SALE_TYPE}
+			</if>
+		END
+		ELSE IF(@Search_Type = 'group')
+		BEGIN
+			SELECT C.GRUP_NM
+				,D.CUSTMR_CD
+				,D.CUSTMR_NM
+				,D.GRUP_CD
+				,D.PUR_SALE_TYPE
+				,D.PUR_SALE_NM
+				,D.USE_YN
+				,D.CORP_NO
+			FROM T_STD_CUSTMR_GRUP AS C
+			INNER JOIN (
+				SELECT B.GRUP_CD
+					,B.CUSTMR_CD
+					,A.CUSTMR_NM
+					,A.PUR_SALE_TYPE
+					,CASE A.PUR_SALE_TYPE
+						WHEN 1 THEN '협력사'
+						WHEN 2 THEN '고객사'
+						ELSE '미지정'
+						END AS PUR_SALE_NM
+					,A.USE_YN
+					,A.CORP_NO
+				FROM T_STD_MAST_CUSTMR AS A
+				INNER JOIN T_STD_CUSTMR_GRUP_DETL AS B
+				ON A.CUSTMR_CD = B.CUSTMR_CD
+			) AS D
+			ON 1=1
+			AND C.GRUP_CD = D.GRUP_CD
+			WHERE 1=1 
+			AND D.CUSTMR_NM LIKE '%' + #{KEY_WORD} + '%'
+			<if test='USE_YN != ""'>
+				AND D.USE_YN = #{USE_YN}
+			</if> 
+			<if test='PUR_SALE_TYPE != ""'>
+				AND D.PUR_SALE_TYPE = #{PUR_SALE_TYPE}
+			</if>
+		END
+		ELSE IF(@Search_Type = 'user')
+		BEGIN
+			SELECT C.ORGN_DIV_CD
+				,C.ORGN_CD 
+				,C.GRUP_NM
+				,C.RESP_USER
+				,D.OBJ_CD
+				,D.CUSTMR_CD
+				,D.CUSTMR_NM
+				,D.GRUP_CD
+				,D.PUR_SALE_TYPE
+				,D.PUR_SALE_NM
+				,D.USE_YN
+				,D.CORP_NO
+			FROM T_STD_GOODSGRUP_USER AS C
+			INNER JOIN (
+				SELECT	B.ORGN_DIV_CD
+					,B.ORGN_CD
+					,B.GRUP_CD
+					,B.OBJ_CD
+					,A.CUSTMR_CD
+					,A.CUSTMR_NM
+					,A.PUR_SALE_TYPE
+					,CASE A.PUR_SALE_TYPE
+						WHEN 1 THEN '협력사'
+						WHEN 2 THEN '고객사'
+						ELSE '미지정'
+						END AS PUR_SALE_NM
+					,A.USE_YN
+					,A.CORP_NO
+				FROM T_STD_MAST_CUSTMR AS A
+				INNER JOIN T_STD_GOODSGRUP_U_DETL AS B
+				ON A.CUSTMR_CD = B.OBJ_CD
+			) AS D
+			ON C.ORGN_DIV_CD = D.ORGN_DIV_CD
+			AND C.ORGN_CD = D.ORGN_CD
+			AND C.GRUP_CD = D.GRUP_CD
+			WHERE C.GRUP_NM LIKE '%' + #{KEY_WORD} + '%'
+			AND C.RESP_USER = #{emp_no}
+			AND 1=1 
+			AND (@Orgn_Cd = '000000' OR C.ORGN_CD = @Orgn_Cd)
+			<if test='USE_YN != ""'>
+				AND D.USE_YN = #{USE_YN}
+			</if>
+			<if test='PUR_SALE_TYPE != ""'>
+				AND D.PUR_SALE_TYPE = #{PUR_SALE_TYPE}
+			</if>
+		END
+	</select>
+	
+	<select id="getGoodsList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsList */
+		DECLARE @P_BCD_MS_TYPE NVARCHAR(1)		-- 모코드만 조회 할 경우를 처리하기 위해 추가함
+		
+		SET @P_BCD_MS_TYPE = #{BCD_MS_TYPE}
+		
+		SELECT	C.ORGN_DIV_CD
+			, C.ORGN_CD
+			, G.GRUP_TOP_CD
+			, G.GRUP_MID_CD
+			, G.GRUP_BOT_CD
+			, G.GOODS_NM
+			, G.GOODS_NO
+			, C.BCD_NM
+			, C.BCD_M_CD
+			, C.BCD_CD
+			, C.BCD_NM
+			, C.BCD_MS_TYPE
+			, C.BCD_STOCK_CD
+			, C.UNIT_CD
+			, C.NICK_NM_01
+			, C.NICK_NM_02
+			, C.UNIT_QTY
+			, C.DIMEN_NM
+			--, B.CAPA_QTY
+			--, B.CAPA_UNIT_QTY
+			--, B.DIMEN_WGT
+			, C.BCD_BEFR_CD
+			, C. BCD_BOX_CD
+			, C.USE_YN
+			, C.SALE_PRICE
+		FROM T_STD_MAST_GOODS AS G
+		INNER JOIN (
+			SELECT S.ORGN_DIV_CD
+				, S.ORGN_CD
+				, S.SALE_PRICE
+				, B.BCD_CD
+				, B.BCD_NM
+				, B.BCD_M_CD
+				, B.BCD_MS_TYPE
+				, B.BCD_STOCK_CD
+				, B.UNIT_CD
+				, B.NICK_NM_01
+				, B.NICK_NM_02
+				, B.UNIT_QTY
+				, B.DIMEN_NM
+				, B.BCD_BEFR_CD
+				, B.BCD_BOX_CD
+				, B.USE_YN
+				, B.GOODS_NO
+			FROM T_STD_MAST_BCD AS B
+			INNER JOIN T_STD_MAST_SALE_PRICE AS S ON B.BCD_CD = S.BCD_CD
+			WHERE 1=1
+			AND B.USE_YN = 'Y'
+			<if test='SHOW_TYPE != "true"'>
+				<if test='ORGN_DIV_CD != ""'>
+					AND S.ORGN_DIV_CD = #{ORGN_DIV_CD}
+				</if>
+				<if test='ORGN_CD != ""'>
+					AND S.ORGN_CD = #{ORGN_CD}
+				</if>
+			</if>
+		) AS C ON C.GOODS_NO = G.GOODS_NO
+		WHERE 1=1
+		AND G.GOODS_STATE = 'Y'
+		AND (C.BCD_CD LIKE '%' + #{KEY_WORD} + '%' OR C.BCD_NM LIKE '%' + #{KEY_WORD} + '%')
+		AND (ISNULL(@P_BCD_MS_TYPE,'') = '' OR C.BCD_MS_TYPE = @P_BCD_MS_TYPE)
+		ORDER BY C.ORGN_CD, C.BCD_CD
+	</select>
+	
+	<select id="getGoodsInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsInformation */
+		SELECT
+			CONCAT((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND GRUP_MID_CD = '0'
+				AND GRUP_BOT_CD = '0'
+			),' > ',ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = A.GRUP_MID_CD)
+				AND GRUP_BOT_CD = '0'
+			),''),' > ',ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = A.GRUP_MID_CD)
+				AND (GRUP_BOT_CD != '0' AND GRUP_BOT_CD = A.GRUP_BOT_CD)
+			),'')) AS GRUP_TMB_CD_NM
+			,B.GRUP_CD
+			,A.*
+		FROM T_STD_MAST_GOODS A
+		INNER JOIN T_STD_GOODSGRUP B
+		ON A.GRUP_TOP_CD = B.GRUP_TOP_CD
+		AND A.GRUP_MID_CD = B.GRUP_MID_CD
+		AND A.GRUP_BOT_CD = B.GRUP_BOT_CD
+		WHERE A.GOODS_NO = #{GOODS_NO}
+	</select>
+	
+	<select id="getBcodeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBcodeList */
+		SELECT
+			*
+		FROM T_STD_MAST_BCD
+		WHERE GOODS_NO = #{GOODS_NO}
+	</select>
+	
+	<select id="getGoodsSales" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsSales */
+			SELECT CONVERT(NVARCHAR(30), TS.ORD_DATE, 120) AS ORD_DATE
+					,TS.ORD_CD
+					,TS.ORGN_CD
+					,TS.POS_NO
+					,TS.RESP_USER
+					,TSD.SALE_PRICE
+					,TSD.SALE_QTY
+					,TSD.SALE_AMT
+					,TS.MEM_NO
+					,TM.MEM_NM
+					,TM.CORP_NO
+					,TM.CORP_ADDR_DETL
+			FROM T_SALE_MAST AS TS
+			INNER JOIN T_SALE_MAST_DETL AS TSD
+				ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+				AND TS.ORGN_CD = TSD.ORGN_CD
+				AND TS.ORD_CD = TSD.ORD_CD
+			LEFT OUTER JOIN T_STD_MAST_MEM AS TM
+				ON TS.MEM_NO = TM.MEM_NO
+				AND TS.ORGN_DIV_CD = TM.ORGN_DIV_CD
+				AND TS.ORGN_CD = TM.ORGN_CD
+			WHERE 1=1
+				<if test="ORGN_CD != ''">
+				AND TS.ORGN_CD = #{ORGN_CD}
+				</if>
+				AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1,#{SEARCH_DATE_TO}))
+				AND TSD.BCD_CD= #{BCD_CD}
+			ORDER BY ORD_DATE
+	</select>
+	
+	<select id="getGoodsSalesUnder" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsSalesUnder */
+		SELECT SUM(A.SALE_AMT) AS SALE_AMT --판매액
+				,SUM(A.SALE_QTY) AS SALE_QTY --판매량
+				,COUNT(A.ORD_CD) AS SALE_CNT --건수
+				,CONVERT(INT,ISNULL(SUM(A.SALE_AMT) / COUNT(A.ORD_CD),0)) AS AVG_AMT
+				,(SELECT ISNULL(SUM(TSD.SALE_QTY),0)
+					FROM T_SALE_MAST TS
+					INNER JOIN T_SALE_MAST_DETL AS TSD
+						ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TS.ORGN_CD = TSD.ORGN_CD
+						AND TS.ORD_CD = TSD.ORD_CD
+					WHERE TS.REG_TYPE = 'S01' 
+					AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+					AND TSD.BCD_CD= #{BCD_CD}) AS SALES_QTY --매출량
+				,(SELECT ISNULL(SUM(TSD.SALE_QTY),0)    
+					FROM T_SALE_MAST TS
+					INNER JOIN T_SALE_MAST_DETL AS TSD
+						ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TS.ORGN_CD = TSD.ORGN_CD
+						AND TS.ORD_CD = TSD.ORD_CD
+					WHERE TS.REG_TYPE = 'S02' 
+					AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+					AND TSD.BCD_CD= #{BCD_CD}) AS RETURN_QTY --반품량
+				,(SELECT ISNULL(SUM(TSD.SALE_AMT),0)  
+					FROM T_SALE_MAST TS
+					INNER JOIN T_SALE_MAST_DETL AS TSD
+						ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TS.ORGN_CD = TSD.ORGN_CD
+						AND TS.ORD_CD = TSD.ORD_CD
+					WHERE TS.REG_TYPE = 'S01' 
+					AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+					AND TSD.BCD_CD= #{BCD_CD}) AS SALES_AMT --매출액
+				,(SELECT ISNULL(SUM(TSD.SALE_AMT),0)   
+					FROM T_SALE_MAST TS
+					INNER JOIN T_SALE_MAST_DETL AS TSD
+						ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TS.ORGN_CD = TSD.ORGN_CD
+						AND TS.ORD_CD = TSD.ORD_CD
+					WHERE TS.REG_TYPE = 'S02' 
+					AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+					AND TSD.BCD_CD= #{BCD_CD}) AS RETN_AMT --반품액
+				,(SELECT ISNULL(SUM(TSD.SALE_AMT),0) 
+					FROM T_SALE_MAST TS
+					INNER JOIN T_SALE_MAST_DETL AS TSD
+						ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TS.ORGN_CD = TSD.ORGN_CD
+						AND TS.ORD_CD = TSD.ORD_CD
+					WHERE TS.MEM_NO IS NOT NULL
+					AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+					AND TSD.BCD_CD= #{BCD_CD}) AS MEM_AMT --회원매출
+				,(SELECT ISNULL(SUM(TSD.SALE_AMT),0)   
+					FROM T_SALE_MAST TS
+					INNER JOIN T_SALE_MAST_DETL AS TSD
+						ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TS.ORGN_CD = TSD.ORGN_CD
+						AND TS.ORD_CD = TSD.ORD_CD
+					WHERE TSD.TRADE_TYPE ='6'
+					AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+					AND TSD.BCD_CD= #{BCD_CD}) AS BARG_AMT --특매
+				,(SELECT ISNULL(SUM(TSD.SALE_AMT),0)  
+					FROM T_SALE_MAST TS
+					INNER JOIN T_SALE_MAST_DETL AS TSD
+						ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TS.ORGN_CD = TSD.ORGN_CD
+						AND TS.ORD_CD = TSD.ORD_CD
+					WHERE TSD.TRADE_TYPE ='1'
+					AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+					AND TSD.BCD_CD= #{BCD_CD}) AS COUP_AMT --쿠폰		
+		FROM(SELECT CONVERT(NVARCHAR(30), TS.ORD_DATE, 120) AS ORD_DATE
+					,TS.ORD_CD
+					,TS.ORGN_CD
+					,TS.POS_NO
+					,TS.RESP_USER
+					,TSD.SALE_PRICE
+					,TSD.SALE_QTY
+					,TSD.SALE_AMT
+					,TS.MEM_NO
+					,TM.MEM_NM
+					,TM.CORP_NO
+					,TM.CORP_ADDR_DETL
+					,TS.REG_TYPE
+			FROM T_SALE_MAST AS TS
+			INNER JOIN T_SALE_MAST_DETL AS TSD
+				ON TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+				AND TS.ORGN_CD = TSD.ORGN_CD
+				AND TS.ORD_CD = TSD.ORD_CD
+			LEFT OUTER JOIN T_STD_MAST_MEM AS TM
+				ON TS.MEM_NO = TM.MEM_NO
+				AND TS.ORGN_DIV_CD = TM.ORGN_DIV_CD
+				AND TS.ORGN_CD = TM.ORGN_CD
+			WHERE 1=1
+				<if test="ORGN_CD != '' and ORGN_CD != null">
+				AND TS.ORGN_CD = #{ORGN_CD}
+				</if>
+				AND TS.ORD_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1, #{SEARCH_DATE_TO}))
+				AND TSD.BCD_CD= #{BCD_CD}
+		) AS A
+	</select>
+	
+	<select id="getGoodsStock" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsStock */
+		SELECT	TC.ORGN_CD
+				,CONCAT(TC.STOCK_YY,'년',TC.STOCK_MM,'월 기말재고') AS REG_TYPE
+				,TSMG.GOODS_NM
+				,TSMG.GOODS_NO
+				,SUM(TC.STOCK_QTY) AS STOCK_QTY
+				,TC.PUR_PRICE
+				,SUM(TC.PUR_AMT) AS PUR_AMT
+				,TC.SALE_PRICE
+				,SUM(TC.SALE_AMT) AS SALE_AMT
+				,'0' AS SALE_QTY --수정해야함
+				,TS.STOCK_MIN_QTY
+				,CONVERT(NVARCHAR(16),TC.END_DATE,120) AS END_DATE
+		FROM T_STOCK_CLSE AS TC
+		INNER JOIN T_STD_MAST_SALE_PRICE AS TS
+			ON TC.GOODS_CD = TS.GOODS_NO
+			AND TC.ORGN_DIV_CD = TS.ORGN_DIV_CD
+			AND TC.ORGN_CD = TS.ORGN_CD
+		INNER JOIN T_STD_MAST_GOODS TSMG 
+		ON TC.GOODS_CD = TSMG.GOODS_NO
+		WHERE CONVERT(NVARCHAR(7),TC.END_DATE,23) BETWEEN #{SEARCH_DATE_FROM4} AND #{SEARCH_DATE_TO4}
+		AND TC.GOODS_CD= #{GOODS_NO} 
+		<if test="ORGN_CD != ''">
+		AND TC.ORGN_CD = #{ORGN_CD}
+		</if>
+		GROUP BY TC.STOCK_YY
+				,TC.STOCK_MM
+				,TC.STOCK_QTY
+				,TC.PUR_PRICE
+				,TC.PUR_AMT
+				,TC.SALE_PRICE
+				,TC.SALE_AMT
+				,TC.END_DATE
+				,TS.STOCK_MIN_QTY
+				,TSMG.GOODS_NM
+				,TSMG.GOODS_NO
+				,TC.ORGN_CD
+	</select>
+	
+		<select id="getCategoryTMBName" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+			CONCAT((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND GRUP_MID_CD = '0'
+				AND GRUP_BOT_CD = '0'
+			),' > ',ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = A.GRUP_MID_CD)
+				AND GRUP_BOT_CD = '0'
+			),''),' > ',ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = A.GRUP_MID_CD)
+				AND (GRUP_BOT_CD != '0' AND GRUP_BOT_CD = A.GRUP_BOT_CD)
+			),'')) AS GRUP_TMB_CD_NM
+		FROM T_STD_GOODSGRUP A
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="getGoodsPurInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsPurInformation */
+		SELECT TPM.ORGN_CD 
+			, CONVERT(NVARCHAR(10),CONVERT(DATE,TPM.PUR_DATE), 120) AS PUR_DATE
+			, CASE WHEN TPM.PUR_TYPE = 'P' THEN TPD.PUR_QTY ELSE CONCAT('-', TPD.PUR_QTY) END AS PUR_QTY
+			, CASE WHEN TPM.PUR_TYPE = 'P' THEN replace( convert( VARCHAR, convert( MONEY, TPD.PAY_SUM_AMT ), 1 ), '.00', '' ) ELSE CONCAT('-', replace( convert( VARCHAR, convert( MONEY, TPD.PAY_SUM_AMT ), 1 ), '.00', '' )) END AS PAY_SUM_AMT
+			, CASE WHEN TPM.PUR_TYPE = 'P' THEN replace( convert( VARCHAR, convert( MONEY, TPD.PUR_PRICE ), 1 ), '.00', '' ) ELSE CONCAT('-', replace( convert( VARCHAR, convert( MONEY, TPD.PUR_PRICE ), 1 ), '.00', '' )) END AS PUR_PRICE
+			, CASE WHEN TPM.PUR_TYPE = 'P' THEN '매입' ELSE '반품' END AS PUR_TYPE
+			, TSMC.CUSTMR_NM
+		FROM T_PUR_MAST AS TPM
+		JOIN T_PUR_DETL AS TPD ON TPM.ORGN_CD = TPD.ORGN_CD AND TPM.PUR_SLIP_CD = TPD.PUR_SLIP_CD
+		JOIN T_STD_MAST_CUSTMR AS TSMC ON TPM.SUPR_CD = TSMC.CUSTMR_CD
+		WHERE TPD.BCD_CD = #{BCD_CD}
+		AND (CONVERT(DATE,TPM.PUR_DATE) between #{FromDate} and #{ToDate})
+		AND TPM.USE_YN = 'Y' AND TPD.USE_YN = 'Y'  
+		<if test="ORGN_CD != ''">
+		AND TPD.ORGN_CD = #{ORGN_CD}
+		</if>
+	</select>
+	
+	<select id="getGoodsPurInfoAVG" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsPurInfoAVG */
+		SELECT COUNT(*) AS NUM 
+			, TPM.PUR_TYPE
+			, TPD.BCD_CD
+			, MAX(TPD.PUR_PRICE) AS MAX_PUR_PRICE
+			, MIN(TPD.PUR_PRICE) AS MIN_PUR_PRICE
+			, AVG(TPD.PUR_PRICE) AS AVG_PUR_PRICE
+			, SUM(TPD.PAY_SUM_AMT) AS TOTAL_PUR_AMT
+			, (SUM(TPD.PUR_QTY)) AS TOTAL_PUR_QTY
+			, (SUM(TPD.PUR_QTY)/COUNT(*)) AS AVG_PUR_QTY
+		FROM T_PUR_DETL AS TPD
+		JOIN T_PUR_MAST AS TPM ON TPD.PUR_SLIP_CD = TPM.PUR_SLIP_CD 
+		<if test="ORGN_CD != ''">
+		AND TPM.ORGN_CD = #{ORGN_CD}
+		</if>
+		WHERE TPD.PUR_SLIP_CD IN (
+				SELECT PUR_SLIP_CD 
+				FROM T_PUR_MAST
+				WHERE (CONVERT(DATE,PUR_DATE) BETWEEN REPLACE(#{FromDate}, '-', '') AND REPLACE(#{ToDate}, '-', ''))
+			) 
+			AND TPD.BCD_CD = #{BCD_CD}
+			AND TPM.USE_YN = 'Y' AND TPD.USE_YN = 'Y' AND TPD.ORGN_CD = #{ORGN_CD}
+		GROUP BY TPD.BCD_CD, TPM.PUR_TYPE, TPD.BCD_CD, TPM.PUR_DATE 
+		ORDER BY TPM.PUR_TYPE ASC
+	</select>
+	
+	<select id="getGoodsModiLog" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsModiLog */
+		SELECT
+			ROW_NUMBER() OVER (PARTITION BY GOODS_NO ORDER BY REG_DATE) AS LOG_NUM,
+			GOODS_NO,
+			GRUP_TOP_CD,
+			GRUP_MID_CD,
+			GRUP_BOT_CD,
+			GOODS_NM,
+			GOODS_PUR_CD,
+			GOODS_SALE_TYPE,
+			ITEM_TYPE,
+			POINT_SAVE_RATE,
+			TAX_TYPE,
+			GOODS_STATE,
+			MAT_TEMPER_INFO,
+			GOODS_SET_TYPE,
+			MIN_PUR_QTY,
+			MIN_PUR_UNIT,
+			MIN_ORD_UNIT,
+			MIN_ORD_QTY,
+			MIN_UNIT_QTY,
+			GOODS_DESC,
+			GOODS_KEYWD,
+			RESP_USER,
+			GOODS_LOAD_CD,
+			GOODS_EXP_CD,
+			CONVERT(CHAR(19), GOODS_EXP_DATE, 120) AS GOODS_EXP_DATE,
+			--PUR_DSCD_TYPE,
+			--SALE_DSCD_TYPE,
+			DELI_DD_YN,
+			GOODS_TC_TYPE,
+			DELI_AREA_YN,
+			GOODS_STOCK_TYPE,
+			POLI_TYPE,
+			CONVERT(CHAR(19), STOCK_CONF_DATE, 120) AS STOCK_CONF_DATE,
+			BRADN_TYPE,
+			STORE_TYPE,
+			CHG_LOG_MEMO,
+			CONVERT(CHAR(19), REG_DATE, 120) AS REG_DATE
+		 FROM T_STD_MAST_GOODS_LOG 
+		 WHERE GOODS_NO = #{GOODS_NO} AND (CONVERT(DATE, REG_DATE) BETWEEN #{FROM_DATE} and #{TO_DATE})
+	</select>
+	
+	<select id="getGoodsGroupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsGroupList */
+		SELECT ORGN_DIV_CD
+			, ORGN_CD
+			, GRUP_CD
+			, GRUP_NM
+			, GRUP_TYPE
+			, RESP_USER
+			, USE_YN
+			, CPROGRM
+			, CUSER
+			, CONVERT(CHAR(19), CDATE, 120) AS CDATE
+			, MPROGRM
+			, MUSER
+			, CONVERT(CHAR(19), MDATE, 120) AS MDATE
+		FROM T_STD_GOODSGRUP_USER
+		WHERE 1=1 
+		<if test='ORGN_CD != ""'>
+		AND ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test='ORGN_DIV_CD != ""'>
+		AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+		</if>
+<!-- 		AND RESP_USER = #{emp_no} -->
+		AND GRUP_TYPE = #{GRUP_TYPE}
+		ORDER BY GRUP_CD DESC
+	</select>
+	
+	<select id="getGoodsGroupCD" resultType="java.util.Map">
+		/* getGoodsGroupCD */
+		DECLARE @NEW_GRUP_CD NVARCHAR(5)
+
+		SELECT @NEW_GRUP_CD = CONVERT(NVARCHAR(5),NEXT VALUE FOR [dbo].[SEQ_T_STD_GOODSGRUP_USER])
+		
+		SELECT CONVERT(NVARCHAR(5), REPLICATE('0', 5 - LEN(@NEW_GRUP_CD)) + @NEW_GRUP_CD) AS GRUP_CD
+	</select>
+	
+	<select id="getLastSeqNum" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getLastSeqNum */
+		SELECT TOP 1 *
+		FROM T_STD_GOODSGRUP_U_DETL 
+		WHERE GRUP_CD = #{GRUP_CD} 
+		AND ORGN_CD = #{ORGN_CD} 
+		ORDER BY SEQ desc
+	</select>
+	
+	<insert id="addGoodsGroupList" parameterType="java.util.Map">
+		/* addGoodsGroupList */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SELECT @ORGN_DIV_CD = ORGN_DIV_CD
+		FROM COM_ORGN_INFO
+		WHERE ORGN_CD = #{ORGN_CD}
+		
+		INSERT INTO T_STD_GOODSGRUP_USER
+		(ORGN_DIV_CD, ORGN_CD, GRUP_CD, GRUP_NM, GRUP_TYPE, RESP_USER, USE_YN, CPROGRM, CUSER, CDATE)
+		values (@ORGN_DIV_CD, #{ORGN_CD}, REPLICATE('0', 5-LEN(#{GRUP_CD}))+#{GRUP_CD}, #{GRUP_NM}, #{GRUP_TYPE}, #{RESP_USER}, #{USE_YN}, #{CPROGRM}, #{CUSER}, GETDATE())
+	</insert>
+	
+	<delete id="deleteGoodsGroupList" parameterType="java.util.Map">
+		/* deleteGoodsGroupList */
+		DELETE FROM T_STD_GOODSGRUP_USER
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND GRUP_CD = #{GRUP_CD}
+		
+		DELETE FROM T_STD_GOODSGRUP_U_DETL
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND GRUP_CD = #{GRUP_CD}
+	</delete>
+	
+	<update id="updateGoodsGroupList" parameterType="java.util.Map">
+		/* updateGoodsGroupList */
+		UPDATE T_STD_GOODSGRUP_USER
+		SET	GRUP_NM = #{GRUP_NM}
+			, MPROGRM = #{MPROGRM}
+			, MUSER = #{MUSER}
+			, MDATE = GETDATE()
+			, USE_YN = #{USE_YN}
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND GRUP_CD = #{GRUP_CD}	
+	</update>
+	
+	<select id="getGoodsGroupDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsGroupDetailList */
+		<if test='GRUP_TYPE == "G"'>
+			SELECT D.ORGN_DIV_CD
+				, D.ORGN_CD
+				, D.GRUP_CD
+				, D.OBJ_CD
+				, D.SEQ
+				, D.USE_YN
+				, D.OBJ_NM
+				, B.DIMEN_NM
+				, B.BCD_CD
+				, P.SALE_PRICE
+			FROM T_STD_GOODSGRUP_U_DETL AS D
+			INNER JOIN T_STD_MAST_BCD AS B ON D.OBJ_CD = B.BCD_CD
+			INNER JOIN T_STD_MAST_SALE_PRICE AS P ON B.BCD_CD = P.BCD_CD AND P.ORGN_CD = #{ORGN_CD}
+			WHERE D.ORGN_CD = #{ORGN_CD}
+			AND GRUP_CD = #{GRUP_CD}
+		</if>
+		<if test='GRUP_TYPE == "C"'>
+			SELECT ORGN_DIV_CD
+				, ORGN_CD
+				, GRUP_CD
+				, OBJ_CD
+				, OBJ_NM
+				, SEQ
+			FROM T_STD_GOODSGRUP_U_DETL
+			WHERE ORGN_CD = #{ORGN_CD} AND GRUP_CD = #{GRUP_CD}
+		</if>
+	</select>
+	<select id="getGoodsGrupSelectedList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsGrupSelectedList */
+		SELECT		P.ORGN_DIV_CD
+			, P.ORGN_CD
+			, G.GOODS_NO 
+			, G.GOODS_NM AS OBJ_NM
+			, B.BCD_CD AS OBJ_CD
+			, B.DIMEN_NM
+			, P.SALE_PRICE
+		FROM T_STD_MAST_GOODS AS G
+		INNER JOIN T_STD_MAST_BCD AS B 
+		ON G.GOODS_NO = B.GOODS_NO
+		INNER JOIN T_STD_MAST_SALE_PRICE AS P 
+		ON G.GOODS_NO = P.GOODS_NO 
+		AND P.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND P.ORGN_CD = #{ORGN_CD}
+		<if test='GOODS_NO == null'>
+			WHERE B.BCD_CD IN (SELECT VAL1 FROM [dbo].[FN_SPLIT](#{BCD_CD},','))
+		</if>
+		<if test='BCD_CD == null'>
+			WHERE G.GOODS_NO IN (${GOODS_NO})
+		</if>
+	</select>
+	
+	<insert id="addGoodsGroupDetailList" parameterType="java.util.Map">
+		/* addGoodsGroupDetailList */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SELECT @ORGN_DIV_CD = ORGN_DIV_CD
+		FROM COM_ORGN_INFO
+		WHERE ORGN_CD = #{ORGN_CD}
+		
+		INSERT INTO T_STD_GOODSGRUP_U_DETL
+		(ORGN_DIV_CD, ORGN_CD, GRUP_CD, OBJ_CD, OBJ_NM, SEQ, USE_YN, CPROGRM, CUSER, CDATE) 
+		VALUES (
+			@ORGN_DIV_CD
+			, #{ORGN_CD}
+			, #{GRUP_CD}
+			, #{OBJ_CD}
+			, #{OBJ_NM}
+			, (
+				SELECT ISNULL(MAX(SEQ), 0) + 1 AS NEW_SEQ
+				FROM T_STD_GOODSGRUP_U_DETL
+				WHERE 1=1
+				AND ORGN_CD = #{ORGN_CD}
+				AND GRUP_CD = #{GRUP_CD}
+			)
+			, #{USE_YN}
+			, #{CPROGRM}
+			, #{CUSER}
+			, GETDATE()
+		)
+	</insert>
+	
+	<delete id="deleteGoodsGroupDetailList" parameterType="java.util.Map">
+		/* deleteGoodsGroupDetailList */
+		DELETE FROM T_STD_GOODSGRUP_U_DETL
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND GRUP_CD = #{GRUP_CD}
+		AND OBJ_CD= #{OBJ_CD} AND SEQ = ${SEQ}
+	</delete>
+	
+	<update id="updateGoodsGroupDetailList" parameterType="java.util.Map">
+		/* updateGoodsGroupDetailList */
+		UPDATE T_STD_GOODSGRUP_U_DETL
+		SET USE_YN = #{USE_YN}
+		, MUSER = #{MUSER}
+		, MPROGRM = #{MPROGRM}
+		, MDATE = GETDATE()
+		WHERE ORGN_CD = #{ORGN_CD} 
+		AND GRUP_CD = #{GRUP_CD}
+		AND OBJ_CD= #{OBJ_CD} 
+		AND SEQ = ${SEQ}
+	</update>
+	
+	<select id="getProjectList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getProjectList */
+		SELECT   CMMN_DETAIL_CD
+		       , CMMN_DETAIL_CD_NM
+		  FROM   COM_CMMN_CODE_DETAIL
+		 WHERE   CMMN_CD = 'PROJ_CD'  
+		   AND   USE_YN = 'Y'
+		   AND   CMMN_DETAIL_CD_NM LIKE '%' + #{KEY_WORD} + '%'
+		 ORDER   BY ORDR		
+	</select>
+	
+	<select id="getSearchMasterBarcode" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchMasterBarcode */
+		SELECT  BB.GOODS_NO      /* 상품코드 */
+		      , BB.BCD_CD        /* 자바코드 */
+		      , BB.BCD_M_CD      /* 모바코드 */
+			  , BB.BCD_NM        /* 상품이름 */
+			  , BB.DIMEN_NM      /* 규격     */
+			  , BB.UNIT_CD       /* 단위코드 */
+			  , BB.UNIT_QTY     /* 규격수량 */
+			--  , BB.DIMEN_WGT     /* 단위중량 */
+		FROM   T_STD_MAST_GOODS  AA
+		       JOIN T_STD_MAST_BCD BB  ON AA.GOODS_NO = BB.GOODS_NO AND BB.USE_YN = 'Y'
+		WHERE  1 =  1
+		  AND  BB.USE_YN   = 'Y'
+		<if test='KEY_WORD != null and KEY_WORD != ""'>
+		  AND  BB.BCD_NM      LIKE '%' + #{KEY_WORD}  + '%'
+		</if> 
+		ORDER  BY BB.BCD_NM		  
+	</select>	
+	
+	<select id="getSearchComEmpNo" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchComEmpNo */
+		SELECT  EMP_NO         /* 사원번호 */
+		      , EMP_NM         /* 사원명   */
+		      , DEPT_CD        /* 부서코드 */
+			  , DEPT_DIV_CD    /* 조직코드 */
+			  , EMAIL          /* 이메일   */
+			  , MBTLNUM        /* 연락처   */
+		FROM   COM_EMP_INFO 
+		WHERE  1 =  1
+		  AND  USE_YN         = 'Y'
+		<if test='KEY_WORD != null and KEY_WORD != ""'>
+		  AND  EMP_NM      LIKE '%' + #{KEY_WORD} + '%'
+		</if> 
+		ORDER  BY EMP_NM		  
+	</select>		
+	
+	<select id="getSearchMemberList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchMemberList 회원조회팝업 */
+		SELECT
+			T.*
+		FROM
+		(
+			SELECT
+				M.ORGN_DIV_CD
+				,M.ORGN_CD
+				,M.MEM_NO
+				,CONCAT(M.ORGN_CD, '_', M.MEM_NO) AS OBJ_CD
+				,CONCAT(M.CORP_NM,'[',M.MEM_NM,']') AS UNION_MEM_NM
+				,M.MEM_NM
+				, M.TEL_NO01
+				, M.TEL_NO02
+				, M.PHON_NO
+			FROM T_STD_MAST_MEM M
+			WHERE 1=1
+				AND M.ORGN_DIV_CD = #{ORGN_DIV_CD}
+				<if test='ORGN_CD != ""'>
+				AND M.ORGN_CD = #{ORGN_CD}
+				</if>
+				AND M.MEM_STATE = 'Y'
+		) T
+		WHERE
+			T.UNION_MEM_NM LIKE CONCAT('%',#{UNION_MEM_NM},'%')
+	</select>
+	
+	<select id="addGoodsGrup" resultType="java.util.Map" parameterType="java.util.Map">
+		DECLARE @GRUP_CD NVARCHAR(5)
+
+		SET @GRUP_CD = (
+			SELECT ISNULL(MAX(GRUP_CD), 0)+1 AS GRUP_CD FROM T_STD_GOODSGRUP_USER
+			WHERE ORGN_CD = #{ORGN_CD} AND GRUP_TYPE = #{GRUP_TYPE}
+		)
+		
+		IF EXISTS (
+			SELECT GRUP_NM 
+			FROM T_STD_GOODSGRUP_USER
+			WHERE ORGN_CD = #{ORGN_CD} AND GRUP_NM = #{GRUP_NM}
+		)
+			BEGIN
+				SELECT 'ERROR' AS ResultMessage
+			END
+		
+		ELSE
+			BEGIN
+				INSERT INTO T_STD_GOODSGRUP_USER
+				(ORGN_DIV_CD, ORGN_CD, GRUP_CD, GRUP_NM, GRUP_TYPE, RESP_USER, USE_YN, CPROGRM, CUSER, CDATE)
+				values (#{ORGN_DIV_CD}, #{ORGN_CD}, REPLICATE('0', 5-LEN(@GRUP_CD))+@GRUP_CD, #{GRUP_NM}, #{GRUP_TYPE}, #{RESP_USER}, #{USE_YN}, #{CPROGRM}, #{CUSER}, GETDATE())
+		
+		
+				INSERT INTO T_STD_GOODSGRUP_U_DETL
+				(
+					ORGN_DIV_CD
+					, ORGN_CD
+					, GRUP_CD
+					, OBJ_CD
+					, OBJ_NM
+					, SEQ
+					, USE_YN
+					, CPROGRM
+					, CUSER
+					, CDATE
+				) 
+				SELECT
+					#{ORGN_DIV_CD}
+					, #{ORGN_CD}
+					, @GRUP_CD
+					, MB.BCD_CD
+					, MB.BCD_NM
+					, RANK() OVER(ORDER BY BCD_CD) AS SEQ
+					, 'Y'
+					, #{CPROGRM}
+					, #{CUSER}
+					, GETDATE()
+				FROM (
+					SELECT A.BCD_CD, A.BCD_NM 
+					FROM T_STD_MAST_BCD A
+					INNER JOIN T_STD_MAST_SALE_PRICE B ON A.BCD_CD = B.BCD_CD AND B.ORGN_CD = #{ORGN_CD} AND B.USE_YN = 'Y'
+					WHERE A.BCD_CD IN (
+						SELECT VALUE FROM STRING_SPLIT(#{BCD_CD_LIST}, ',')
+					)
+				) MB
+		
+		
+		
+				SELECT 'SUCCESS' AS ResultMessage
+					, (
+						SELECT COUNT(*) AS CNT
+						FROM T_STD_GOODSGRUP_U_DETL
+						WHERE GRUP_CD = @GRUP_CD
+					) AS CNT
+			END
+	</select>
+	
+	<select id="getPasteGrupGoodsList" parameterType="Map" resultType="CMap">
+		<if test='list.size > 0'>
+		SELECT S.ORGN_DIV_CD
+			, S.ORGN_CD
+			, B.BCD_CD AS OBJ_CD
+			, B.BCD_NM AS OBJ_NM
+		FROM T_STD_MAST_BCD AS B
+		INNER JOIN T_STD_MAST_SALE_PRICE AS S 
+		ON B.BCD_CD = S.BCD_CD 
+		AND S.ORGN_CD = #{list[0].ORGN_CD}
+		WHERE B.BCD_CD IN
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				#{item.BCD_CD}
+			</foreach>
+		</if>
+	</select>
+	</mapper>

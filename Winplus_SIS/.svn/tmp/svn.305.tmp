@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.market.dao.TellOrderDao">
+	<select id="getCIDMemberList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getCIDMemberList */
+		SELECT 
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+			,MEM_NM
+			,CORP_NM
+		FROM T_STD_MAST_MEM
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		AND (
+				REPLACE(TEL_NO01,'-','') LIKE '%' + #{TEL_NO} + '%'
+					OR
+				REPLACE(TEL_NO02,'-','') LIKE '%' + #{TEL_NO} + '%'
+					OR
+				REPLACE(PHON_NO,'-','') LIKE '%' + #{TEL_NO} + '%'
+			)
+	</select>
+	
+	<select id="getCIDMemberInfo" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getCIDMemberInfo */
+		SELECT TOP 1
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+			,MEM_NM
+			,CORP_NM
+			,MEM_TYPE
+			,SUBSTRING(
+					REPLACE(
+							REPLACE(
+									CONCAT(', ',TEL_NO01,', ',TEL_NO02,', ',PHON_NO)
+							,', , ',', ')
+					,', , ',', ')
+				,3,50
+			) AS TEL_NO
+			,DELI_ZIP_NO
+			,CONCAT(DELI_ADDR,' ',DELI_ADDR_DETL) AS ADDR
+			,DELI_MEMO
+			,TRUST_CNT
+		FROM T_STD_MAST_MEM
+		WHERE 1=1
+		AND ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		AND MEM_NO = #{MEM_NO}
+	</select>
+	
+	<select id="getMemOrderHeaderList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getMemOrderHeaderList */
+		SELECT
+			ST.ORGN_DIV_CD
+			,ST.ORGN_CD
+			,ST.TEL_ORD_CD
+			,CONVERT(NVARCHAR(19),MAX(ST.ORD_DATE),21) AS ORD_DATE
+			,MAX(ST.SALE_TOT_AMT) AS SALE_TOT_AMT
+			,CASE
+				WHEN COUNT(STD.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(STD.BCD_CD)),' 외 ',(COUNT(STD.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(STD.BCD_CD))
+			END AS TOT_GOODS_NM
+			,ST.ORD_STATE
+			,ST.ORD_MEMO
+		FROM T_SALE_TELORD ST
+		INNER JOIN T_SALE_TELORD_DETL STD
+		ON ST.ORGN_DIV_CD = STD.ORGN_DIV_CD
+		AND ST.ORGN_CD = STD.ORGN_CD
+		AND ST.TEL_ORD_CD = STD.TEL_ORD_CD
+		WHERE 1=1
+		AND ST.ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		AND ST.MEM_NO = #{MEM_NO} 
+		AND ST.ORD_DATE BETWEEN DATEADD(DD,0, #{searchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDateTo}))
+		GROUP BY ST.ORGN_DIV_CD,ST.ORGN_CD,ST.TEL_ORD_CD,ST.ORD_STATE,ST.ORD_MEMO
+	</select>
+	
+	<select id="getMemOrderDetailList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getMemOrderDetailList */
+		DECLARE @ORGN_CD NVARCHAR(10)
+		
+		SET @ORGN_CD = (	SELECT ORGN_DELEGATE_CD 
+							FROM COM_ORGN_INFO 
+							WHERE ORGN_CD = #{ORGN_CD}
+						)
+		
+		SELECT
+			STD.ORGN_DIV_CD
+			,STD.ORGN_CD
+			,STD.TEL_ORD_CD
+			,STD.BCD_CD
+			,TSMS.GOODS_FEE_RATE
+			,TSMB.GOODS_NO
+			,(SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(STD.BCD_CD)) AS BCD_NM
+			,STD.SALE_PRICE
+			,STD.SALE_QTY
+			,STD.SALE_TOT_AMT
+			,STD.SALE_VAT_AMT
+		FROM T_SALE_TELORD_DETL STD
+		INNER JOIN T_STD_MAST_BCD TSMB ON STD.BCD_CD = TSMB.BCD_CD
+		INNER JOIN T_STD_MAST_SALE_PRICE TSMS ON TSMS.BCD_CD = STD.BCD_CD AND TSMS.ORGN_CD = @ORGN_CD
+		WHERE STD.ORGN_CD = @ORGN_CD
+		AND STD.TEL_ORD_CD = #{TEL_ORD_CD}
+		GROUP BY STD.ORGN_DIV_CD,STD.ORGN_CD,STD.TEL_ORD_CD,STD.BCD_CD,STD.SALE_PRICE,STD.SALE_QTY,STD.SALE_TOT_AMT,STD.SALE_VAT_AMT,TSMB.GOODS_NO,TSMS.GOODS_FEE_RATE,TSMS.SALE_PRICE
+	</select>
+	
+	<update id="receiptMemOrderList" parameterType="java.util.Map">
+		/* receiptMemOrderList */
+		UPDATE T_SALE_TELORD
+		SET ORD_STATE = 'O10'
+			,MPROGRM = 'receiptMemOrderList'
+			,MUSER = #{emp_no}
+			,MDATE = GETDATE()
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		AND TEL_ORD_CD = #{TEL_ORD_CD}
+		AND ORD_STATE IN ('O1')
+	</update>
+	
+	<update id="reOrderMemOrderList" parameterType="java.util.Map">
+		/* reOrderMemOrderList */
+		UPDATE T_SALE_TELORD
+		SET ORD_STATE = 'O10'
+			,ORD_DATE = GETDATE()
+			,MPROGRM = 'reOrderMemOrderList'
+			,MUSER = #{emp_no}
+			,MDATE = GETDATE()
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		AND TEL_ORD_CD = #{TEL_ORD_CD}
+		AND ORD_STATE IN ('O9')
+	</update>
+	
+	<update id="cancelMemOrderList" parameterType="java.util.Map">
+		/* cancelMemOrderList */
+		UPDATE T_SALE_TELORD
+		SET ORD_STATE = 'O9'
+			,MPROGRM = 'cancelMemOrderList'
+			,MUSER = #{emp_no}
+			,MDATE = GETDATE()
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		AND TEL_ORD_CD = #{TEL_ORD_CD}
+		AND ORD_STATE IN ('O10')
+	</update>
+	
+	<select id="getNewOrderListInfo" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getNewOrderListInfo */
+		SELECT
+			TSMB.BCD_NM
+			,TSMB.BCD_CD
+			,TSMB.GOODS_NO
+			,TSMSP.SALE_PRICE
+			,TSMSP.GOODS_FEE_RATE
+			,TSMSP.ORGN_DIV_CD
+			,TSMSP.ORGN_CD
+		FROM T_STD_MAST_BCD AS TSMB
+		INNER JOIN T_STD_MAST_SALE_PRICE AS TSMSP
+		ON TSMB.BCD_CD = TSMSP.BCD_CD
+		WHERE TSMB.BCD_CD = #{BCD_CD}
+		AND TSMSP.ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		GROUP BY TSMB.BCD_NM
+				 ,TSMB.BCD_CD
+				 ,TSMB.GOODS_NO
+				 ,TSMSP.SALE_PRICE
+				 ,TSMSP.ORGN_DIV_CD
+				 ,TSMSP.ORGN_CD
+				 ,TSMSP.GOODS_FEE_RATE
+	</select>
+	
+	<select id="saveNewOrderPopupList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* saveNewOrderPopupList */
+		DECLARE @TEL_ORD_CD NVARCHAR(30) --전화주문코드
+				, @SALE_TOT_AMT DECIMAL(19,6) -- 판매총액
+				, @ORD_SEQ INT --판매순번
+				, @CRUD NVARCHAR(3) -- CRUD 정보
+				, @ORGN_CD NVARCHAR(10) --조직코드
+				
+		SET @ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+				
+		SET @TEL_ORD_CD = CONCAT(
+									CONVERT(NVARCHAR(8),CONVERT(DATE,GETDATE()),112)
+									,'_'
+									,@ORGN_CD
+									,'_'
+									,(
+										SELECT
+											 COUNT(TEL_ORD_CD)+1 AS CNT
+										FROM T_SALE_TELORD
+										WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+										AND ORGN_CD = @ORGN_CD
+										AND MEM_NO = #{MEM_NO}
+										AND CONVERT(NVARCHAR(8),ORD_DATE,112) = CONVERT(NVARCHAR(8),GETDATE(),112)
+									 )
+								)
+		
+		SET @ORD_SEQ = (
+							SELECT
+								(COUNT(ORD_SEQ)+1) AS SEQ
+							FROM T_SALE_TELORD_DETL
+							WHERE TEL_ORD_CD = @TEL_ORD_CD
+						)
+						
+		SET @SALE_TOT_AMT = (
+							CONVERT(DECIMAL(19,6),((${SALE_PRICE} * ${SALE_QTY}) + ISNULL(${SALE_VAT_TOT_AMT},0)))
+		)
+		
+		INSERT INTO T_SALE_TELORD_DETL (
+			[ORGN_DIV_CD]
+			,[ORGN_CD]
+			,[TEL_ORD_CD]
+			,[BCD_CD]
+			,[GOODS_NO]
+			,[SALE_PRICE]
+			,[SALE_QTY]
+			--,[SALE_UNITQTY]
+			,[SALE_TOT_AMT]
+			,[ORD_SEQ]
+			--,[ORD_UNIT_CD]
+			--,[ORD_MEMO]
+			--,[SALE_UNIT]
+			,[SALE_AMT]
+			,[SALE_VAT_AMT]
+			,[CPROGRM]
+			,[CUSER]
+			,[CDATE]
+		) VALUES (
+			#{ORGN_DIV_CD}
+			,@ORGN_CD
+			,CONVERT(NVARCHAR(30),@TEL_ORD_CD)
+			,#{BCD_CD}
+			,#{GOODS_NO}
+			,${SALE_PRICE}
+			,${SALE_QTY}
+			--,[SALE_UNITQTY]
+			,@SALE_TOT_AMT
+			,@ORD_SEQ
+			--,[ORD_UNIT_CD]
+			--,[ORD_MEMO]
+			--,[SALE_UNIT]
+			,#{PAY_SUM_AMT}
+			,ISNULL(${SALE_VAT_TOT_AMT}, 0)
+			,'saveOpenNewOrderPopupList'
+			,#{EMP_NO}
+			,GETDATE()
+		)
+		
+		SELECT 1 AS RESULT_CNT, 
+				@TEL_ORD_CD AS TEL_ORD_CD
+	</select>
+	
+	<insert id="saveNewOrderHeader" parameterType="java.util.Map">
+		/* saveNewOrderHeader */
+		DECLARE @SALE_TOT_AMT DECIMAL(19,6)
+				, @TEL_ORD_CD NVARCHAR(30)
+				, @ORGN_CD NVARCHAR(10)
+				
+		SET @ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+		
+		SET @TEL_ORD_CD = CONCAT(
+									CONVERT(NVARCHAR(8),CONVERT(DATE,GETDATE()),112)
+									,'_'
+									,@ORGN_CD
+									,'_'
+									,(
+										SELECT
+											 COUNT(TEL_ORD_CD)+1 AS CNT
+										FROM T_SALE_TELORD
+										WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+										AND ORGN_CD = @ORGN_CD
+										AND MEM_NO = #{MEM_NO}
+										AND CONVERT(NVARCHAR(8),ORD_DATE,112) = CONVERT(NVARCHAR(8),GETDATE(),112)
+									 )
+								)
+								
+		SET @SALE_TOT_AMT = (
+								SELECT SUM(SALE_TOT_AMT) AS SALE_TOT_AMT
+								FROM (
+									SELECT 
+										SUM(SALE_TOT_AMT) AS SALE_TOT_AMT
+									FROM T_SALE_TELORD_DETL 
+									WHERE ORGN_DIV_CD = #{ORGN_DIV_CD} AND ORGN_CD = @ORGN_CD AND TEL_ORD_CD = CONVERT(NVARCHAR(30),@TEL_ORD_CD)
+									GROUP BY SALE_QTY
+								) A
+							)
+	
+		INSERT INTO T_SALE_TELORD (
+			[ORGN_DIV_CD]
+			,[ORGN_CD]
+			,[TEL_ORD_CD]
+			,[MEM_NO]
+			,[ORD_TYPE]
+			,[SALE_TOT_AMT]
+			,[ORD_MEMO]
+			,[ORD_RESP_USER]
+			,[ORD_STATE]
+			,[ORD_DATE]
+			,[CPROGRM]
+			,[CUSER]
+			,[CDATE]
+		) VALUES (
+			#{ORGN_DIV_CD}
+			,@ORGN_CD
+			,CONVERT(NVARCHAR(30),@TEL_ORD_CD)
+			,#{MEM_NO}
+			,#{ORD_TYPE}
+			,@SALE_TOT_AMT
+			,#{ORD_MEMO}
+			,#{EMP_NO}
+			,#{ORD_STATE}
+			,GETDATE()
+			,'saveNewOrderHeader'
+			,#{EMP_NO}
+			,GETDATE()
+		)
+	</insert>
+	
+	<select id="getOrderListByGroup" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getOrderListByGroup 전화주문관리(직영점) - 주문서조회(전화) - 조회*/
+			SELECT
+					T1.ORD_STATE
+					,T1.ORGN_DIV_CD
+					,T1.ORGN_CD
+					,T1.TEL_ORD_CD
+					,T1.TEL_ORD_NO
+					,T1.ORD_DATE
+					,T1.OUT_WARE_DATE
+					,T1.MEM_NO
+					
+					,T2.TEL_ORD_CD
+					,T2.BCD_CD
+					,T2.SALE_QTY
+					,T2.SALE_PRICE AS TEL_SALE_PRICE
+					,T2.ORD_MEMO
+					
+					,T3.BCD_NM
+					,T3.DIMEN_NM
+					,T3.BCD_NM + '_' AS GRUP_INDEX
+					
+					,T4.MEM_NM
+					
+					--,T6.SALE_PRICE AS MAST_SALE_PRICE
+					
+					FROM T_SALE_TELORD T1
+					
+						INNER JOIN T_SALE_TELORD_DETL T2
+							ON T1.ORGN_DIV_CD = T2.ORGN_DIV_CD AND T1.ORGN_CD = T2.ORGN_CD AND T1.TEL_ORD_CD = T2.TEL_ORD_CD
+					
+						INNER JOIN (SELECT BCD_CD,BCD_NM,DIMEN_NM  FROM T_STD_MAST_BCD) T3
+							ON T2.BCD_CD = T3.BCD_CD
+					
+						INNER JOIN (SELECT ORGN_DIV_CD, ORGN_CD, MEM_NO, MEM_NM FROM T_STD_MAST_MEM) T4
+							ON T1.ORGN_DIV_CD = T4.ORGN_DIV_CD AND T1.ORGN_CD = T4.ORGN_CD AND T1.MEM_NO = T4.MEM_NO
+					
+						--INNER JOIN T_SALE_MAST T5
+							--ON T1.ORD_NO = T5.ORD_CD AND T1.OUT_WARE_DATE = T5.ORD_DATE AND T1.POS_NO = T5.POS_NO
+
+						--INNER JOIN T_SALE_MAST_DETL T6
+							--ON T5.ORGN_DIV_CD = T6.ORGN_DIV_CD AND T5.ORGN_CD = T6.ORGN_CD AND T5.ORD_CD = T6.ORD_CD
+					WHERE 1=1
+						AND	T1.ORD_TYPE = '1'
+						<if test='DELI_ORD_STATE != ""'>
+						AND T1.ORD_STATE = #{DELI_ORD_STATE}
+						</if>
+						<if test='ORGN_DIV_CD != ""'>
+						AND T1.ORGN_DIV_CD = #{ORGN_DIV_CD}
+						</if>
+						<if test='ORGN_CD != ""'>
+						AND	T1.ORGN_CD = #{ORGN_CD}
+						</if>
+						--AND T5.ORD_TYPE = '1'
+					<if test='DATE == "CDATE"'>
+						AND CONVERT(NVARCHAR(10),T1.CDATE) BETWEEN #{DATE_FR} AND #{DATE_TO}
+						ORDER BY T1.CDATE DESC
+					</if>
+					<if test='DATE == "OUTDATE"'>
+						AND CONVERT(NVARCHAR(10),CONVERT(DATETIME2,T1.OUT_WARE_DATE,120)) BETWEEN #{DATE_FR} AND #{DATE_TO}
+						ORDER BY T1.OUT_WARE_DATE DESC
+					</if>
+	</select>
+	<select id="getMemdata" parameterType="java.util.Map" resultType="java.util.Map">
+	/* getMemdata TABLEdata 조회*/
+		SELECT 
+				T1.MEM_NO
+				,MEM_NM
+				,SUBSTRING(PHON_NO,1,3) +'-' + SUBSTRING(PHON_NO,4,4) + '-' + SUBSTRING(PHON_NO,8,4) AS PHON_NO
+				,DELI_ADDR
+				,DELI_ADDR_DETL
+				,ORD_RESP_USER
+				,CONVERT(NVARCHAR(19),MAX(T2.ORD_DATE),21) AS ORD_DATE
+				,CONVERT(NVARCHAR(10),CONVERT(DATETIME2,T2.OUT_WARE_DATE,112)) AS OUT_WARE_DATE
+				,T2.ORD_STATE
+				,T2.ORGN_DIV_CD
+				,T2.ORGN_CD
+				,T2.TEL_ORD_CD
+				
+				,T3.LOAN_CD
+				,ISNULL(REPLACE(CONVERT(VARCHAR, CAST(T3.BAL_AMT AS MONEY),1),'.00',''),0) AS BAL_AMT
+				,ISNULL(CAST(T3.TRUST_CNT AS NVARCHAR),0) + ' 건' AS TRUST_CNT
+				
+		FROM T_STD_MAST_MEM T1
+				
+		INNER JOIN T_SALE_TELORD T2
+				 ON T1.MEM_NO = T2.MEM_NO
+				 
+		LEFT JOIN (
+					SELECT TOP 1
+						A.LOAN_CD, A.OBJ_CD, B.BAL_AMT,B.LOAN_AMT,B.TRUST_CNT 
+					FROM T_STD_MAST_CREDITLOAN_DETL A
+					INNER JOIN T_STD_MAST_CREDITLOAN B
+						ON A.LOAN_CD = B.LOAN_CD
+					WHERE B.USE_YN = 'Y'
+						AND A.OBJ_CD = #{ORGN_CD} + '_' + #{MEM_NO}
+					ORDER BY B.CDATE DESC
+				) T3
+		ON T1.MEM_NO = RIGHT(T3.OBJ_CD, LEN(T3.OBJ_CD)-7) AND LEFT(T3.OBJ_CD, 6) = T1.ORGN_CD
+		WHERE
+			1=1
+				AND T1.MEM_NO = #{MEM_NO}
+				AND T1.ORGN_DIV_CD = #{ORGN_DIV_CD}
+				AND T1.ORGN_CD = #{ORGN_CD}
+				AND T2.TEL_ORD_CD = #{TEL_ORD_CD}
+				
+		GROUP BY 
+				T1.MEM_NO,MEM_NM,PHON_NO,DELI_ADDR
+				,DELI_ADDR_DETL,ORD_RESP_USER
+				,ORD_DATE,OUT_WARE_DATE,T2.ORD_STATE
+				,T3.BAL_AMT,T3.TRUST_CNT
+				,T2.ORGN_DIV_CD,T2.ORGN_CD,T2.TEL_ORD_CD,T3.LOAN_CD
+	</select>
+	
+	<select id="getOrderByDate" parameterType="java.util.Map" resultType="java.util.Map">
+	/* 전화주문 상세 조회 팝업 페이지  그리드 조회*/
+			SELECT 
+					T1.ORGN_DIV_CD
+					,T1.ORGN_CD
+					,T1.MEM_NO
+					,T1.TEL_ORD_CD
+					,T3.BCD_NM
+					,T3.DIMEN_NM
+					,T2.BCD_CD
+					,CAST(T2.SALE_QTY AS INT) as SALE_QTY
+					,CAST(T2.SALE_PRICE AS INT) AS TEL_SALE_PRICE
+
+					--,CAST(T6.SALE_PRICE AS INT) AS MAST_SALE_PRICE
+					,T2.SALE_TOT_AMT AS TEL_SALE_TOT_AMT
+					,T2.ORD_MEMO
+					
+					,T7.GRUP_BOT_CD
+					,T8.GRUP_NM
+					
+					
+				FROM T_SALE_TELORD T1
+					
+						INNER JOIN T_SALE_TELORD_DETL T2
+							ON T1.ORGN_DIV_CD = T2.ORGN_DIV_CD AND T1.ORGN_CD = T2.ORGN_CD AND T1.TEL_ORD_CD = T2.TEL_ORD_CD
+					
+						INNER JOIN T_STD_MAST_BCD T3
+							ON T2.BCD_CD = T3.BCD_CD
+					
+						INNER JOIN T_STD_MAST_MEM T4
+							ON T1.ORGN_DIV_CD = T4.ORGN_DIV_CD AND T1.ORGN_CD = T4.ORGN_CD AND T1.MEM_NO = T4.MEM_NO
+					
+						--INNER JOIN T_SALE_MAST T5
+							--ON T1.ORD_NO = T5.ORD_CD AND T1.OUT_WARE_DATE = T5.ORD_DATE AND T1.POS_NO = T5.POS_NO
+
+						--INNER JOIN T_SALE_MAST_DETL T6
+							--ON T5.ORGN_DIV_CD = T6.ORGN_DIV_CD AND T5.ORGN_CD = T6.ORGN_CD AND T5.ORD_CD = T6.ORD_CD
+						INNER JOIN T_STD_MAST_GOODS T7
+							ON T3.GOODS_NO = T7.GOODS_NO
+						INNER JOIN T_STD_GOODSGRUP T8
+							ON T7.GRUP_TOP_CD = T8.GRUP_TOP_CD AND T7.GRUP_MID_CD = T8.GRUP_MID_CD AND T7.GRUP_BOT_CD = T8.GRUP_BOT_CD
+				WHERE 1=1
+						
+							AND T1.ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND T1.ORGN_CD = #{ORGN_CD}
+							AND T1.TEL_ORD_CD = #{TEL_ORD_CD}
+					 
+						--AND T5.ORD_TYPE = '1'
+	</select>
+	<insert id="insertTellOrderDetail">
+		/* insertTellOrderDetail 주문서 상세 상품 추가*/
+		INSERT INTO T_SALE_TELORD_DETL
+			(
+				ORGN_DIV_CD
+				,ORGN_CD
+				,TEL_ORD_CD
+				,BCD_CD
+				,GOODS_NO
+				,SALE_PRICE
+				,SALE_QTY
+				,SALE_TOT_AMT
+				,ORD_SEQ
+			)
+		VALUES 
+			(
+				#{ORGN_DIV_CD}
+				,#{ORGN_CD}
+				,#{TEL_ORD_CD}
+				,#{BCD_CD}
+				,(select GOODS_NO from T_STD_MAST_BCD where BCD_CD = #{BCD_CD})
+				,#{TEL_SALE_PRICE}
+				,#{SALE_QTY}
+				,(#{TEL_SALE_PRICE} * #{SALE_QTY})
+				,(
+					SELECT TOP 1 (ORD_SEQ + 1)
+					FROM T_SALE_TELORD_DETL 
+					WHERE TEL_ORD_CD = #{TEL_ORD_CD} AND ORGN_DIV_CD = #{ORGN_DIV_CD} AND ORGN_CD = #{ORGN_CD}
+					ORDER BY ORD_SEQ DESC
+				)
+			)
+	</insert>
+	<update id="updateTellOrderDetail">
+		/* updateTellOrderDetail 주문서 상세 상품 수정*/
+		UPDATE T_SALE_TELORD_DETL
+		SET SALE_QTY = #{SALE_QTY}
+			,SALE_TOT_AMT = (#{TEL_SALE_PRICE} * #{SALE_QTY})
+			,ORD_MEMO = #{ORD_MEMO}
+		WHERE TEL_ORD_CD = #{TEL_ORD_CD} AND BCD_CD = #{BCD_CD}
+	</update>
+	<delete id="deleteTellOrderDetail">
+		/* deleteTellOrderDetail 주문서 상세 상품 삭제*/
+		DELETE FROM T_SALE_TELORD_DETL
+		
+		WHERE TEL_ORD_CD = #{TEL_ORD_CD} AND BCD_CD = #{BCD_CD}
+	</delete>
+	<select id="updateTellOrderOutWareDate" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateTellOrderOutWareDate 주문서 상세 배송일 수정*/
+		DECLARE @OUT_WARE_DATE VARCHAR(8) = replace(#{OUT_WARE_DATE},'-','')
+		,@RESULT_TYPE INT
+		
+		SET @RESULT_TYPE = (
+						SELECT 
+								CASE 
+								WHEN ORD_DATE <![CDATA[<=]]> CONVERT(DATETIME2,@OUT_WARE_DATE,120) THEN 1
+								ELSE -1
+								END RESULT
+						FROM T_SALE_TELORD
+						WHERE TEL_ORD_CD = #{TEL_ORD_CD} AND ORGN_DIV_CD = #{ORGN_DIV_CD} AND ORGN_CD = #{ORGN_CD}
+					)
+		IF(@RESULT_TYPE = 1)
+			BEGIN
+				SELECT
+						'SUCCESS' AS RESULT
+						,CASE
+							WHEN OUT_WARE_DATE = REPLACE (@OUT_WARE_DATE,'-','') THEN '같은 날짜로 변경하실 수 없습니다.'
+						ELSE '저장 성공'
+						END RESULT_MSG
+				FROM T_SALE_TELORD
+				WHERE TEL_ORD_CD = #{TEL_ORD_CD} AND ORGN_DIV_CD = #{ORGN_DIV_CD} AND ORGN_CD = #{ORGN_CD}
+				
+				UPDATE T_SALE_TELORD
+			<if test='OUT_WARE_DATE != ""'>
+				SET OUT_WARE_DATE = replace(@OUT_WARE_DATE,'-','')
+			</if>
+			<if test='OUT_WARE_DATE == ""'>
+				SET OUT_WARE_DATE = NULL
+			</if>
+				WHERE TEL_ORD_CD = #{TEL_ORD_CD} AND ORGN_DIV_CD = #{ORGN_DIV_CD} AND ORGN_CD = #{ORGN_CD}
+			END
+		ELSE
+			BEGIN
+				SELECT
+					'FAIL' AS RESULT
+					,'주문일자보다 배송일자가 빠를 수 없습니다.' AS RESULT_MSG
+			END
+	</select>
+</mapper>

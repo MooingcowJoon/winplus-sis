@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.employee.dao.EmpDao">
+		
+	<select id="getEmpList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getEmpList */
+		SELECT 
+			A.EMP_NO
+			, A.EMP_NM
+			, A.DEPT_CD
+			, A.DLV_DUTY_CD
+			, A.DLV_BSN_CD
+			, A.SEARCHABLE_AUTH_CD
+			, IFNULL(B.ORGN_DIV_CD,'') ORGN_DIV_CD 
+			, DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',B.ORGN_DIV_CD) ORGN_DIV_NM
+			, (SELECT ORGN_NM FROM COM_ORGN_INFO WHERE ORGN_CD = IFNULL(B.ORGN_DELEGATE_CD,'000000'))	ORGN_DELEGATE_NM
+			, B.ORGN_NM
+			, A.EMAIL
+			, A.MBTLNUM
+			, A.ADDR
+			, C.ID
+			, A.USE_YN
+			, CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+			, A.REG_ID
+			, CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+			, A.MOD_ID
+			, CONVERT(VARCHAR,A.INST_DT, 120) INST_DT
+		FROM COM_EMP_INFO A
+		LEFT JOIN COM_ORGN_INFO B
+			ON A.DEPT_CD = B.ORGN_CD
+		LEFT JOIN COM_EMP_ACNT C
+			ON A.EMP_NO = C.EMP_NO
+		WHERE 1=1
+			AND C.SITE_DIV_CD = 'SIS'
+		<if test='SCH_USE_YN != null and SCH_USE_YN != ""'>
+			AND A.USE_YN = #{SCH_USE_YN}
+		</if>
+		<if test='SCH_EMP_NM != null and SCH_EMP_NM != ""'>
+			AND (A.EMP_NM LIKE CONCAT('%',#{SCH_EMP_NM},'%') OR A.EMP_NO LIKE CONCAT('%',#{SCH_EMP_NM},'%')) 
+		</if>
+		<if test='SCH_ORGN_DIV_CD != ""'>
+			AND B.ORGN_DIV_CD = #{SCH_ORGN_DIV_CD}
+		</if>
+		ORDER BY B.ORGN_DELEGATE_CD, B.ORGN_CD, A.EMP_NM
+	</select>
+
+	<select id="getEmp" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getEmp */
+		SELECT 
+			A.EMP_NO
+			, A.EMP_NM
+			, A.MEMBER_CD
+			, IFNULL(A.DEPT_CD, '') DEPT_CD
+			, A.DLV_DUTY_CD
+			, A.DLV_BSN_CD
+			, A.SEARCHABLE_AUTH_CD
+			, IFNULL(B.ORGN_DIV_CD,'') ORGN_DIV_CD
+			, DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',B.ORGN_DIV_CD) ORGN_DIV_NM
+			, B.ORGN_NM
+			, A.EMAIL
+			, A.MBTLNUM
+			, A.ADDR
+			, D.ID
+			, A.USE_YN
+			, CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+			, A.REG_ID
+			, CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+			, A.MOD_ID
+			, CONVERT(VARCHAR,A.INST_DT, 120) INST_DT
+			<if test='SITE_DIV_CD != "SIS"'>
+			, TSMC.CORP_NO
+			</if>
+		FROM
+			<choose>
+				<when test='SITE_DIV_CD == "SIS"'>
+			COM_EMP_INFO A
+			LEFT JOIN COM_ORGN_INFO B
+				ON A.DEPT_CD = B.ORGN_CD
+	      	LEFT JOIN COM_EMP_ACNT D
+				ON A.EMP_NO = D.EMP_NO
+				</when>
+				<otherwise>
+			COM_EMP_INFO A
+			LEFT JOIN COM_ORGN_INFO B
+				ON A.DEPT_CD = B.ORGN_CD
+	      	LEFT JOIN COM_EMP_ACNT D
+				ON A.EMP_NO = D.EMP_NO
+			INNER JOIN T_STD_MAST_CUSTMR TSMC
+				ON D.EMP_NO = TSMC.CUSTMR_CD
+				</otherwise>
+			</choose>
+		WHERE 1=1
+			AND A.EMP_NO = #{EMP_NO}
+
+	</select>
+
+	<insert id="insertEmp" parameterType="java.util.Map">
+		/* insertEmp */
+		INSERT INTO 
+			COM_EMP_INFO
+		( 
+			EMP_NO,
+			EMP_NM,
+			DEPT_CD,
+			DLV_DUTY_CD,
+			DLV_BSN_CD,
+			SEARCHABLE_AUTH_CD,
+			EMAIL,
+			MBTLNUM,
+			ADDR,
+			USE_YN,
+			REG_DT,
+			REG_ID
+			) 
+		VALUES 
+		(
+			#{EMP_NO},
+			#{EMP_NM},
+			#{DEPT_CD},
+			#{DLV_DUTY_CD},
+			#{DLV_BSN_CD},
+			#{SEARCHABLE_AUTH_CD},
+			#{EMAIL},
+			#{MBTLNUM},
+			#{ADDR},
+			#{USE_YN},
+			NOW(),
+			#{REG_REQ_ID}
+		)
+	</insert>
+	
+	<insert id="insertEmpAcnt" parameterType="java.util.Map">
+		/* insertEmpAcnt */
+		INSERT INTO 
+			COM_EMP_ACNT
+		( 
+			EMP_NO
+			, ID
+			, PASSWORD
+			, PASSWORD_CHANGE_DT
+			, SITE_DIV_CD
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) 
+		VALUES 
+		(
+			#{EMP_NO},
+			#{ID},
+			<choose>
+				<when test='SITE_DIV_CD == "SIS"'>
+					damo.dbo.damo_hash_data('winplus12#$','SHA512'),
+				</when>
+				<otherwise>
+					damo.dbo.damo_hash_data((SELECT CORP_NO FROM T_STD_MAST_CUSTMR WHERE CUSTMR_CD = #{EMP_NO}),'SHA512'),
+				</otherwise>
+			</choose>
+			NOW(),
+			#{SITE_DIV_CD},
+			'insertEmpAcnt',
+			#{REG_REQ_ID},
+			NOW()
+		)
+	</insert>
+	
+	<update id="updateEmp" parameterType="java.util.Map">
+		/* updateEmp */
+		UPDATE  COM_EMP_INFO SET
+			EMP_NM = #{EMP_NM}
+			<if test='DEPT_CD != null and DEPT_CD != ""'>
+			, DEPT_CD = #{DEPT_CD}
+			</if>
+			, DLV_DUTY_CD = #{DLV_DUTY_CD}
+			, DLV_BSN_CD = #{DLV_BSN_CD}
+			, SEARCHABLE_AUTH_CD = #{SEARCHABLE_AUTH_CD}
+			, EMAIL = #{EMAIL}
+			, MBTLNUM = #{MBTLNUM}
+			, ADDR = #{ADDR}
+			, USE_YN = #{USE_YN}
+			, MOD_DT = NOW()
+			, MOD_ID = #{REG_REQ_ID}
+			
+		WHERE 
+			EMP_NO = #{EMP_NO}
+
+	</update>
+	
+	<update id="deleteEmp" parameterType="java.util.Map">
+		/* deleteOrgn */
+		UPDATE  COM_EMP_INFO SET
+			USE_YN = 'N' 
+		WHERE 
+			EMP_NO = #{EMP_NO}
+	</update>
+	
+	<select id="chkChildCtgr" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* chkChildMenu */
+		SELECT COUNT(*) 
+		FROM COM_ORGN_INFO 
+		WHERE UPPER_ORGN_CD = #{ORGN_CD}
+	</select>
+	
+	<select id="getExistEmail" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* chkChildMenu */
+		SELECT COUNT(*) 
+		FROM COM_EMP_INFO 
+		WHERE EMAIL = #{EMAIL}
+	</select>
+	
+	<select id="getEmpLoginAddList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getEmpLoginAddList */
+		SELECT
+			EMA.EMP_NO
+			, A.EMP_NO EMP_NO_LOGIN_ADD
+			, A.EMP_NM
+			, A.DEPT_CD
+			, A.SEARCHABLE_AUTH_CD
+			, IFNULL(B.ORGN_DIV_CD,'') ORGN_DIV_CD 
+			, DBO.FN_GET_CMMN_CD_NM('ORGN_DIV_CD',B.ORGN_DIV_CD) ORGN_DIV_NM
+			, B.ORGN_NM
+			, A.USE_YN
+			, CONVERT(VARCHAR,EMA.REG_DT, 120) REG_DT
+			, EMA.REG_ID
+			, CONVERT(VARCHAR,EMA.MOD_DT, 120) MOD_DT
+			, EMA.MOD_ID
+			, CONVERT(VARCHAR,EMA.INST_DT, 120) INST_DT
+		FROM 
+		COM_EMP_LOGIN_ADD EMA
+		LEFT JOIN COM_EMP_INFO A
+		ON EMA.EMP_NO_LOGIN_ADD = A.EMP_NO
+		LEFT JOIN COM_ORGN_INFO B
+			ON A.DEPT_CD = B.ORGN_CD
+		WHERE 1=1
+		 	AND EMA.USE_YN = 'Y'
+			AND A.USE_YN = 'Y'
+			AND EMA.EMP_NO = #{EMP_NO}
+		ORDER BY ORGN_DIV_CD, EMA.EMP_NO_LOGIN_ADD
+	</select>
+	
+	<!-- AND 부분 추가 조승현 -->
+	<update id="saveEmpLoginAddList" parameterType="java.util.Map">		
+		/* saveEmpLoginAddList */
+		 MERGE COM_EMP_LOGIN_ADD A
+		 USING (
+		       SELECT #{EMP_NO} AS EMP_NO
+		       ) B
+		    ON A.EMP_NO = B.EMP_NO
+		    AND EMP_NO_LOGIN_ADD = #{EMP_NO_LOGIN_ADD}
+		  WHEN MATCHED THEN
+		UPDATE SET USE_YN = #{USE_YN}, 	
+			   MOD_DT = NOW(), 	
+			   MOD_ID = #{MOD_ID}
+		  WHEN NOT MATCHED THEN   
+		INSERT ( 
+				EMP_NO,
+				EMP_NO_LOGIN_ADD,
+				USE_YN,
+				REG_DT,
+				REG_ID
+			   ) values (
+				#{EMP_NO},
+				#{EMP_NO_LOGIN_ADD},
+				#{USE_YN},
+				NOW(),
+				#{REG_ID}
+			   );
+	</update>
+	
+	<select id="checkEmpLoginList" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* checkEmpLoginList */
+		SELECT COUNT(*)
+		FROM COM_EMP_LOGIN_ADD
+		WHERE EMP_NO = #{EMP_NO_ORIZ}
+			AND EMP_NO_LOGIN_ADD = #{CHANGE_TO_EMP_NO}
+	</select>
+	
+	<select id="memeberCodeAvailableCheck" resultType="java.lang.Integer" parameterType="java.util.Map" >
+		SELECT COUNT(*) FROM COM_EMP_INFO 
+		WHERE EMP_NO <![CDATA[<>]]> #{EMP_NO} AND MEMBER_CD = #{MEMBER_CD}
+	</select>
+	
+	<select id="getEmpByGrupList" resultType="java.util.Map" parameterType="java.util.Map" >
+		/* getEmpByGrupList */
+		SELECT
+			[ORGN_DIV_CD]
+			,[ORGN_CD]
+			,[GRUP_CD]
+			,[GRUP_NM]
+			,[RESP_USER]
+			,[USE_YN]
+			,CONVERT(NVARCHAR(20), [CDATE], 20) AS [CDATE]
+		FROM T_STD_GOODSGRUP_USER
+		WHERE 1=1
+<!-- 		AND RESP_USER = #{EMP_NO} -->
+		AND GRUP_TYPE = #{GRUP_TYPE}
+		<if test="ORGN_CD != ''">
+		AND ORGN_CD = #{ORGN_CD}
+		</if>
+		ORDER BY GRUP_CD
+	</select>
+	
+	<update id="saveEmpByGrupList" parameterType="java.util.Map">		
+		/* saveEmpByGrupList */
+		
+			DECLARE @GRUP_CD NVARCHAR(5)
+					, @CRUD NVARCHAR(3)
+					, @CNT INT
+			
+			SET @CRUD = #{CRUD}
+					
+			SELECT @GRUP_CD = CONVERT(NVARCHAR(5),NEXT VALUE FOR [dbo].[SEQ_T_STD_GOODSGRUP_USER])
+						
+			SET @GRUP_CD = (REPLICATE('0',5-LEN(@GRUP_CD)) + @GRUP_CD)
+						
+			IF (@CRUD = 'U')
+				BEGIN
+					UPDATE T_STD_GOODSGRUP_USER
+					SET GRUP_NM = #{GRUP_NM}
+						,MPROGRM = 'saveEmpByGrupList'
+						,MUSER = #{EMP_NO}
+						,MDATE = NOW()
+					WHERE 1=1
+					AND ORGN_CD = #{ORGN_CD}
+					AND RESP_USER = #{EMP_NO}
+					AND GRUP_CD = #{GRUP_CD}
+					AND GRUP_TYPE = #{GRUP_TYPE}
+				END
+			ELSE IF (@CRUD = 'C')
+				BEGIN
+					INSERT INTO T_STD_GOODSGRUP_USER (
+						[ORGN_DIV_CD]
+						,[ORGN_CD]
+						,[GRUP_CD]
+						,[GRUP_NM]
+						,[GRUP_TYPE]
+						,[RESP_USER]
+						,[USE_YN]
+						,[CPROGRM]
+						,[CUSER]
+						,[CDATE]
+					) VALUES (
+						(SELECT TOP 1 ORGN_DIV_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+						,#{ORGN_CD}
+						,(@GRUP_CD)
+						,#{GRUP_NM}
+						,#{GRUP_TYPE}
+						,#{EMP_NO}
+						,#{USE_YN}
+						,'saveEmpByGrupList'
+						,#{EMP_NO}
+						,NOW()
+					)
+				END
+			ELSE IF (@CRUD = 'D')
+				BEGIN
+					DELETE FROM T_STD_GOODSGRUP_USER
+					WHERE 1=1
+					AND ORGN_CD = #{ORGN_CD}
+					AND RESP_USER = #{EMP_NO}
+					AND GRUP_CD = #{GRUP_CD}
+					AND GRUP_TYPE = #{GRUP_TYPE}
+			
+					DELETE FROM T_STD_GOODSGRUP_U_DETL
+					WHERE 1=1
+					AND ORGN_CD = #{ORGN_CD}
+					AND GRUP_CD = #{GRUP_CD}
+				END
+	</update>
+	
+	<select id="getEmpGrupDetailList"  resultType="java.util.Map" parameterType="java.util.Map" >
+		/* getEmpGrupDetailList */
+		SELECT TU.ORGN_DIV_CD
+			, TU.ORGN_CD
+			, TU.GRUP_CD
+			, TU.OBJ_CD
+			, TU.OBJ_NM
+			, TU.SEQ
+			, TU.USE_YN
+			, TU.CPROGRM
+			, TU.CUSER
+			, TU.CDATE
+			, TU.MPROGRM
+			, TU.MUSER
+			, TU.MDATE
+			, TC.PUR_SALE_TYPE
+		FROM T_STD_GOODSGRUP_U_DETL AS TU
+		INNER JOIN T_STD_MAST_CUSTMR AS TC
+		ON TU.OBJ_CD = TC.CUSTMR_CD
+		WHERE 1=1
+		AND GRUP_CD = #{GRUP_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		ORDER BY SEQ
+	</select>
+	
+	<update id="saveEmpByGrupDetailList" parameterType="java.util.Map">		
+		/* saveEmpByGrupDetailList */
+			DECLARE @SEQ INT
+				, @CRUD NVARCHAR(3)
+				, @GRUP_CD NVARCHAR(10)
+				, @CNT INT
+			
+			SET @CRUD = #{CRUD}
+
+			IF (@CRUD = 'U')
+				BEGIN
+					UPDATE T_STD_GOODSGRUP_U_DETL
+					SET OBJ_CD = #{OBJ_CD}
+						,OBJ_NM = #{OBJ_NM}
+						,USE_YN = #{USE_YN}
+						,MPROGRM = 'saveEmpByGrupDetailList'
+						,MUSER = #{EMP_NO}
+						,MDATE = NOW()
+					WHERE 1=1
+					AND ORGN_CD = #{ORGN_CD}
+					AND GRUP_CD = #{GRUP_CD}
+					AND OBJ_CD = #{OBJ_CD}
+				END
+			ELSE IF (@CRUD = 'C')
+				BEGIN
+					INSERT INTO T_STD_GOODSGRUP_U_DETL(
+						[ORGN_DIV_CD]
+						,[ORGN_CD]
+						,[SEQ]
+						,[GRUP_CD]
+						,[OBJ_NM]
+						,[OBJ_CD]
+						,[USE_YN]
+						,[CPROGRM]
+						,[CUSER]
+						,[CDATE]
+					) VALUES (
+						(SELECT TOP 1 ORGN_DIV_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{ORGN_CD})
+						,#{ORGN_CD}
+						,(
+							SELECT IFNULL(MAX(SEQ), 0) + 1 AS NEW_SEQ
+							FROM T_STD_GOODSGRUP_U_DETL
+							WHERE 1=1
+							AND ORGN_CD = #{ORGN_CD}
+							AND GRUP_CD = #{GRUP_CD}
+						)
+						,#{GRUP_CD}
+						,#{OBJ_NM}
+						,#{OBJ_CD}
+						,#{USE_YN}
+						,'saveEmpByGrupDetailList'
+						,#{EMP_NO}
+						,NOW()
+					)
+				END
+			ELSE IF (@CRUD = 'D')
+				BEGIN
+					DELETE FROM T_STD_GOODSGRUP_U_DETL
+					WHERE 1=1
+					AND ORGN_CD = #{ORGN_CD}
+					AND GRUP_CD = #{GRUP_CD}
+					AND OBJ_CD = #{OBJ_CD}
+				END
+	</update>
+	
+	<select id="getPartnerList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getPartnerList */
+		SELECT 
+			  C.ID
+			, A.EMP_NO
+			, A.EMP_NM
+			, A.DEPT_CD ORGN_CD
+			, B.ORGN_NM
+			, A.SEARCHABLE_AUTH_CD
+			, A.ADDR
+			, A.USE_YN
+			, CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+			, A.REG_ID
+			, CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+			, A.MOD_ID
+			, CONVERT(VARCHAR,A.INST_DT, 120) INST_DT
+		FROM COM_EMP_INFO A
+		LEFT JOIN COM_ORGN_INFO B
+			ON A.DEPT_CD = B.ORGN_CD
+		LEFT JOIN COM_EMP_ACNT C
+			ON A.EMP_NO = C.EMP_NO
+		INNER JOIN T_STD_MAST_CUSTMR TSMC
+			ON C.EMP_NO = TSMC.CUSTMR_CD
+		WHERE 1=1
+			AND C.SITE_DIV_CD = 'PS'
+		<if test='DEPT_CD != ""'>
+			AND A.DEPT_CD = #{DEPT_CD}
+		</if>
+		<if test='SCH_EMP_NM != ""'>
+			AND (A.EMP_NM LIKE CONCAT('%',#{SCH_EMP_NM},'%') OR A.EMP_NO LIKE CONCAT('%',#{SCH_EMP_NM},'%'))
+		</if>
+		<if test='SCH_USE_YN != null and SCH_USE_YN != ""'>
+			AND A.USE_YN = #{SCH_USE_YN}
+		</if>
+		ORDER BY A.EMP_NO
+	</select>
+	
+	<select id="getCustomerList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getCustomerList */
+		SELECT 
+			  C.ID
+			, A.EMP_NO
+			, A.EMP_NM
+			, A.DEPT_CD ORGN_CD
+			, B.ORGN_NM
+			, A.SEARCHABLE_AUTH_CD
+			, A.ADDR
+			, A.USE_YN
+			, CONVERT(VARCHAR,A.REG_DT, 120) REG_DT
+			, A.REG_ID
+			, CONVERT(VARCHAR,A.MOD_DT, 120) MOD_DT
+			, A.MOD_ID
+			, CONVERT(VARCHAR,A.INST_DT, 120) INST_DT
+		FROM COM_EMP_INFO A
+		LEFT JOIN COM_ORGN_INFO B
+			ON A.DEPT_CD = B.ORGN_CD
+		LEFT JOIN COM_EMP_ACNT C
+			ON A.EMP_NO = C.EMP_NO
+		INNER JOIN T_STD_MAST_CUSTMR TSMC
+			ON C.EMP_NO = TSMC.CUSTMR_CD
+		WHERE 1=1
+			AND C.SITE_DIV_CD = 'CS'
+		<if test='DEPT_CD != ""'>
+			AND A.DEPT_CD = #{DEPT_CD}
+		</if>
+		<if test='SCH_EMP_NM != ""'>
+			AND (A.EMP_NM LIKE CONCAT('%',#{SCH_EMP_NM},'%') OR A.EMP_NO LIKE CONCAT('%',#{SCH_EMP_NM},'%')) 
+		</if>
+		<if test='SCH_USE_YN != null and SCH_USE_YN != ""'>
+			AND A.USE_YN = #{SCH_USE_YN}
+		</if>
+		ORDER BY A.EMP_NO
+	</select>
+	
+	<update id="initPassword" parameterType="java.util.Map">
+		/* initPassword */
+		UPDATE COM_EMP_ACNT
+		SET 
+			<choose>
+				<when test='SITE_DIV_CD == "SIS"'>
+					PASSWORD = damo.dbo.damo_hash_data('winplus12#$','SHA512')
+				</when>
+				<otherwise>
+					PASSWORD = damo.dbo.damo_hash_data((SELECT CORP_NO FROM T_STD_MAST_CUSTMR WHERE CUSTMR_CD = #{EMP_NO}),'SHA512')
+				</otherwise>
+			</choose>
+			, INITL_YN = 'Y'
+			, INITL_DT = NOW()
+			, PASSWORD_ERROR_TIME = 0
+			, UPD_PROGRM = 'initPassword'
+			, UPD_ID = #{MUSER}
+			, UPD_DT = NOW()
+		WHERE
+			EMP_NO = #{EMP_NO}
+	</update>
+</mapper>

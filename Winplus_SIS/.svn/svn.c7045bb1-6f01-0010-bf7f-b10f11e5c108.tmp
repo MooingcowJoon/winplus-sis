@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.basic.dao.VirtualAcntDao">
+	
+	<select id="getVirtualAcntHeaderList" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getVirtualAcntHeaderList */
+		SELECT
+			CCD.DIV4 AS ORGN_DIV_CD
+			,CCD.DIV1 AS ORGN_CD
+			,VA.VRT_ORG_CD
+			,COUNT(VA.VRT_ACNT) AS TOT_ACNT
+			,SUM(
+				CASE
+					WHEN VA.OBJ_CD IS NOT NULL THEN 1
+					ELSE 0
+				END
+			) AS ISSU_ACNT
+			,SUM(
+				CASE
+					WHEN VA.OBJ_CD IS NULL THEN 1
+					ELSE 0
+				END
+			) AS BAL_ACNT
+		FROM T_STD_MAST_VRT_ACNT VA
+		
+		INNER JOIN COM_CMMN_CODE_DETAIL	CCD
+			ON CCD.CMMN_DETAIL_CD = VA.VRT_ORG_CD
+			
+		WHERE 1=1
+			AND CCD.USE_YN = 'Y'
+			AND CCD.DIV4 = #{ORGN_DIV_CD}
+			<if test='ORGN_CD != ""'>
+			AND CCD.DIV1 = #{ORGN_CD}
+			</if>
+
+		GROUP BY
+			VA.VRT_ORG_CD
+			,CCD.DIV1
+			,CCD.DIV4
+	</select>
+	
+	<select id="getVirtualAcntDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getVirtualAcntDetailList */
+		SELECT
+			SMVA.VRT_ORG_CD
+			,SUBSTRING(SMVA.VRT_ACNT,1,6) + '-' + SUBSTRING(SMVA.VRT_ACNT,7,2) + '-' + SUBSTRING(SMVA.VRT_ACNT,9,6) AS VRT_ACNT
+			,ISNULL(SMVA.APPLY_TYPE,'') AS OBJ_TARGET
+			,ISNULL(SMVA.ACNT_NM,'') AS OBJ_NM
+			,ISNULL(CONVERT(NVARCHAR(10),CONVERT(DATE,SMVA.ISSN_DATE),120),'') AS ISSN_DATE
+			,ISNULL((
+				SELECT TOP 1
+					CONVERT(NVARCHAR(10),CONVERT(DATE,tr_il),120)
+				FROM [VACS].[dbo].[vacs_ahst]
+				WHERE iacct_no = SMVA.VRT_ACNT
+				ORDER BY tr_il DESC
+			),'') AS LAST_TRANS_DATE
+		FROM T_STD_MAST_VRT_ACNT SMVA
+		WHERE SMVA.VRT_ORG_CD = #{VRT_ORG_CD}
+		AND SMVA.OBJ_CD IS NOT NULL
+	</select>
+	<select id="getVirtualAcntTableInfo" resultType="java.util.Map" parameterType="java.util.Map">
+		/*getVirtualAcntTableInfo*/
+		SELECT
+			VRT_ORG_CD
+			,VRT_ORG_CD_NM
+			,ORGN_DIV_CD_NM
+			,REPLACE(convert(VARCHAR,convert(MONEY,TOT_ACNT),1),'.00','') AS TOT_ACNT
+			,REPLACE(convert(VARCHAR,convert(MONEY,ISSU_ACNT),1),'.00','') AS ISSU_ACNT
+			,REPLACE(convert(VARCHAR,convert(MONEY,BAL_ACNT),1),'.00','') AS BAL_ACNT
+		FROM (
+				SELECT
+					(SELECT A.CMMN_DETAIL_CD_NM FROM COM_CMMN_CODE_DETAIL A WHERE A.DIV2 = CCD.DIV4 AND A.CMMN_CD='ORGN_CD') AS ORGN_DIV_CD_NM
+					,(SELECT B.CMMN_DETAIL_CD_NM FROM COM_CMMN_CODE_DETAIL B WHERE B.CMMN_DETAIL_CD = CCD.DIV1 AND B.CMMN_CD='ORGN_CD') AS ORGN_CD_NM
+					,(SELECT B.CMMN_DETAIL_CD_NM FROM COM_CMMN_CODE_DETAIL B WHERE B.CMMN_DETAIL_CD = VA.VRT_ORG_CD AND B.CMMN_CD='VRT_ORG_CD') AS VRT_ORG_CD_NM
+					,VA.VRT_ORG_CD
+					,COUNT(VA.VRT_ACNT) AS TOT_ACNT
+					,SUM(
+						CASE
+							WHEN VA.OBJ_CD IS NOT NULL THEN 1
+							ELSE 0
+						END
+					) AS ISSU_ACNT
+					,SUM(
+						CASE
+							WHEN VA.OBJ_CD IS NULL THEN 1
+							ELSE 0
+						END
+					) AS BAL_ACNT
+				FROM T_STD_MAST_VRT_ACNT VA
+				
+				INNER JOIN COM_CMMN_CODE_DETAIL	CCD
+					ON CCD.CMMN_DETAIL_CD = VA.VRT_ORG_CD
+					
+				WHERE 1=1
+					AND CCD.USE_YN = 'Y'
+					AND CCD.DIV4 = #{ORGN_DIV_CD}
+					AND CCD.DIV1 = #{ORGN_CD}
+				GROUP BY
+					VA.VRT_ORG_CD
+					,CCD.DIV1
+					,CCD.DIV4
+		) TT
+	</select>
+</mapper>

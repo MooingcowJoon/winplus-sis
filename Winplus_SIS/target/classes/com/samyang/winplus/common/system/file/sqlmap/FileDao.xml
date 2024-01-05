@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.system.file.dao.FileDao">
+		
+	<insert id="insertFileMetaData" parameterType="java.util.Map">
+		/* insertFileMetaData */
+		DECLARE @PFILE_PATH			NVARCHAR(100)
+		DECLARE @PFILE_NM			NVARCHAR(200)
+		DECLARE @PFILE_MG			BIGINT
+		DECLARE @PREAL_FILE_NM		NVARCHAR(200)
+		DECLARE @PREG_ID			NVARCHAR(10)
+	
+		SET @PFILE_PATH		= #{PFILE_PATH}
+		SET @PFILE_NM		= #{PFILE_NM}
+		SET @PFILE_MG		= #{PFILE_MG}
+		SET @PREAL_FILE_NM	= #{PREAL_FILE_NM}
+		SET @PREG_ID		= #{PREG_ID}
+	
+		EXEC UP_ERP_COMMON_UPLOAD_FILE_METADATA_INSERT @PFILE_PATH
+				                                        ,@PFILE_NM
+				                                        ,@PFILE_MG
+				                                        ,@PREAL_FILE_NM
+				                                        ,@PREG_ID
+	</insert>
+	
+	<select id="getFileMetaDataNo" parameterType="java.util.Map" resultType="java.lang.String">
+		/* getFileMetaDataNo */
+		DECLARE @PFILE_PATH			NVARCHAR(100)
+		DECLARE @PFILE_NM			NVARCHAR(200)
+		DECLARE @PFILE_MG			BIGINT
+		DECLARE @PREAL_FILE_NM		NVARCHAR(200)
+		DECLARE @PREG_ID			NVARCHAR(10)
+	
+		SET @PFILE_PATH		= #{PFILE_PATH}
+		SET @PFILE_NM		= #{PFILE_NM}
+		SET @PFILE_MG		= #{PFILE_MG}
+		SET @PREAL_FILE_NM	= #{PREAL_FILE_NM}
+		SET @PREG_ID		= #{PREG_ID}
+	
+		EXEC UP_ERP_COMMON_UPLOAD_FILE_METADATA_NO_SELECT @PFILE_PATH
+				                                        ,@PFILE_NM
+				                                        ,@PFILE_MG
+				                                        ,@PREAL_FILE_NM
+				                                        ,@PREG_ID
+	</select>
+	
+	<select id="getFileMetaData" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getFileMetaData */
+		DECLARE @PATCHMNFL_NO		NVARCHAR(4000)
+
+		SET @PATCHMNFL_NO		= #{PATCHMNFL_NO}
+
+		EXEC UP_ERP_COMMON_UPLOAD_FILE_METADATA_SELECT @PATCHMNFL_NO
+	</select>
+	
+	<insert id="uploadAttachFile" parameterType="java.util.Map">
+		/* uploadAttachFile */
+		INSERT INTO COM_UPLOAD_FILE(
+			  FILE_GRUP_NO
+			, FILE_SEQ
+			, FILE_REG_TYPE
+			, FILE_NM
+			, FILE_PATH
+			, FILE_ORG_NM
+			, FILE_UID
+			, FILE_TYPE
+			, FILE_SIZE
+			, USE_YN
+			, REMK
+			, CPROGRM
+			, CUSER
+			, CDATE
+		) VALUES (
+			  #{FILE_GRUP_NO}
+			, (SELECT IFNULL(MAX(FILE_SEQ),0) + 1 FROM COM_UPLOAD_FILE WHERE FILE_GRUP_NO = #{FILE_GRUP_NO})
+			, #{FILE_REG_TYPE}
+			, #{FILE_NM}
+			, #{FILE_PATH}
+			, #{FILE_ORG_NM}
+			, #{FILE_UID}
+			, #{FILE_TYPE}
+			, #{FILE_SIZE}
+			, 'Y'
+			, #{REMK}
+			, 'uploadAttachFile'
+			, #{USER}
+			, NOW()
+		)
+	</insert>
+	
+	<select id="getAttachFileList" parameterType="java.util.Map" resultType="CMap">
+		/* getAttachFileList */
+		SELECT
+			  A.FILE_GRUP_NO
+			, A.FILE_SEQ
+			, A.FILE_REG_TYPE
+			, A.FILE_ORG_NM
+			, '다운로드' DOWNLOAD_BUTTON
+			, A.REMK
+			, IFNULL(B.CMMN_DETAIL_CD_NM, '구분없음') FILE_REG_TYPE_NM
+		FROM
+			COM_UPLOAD_FILE A
+			LEFT JOIN (SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'FILE_REG_TYPE') B
+			ON A.FILE_REG_TYPE = B.CMMN_DETAIL_CD
+		WHERE 1=1
+			AND A.USE_YN = 'Y'
+			<choose>
+				<when test='FILE_GRUP_NO == null or FILE_GRUP_NO == ""'>
+					AND A.FILE_GRUP_NO = -999
+				</when>
+				<otherwise>
+					AND A.FILE_GRUP_NO = #{FILE_GRUP_NO}
+				</otherwise>
+			</choose>
+	</select>
+	
+	<update id="deleteAttachFile" parameterType="java.util.Map">
+		/* deleteAttachFile */
+		UPDATE COM_UPLOAD_FILE
+		SET
+			  USE_YN = 'N'
+			, MUSER = #{USER}
+			, MDATE = NOW()
+		WHERE 1=1
+			AND FILE_GRUP_NO = #{FILE_GRUP_NO}
+			AND FILE_SEQ = #{FILE_SEQ}
+	</update>
+	
+	<update id="updateAttachFile" parameterType="java.util.Map">
+		/* updateAttachFile */
+		UPDATE COM_UPLOAD_FILE
+		SET
+			  FILE_REG_TYPE = #{FILE_REG_TYPE}
+			, REMK = #{REMK}
+			, MUSER = #{USER}
+			, MDATE = NOW()
+		WHERE 1=1
+			AND FILE_GRUP_NO = #{FILE_GRUP_NO}
+			AND FILE_SEQ = #{FILE_SEQ}
+	</update>
+	
+	<select id="getUploadTime" resultType="java.lang.String">
+		/* getUploadTime */
+		SELECT REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(19),NOW(),25), ' ', '_'), ':', '_'), '-', '')
+	</select>
+	
+	<select id="getFileGrupNo" resultType="java.lang.Integer">
+		/* getFileGrupNo */
+		DECLARE @TMP_SEQ INT
+		SELECT @TMP_SEQ = NEXT VALUE FOR SEQ_COM_UPLOAD_FILE
+		SELECT @TMP_SEQ
+	</select>
+	
+	<select id="getFileInfo" parameterType="java.util.Map" resultType="CMap">
+		/* getFileInfo */
+		SELECT
+			  FILE_PATH
+			, FILE_ORG_NM
+			, FILE_UID
+			, FILE_TYPE
+			, REMK
+		FROM COM_UPLOAD_FILE
+		WHERE 1=1
+			AND FILE_GRUP_NO = #{FILE_GRUP_NO}
+			AND FILE_SEQ = #{FILE_SEQ}
+	</select>
+	
+	<select id="getAttachGoodsImageFileList" parameterType="java.util.Map" resultType="CMap">
+		/* getAttachGoodsImageFileList */
+		SELECT
+			MAX(FILE_SEQ) FILE_SEQ
+			, FILE_GRUP_NO
+			, FILE_REG_TYPE
+			, FILE_ORG_NM
+		FROM
+			COM_UPLOAD_FILE
+		WHERE 1=1
+			AND USE_YN = 'Y'
+			AND FILE_GRUP_NO = #{FILE_GRUP_NO}
+		GROUP BY
+			FILE_GRUP_NO
+			, FILE_REG_TYPE
+			, FILE_ORG_NM
+	</select>
+	
+	<update id="deleteAttachGoodsImageFile" parameterType="java.util.Map">
+		/* deleteAttachGoodsImageFile */
+		UPDATE COM_UPLOAD_FILE
+		SET
+			  USE_YN = 'N'
+			, MUSER = #{USER}
+			, MDATE = NOW()
+		WHERE FILE_ORG_NM = #{FILE_ORG_NM}
+	</update>
+	
+	<select id="getAttachContractFileList" parameterType="java.util.Map" resultType="CMap">
+		/* getAttachContractFileList */
+		SELECT
+			  FILE_GRUP_NO
+			, FILE_SEQ
+			, FILE_ORG_NM
+			, FILE_REG_TYPE
+			, '다운로드' AS DOWNLOAD_BUTTON
+			, REMK
+			, CUSER
+			, CDATE
+			, MUSER
+			, MDATE
+		FROM
+			COM_UPLOAD_FILE A
+			INNER JOIN (SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'FILE_REG_TYPE') B
+			ON A.FILE_REG_TYPE = B.CMMN_DETAIL_CD
+		WHERE
+			1=1
+			AND A.FILE_GRUP_NO = #{FILE_GRUP_NO}
+			AND A.USE_YN = 'Y'
+		ORDER BY B.ORDR ASC
+	</select>
+	
+	<update id="deleteAttachContractFile" parameterType="java.util.Map">
+		/* deleteAttachContractFile */
+		UPDATE COM_UPLOAD_FILE
+		SET
+			  USE_YN = 'N'
+			, MUSER = #{USER}
+			, MDATE = NOW()
+		WHERE 1=1
+			AND FILE_GRUP_NO = #{FILE_GRUP_NO}
+			AND FILE_SEQ = #{FILE_SEQ}
+		
+		DECLARE @FILE_COUNT INT
+		
+		SELECT
+			@FILE_COUNT = COUNT(*)
+		FROM COM_UPLOAD_FILE
+		WHERE 1=1
+			AND USE_YN = 'Y'
+			AND FILE_GRUP_NO = #{FILE_GRUP_NO}
+			AND FILE_SEQ = #{FILE_SEQ}
+			
+		IF @FILE_COUNT <![CDATA[<]]> 1
+			BEGIN
+				UPDATE T_STD_MAST_CUSTMR
+				SET FILE_YN = 'N'
+				WHERE CUSTMR_CD = #{CUSTMR_CD}
+			END
+	</update>
+</mapper>

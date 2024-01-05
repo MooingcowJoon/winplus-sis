@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scanPeriod="60 seconds">
+
+	<property name="LOG_PATTERN" value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} [%file:%line] -%msg%n"/>
+    <property name="LOG_HOME" value="/var/log/egovRDCT" />
+	<property name="LOG_FILE" value="egovRDCT.log" />
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_HOME}/${LOG_FILE}</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                    <fileNamePattern>${LOG_HOME}/${LOG_FILE}.%d{yyyyMMddHH}</fileNamePattern>
+                    <maxHistory>30</maxHistory>
+            </rollingPolicy>
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+              <pattern>${LOG_PATTERN}</pattern>
+         	</encoder>
+    </appender>
+    
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>${LOG_PATTERN}</Pattern>
+        </layout>
+    </appender>
+
+    <logger name="com.chunho" level="INFO">
+   	 	<appender-ref ref="FILE" />
+    </logger>
+    <logger name="com.woowahan" level="INFO">
+    	<appender-ref ref="FILE" />
+    </logger>
+
+    <logger name="jdbc.connection" level="WARN" >
+   		<appender-ref ref="FILE" />
+    </logger>
+    <logger name="jdbc.sqlonly" level="INFO" >
+		<appender-ref ref="FILE" />
+    </logger>
+    <logger name="jdbc.resultset" level="WARN" >
+    	<appender-ref ref="FILE" />
+    </logger>
+    <logger name="jdbc.resultsettable" level="WARN" >
+    	<appender-ref ref="FILE" />
+    </logger>
+    <logger name="jdbc.sqltiming" level="WARN" >
+    	<appender-ref ref="FILE" />
+    </logger>
+    <logger name="jdbc.audit" level="WARN" >
+    	<appender-ref ref="FILE" />
+    </logger>
+    <logger name="jdbc.INFO" level="OFF" >
+    	<appender-ref ref="FILE" />
+    </logger>
+
+    <logger name="org.springframework" level="INFO" >
+    	<appender-ref ref="FILE" />
+    </logger>
+    <logger name="org.springframework.web" level="INFO" >
+    	<appender-ref ref="FILE" />
+    </logger>
+    <logger name="org.springframework.session" level="INFO" >
+    	<appender-ref ref="FILE" />
+    </logger>
+
+    <logger name="org.keycloak" level="ALL">
+    	<appender-ref ref="FILE" />
+   </logger>
+
+   <!--  <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+ -->
+</configuration>

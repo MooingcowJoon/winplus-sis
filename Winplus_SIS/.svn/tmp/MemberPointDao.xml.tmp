@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.market.dao.MemberPointDao">
+	<select id="getMemberPointList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMemberPointList */
+		SELECT 
+			<if test="CHECK_TOP == 'true' and TOP_NUM != '' and CHECK_MEM != 'true'">
+			TOP ${TOP_NUM}
+			</if>
+			A.ORGN_DIV_CD
+			,A.ORGN_CD
+			,A.MEM_NO
+			,B.MEM_NM
+			,B.MEM_TYPE
+			,B.POINT
+			,B.POINT_SUM
+			,B.MEM_STATE
+			,A.EMP_NO
+			,ISNULL(C.EMP_NM, '') AS EMP_NM
+			,A.POINT_TYPE
+			,A.SAVE_POINT
+			,B.POINT
+			,CONVERT(NVARCHAR(23), A.CDATE, 21) AS CDATE
+			,A.REMK_MEMO
+		FROM T_SALE_POINT AS A
+		INNER JOIN T_STD_MAST_MEM AS B ON A.MEM_NO = B.MEM_NO 
+		<if test='ORGN_CD != "" and ORGN_CD != null'>
+		AND B.ORGN_CD = #{ORGN_CD}
+		</if>
+		LEFT OUTER JOIN COM_EMP_INFO AS C ON C.EMP_NO = A.EMP_NO
+		WHERE 1=1
+		<if test='ORGN_CD != "" and ORGN_CD != null'>
+		AND A.ORGN_CD = #{ORGN_CD}
+		</if>
+		AND CONVERT(NVARCHAR(10),A.CDATE, 120) BETWEEN #{SEARCH_DATE_FROM} AND #{SEARCH_DATE_TO}
+		<if test="CHECK_STATE != 'true'">
+			AND B.MEM_STATE = 'Y'
+		</if>
+		<choose>
+			<when test="CHECK_MEM == 'true' and MEM_NM != ''">
+				AND A.MEM_NO = #{MEM_NO}
+			</when>
+			<otherwise>
+				<if test="POINT_TYPE != ''">
+					AND A.POINT_TYPE = #{POINT_TYPE}
+				</if>
+				<if test="MEM_TYPE != ''">
+					AND B.MEM_TYPE = #{MEM_TYPE}
+				</if>
+				<if test="MEM_ABC != ''">
+					AND B.MEM_ABC = #{MEM_ABC}
+				</if>
+				<if test="GRADE_CD != ''">
+					AND B.GRADE_CD = #{GRADE_CD}
+				</if>
+			</otherwise>
+		</choose>
+		
+	</select>
+</mapper>

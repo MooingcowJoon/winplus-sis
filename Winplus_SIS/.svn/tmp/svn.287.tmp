@@ -1,0 +1,99 @@
+package com.samyang.winplus.sis.basic.service;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.samyang.winplus.sis.basic.dao.CustomerGoodsManagementDao;
+import com.samyang.winplus.sis.basic.service.CustomerGoodsManagementService;
+
+@Service("CustomerGoodsManagementService")
+public class CustomerGoodsManagementServiceImpl implements CustomerGoodsManagementService {
+	
+	@Autowired
+	CustomerGoodsManagementDao customerGoodsManagementDao;
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	@Override
+	public int insertStdCustomrGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int updateStdCustomrGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int deleteStdCustomrGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}	
+	
+	@Override
+	public List<Map<String, Object>> getSearchMasterBarcodeList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return customerGoodsManagementDao.getSearchMasterBarcodeList(paramMap);
+	}
+
+	@Override
+	public List<Map<String, Object>> getSearchTstdCustomerGoodsList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return customerGoodsManagementDao.getSearchTstdCustomerGoodsList(paramMap);
+	}
+	
+	@Override
+	public List<Map<String, Object>> getSearchMasterBarcodePriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return customerGoodsManagementDao.getSearchMasterBarcodePriceList(paramMap);
+	}
+
+	/**
+	  * saveCustomerMkScreenList -  대상거래처 납품업체 C,U,D
+	  * @author 손경락
+	  * @param paramMapList
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	@Override
+	public int saveStdCustomrGoodsScreenList(List<Map<String, Object>> paramMapList) throws SQLException, Exception {
+		int resultInt = 0;		
+		for(Map<String, Object> paramMap : paramMapList){
+			Object crud = paramMap.get("CRUD");
+			//logger.debug("@@@@@@@@@@ CustomerGoodsManagementServiceImpl.java crud ============" + crud);
+			
+			if(crud != null) {
+				if("C".equals(crud)){
+					paramMap.put("PARAM_PROGRM", "insertMkCustomer");
+					resultInt += customerGoodsManagementDao.insertStdCustomrGoods(paramMap);
+				} else if ("U".equals(crud)){
+					paramMap.put("PARAM_PROGRM", "updateMkCustomer");
+					resultInt += customerGoodsManagementDao.updateStdCustomrGoods(paramMap);
+				} else if ("D".equals(crud)){
+					resultInt += customerGoodsManagementDao.deleteStdCustomrGoods(paramMap);
+				}
+			}
+		}
+		
+		return resultInt;
+	}
+ 
+	/* 상품기준 최저 구매가격 가져오기 */
+	@Override
+	public List<Map<String, Object>> getSearchMasterBarcodeLowestPriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return customerGoodsManagementDao.getSearchMasterBarcodeLowestPriceList(paramMap);
+	}
+	
+	/* 팜센터에서의 신선발주( 팜센터에서 취급하는 상품을  구한다음 외부협력사를 찾는다) */
+	@Override
+	public List<Map<String, Object>> getSearchMasterBarcodeFreshPriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return customerGoodsManagementDao.getSearchMasterBarcodeFreshPriceList(paramMap);
+	}
+
+}

@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.code.dao.TableCodeDao">
+	
+	<select id="getPosNoList" parameterType="Map" resultType="CMap">
+		/* getPosNoList */
+		SELECT 
+				A.ORGN_DIV_CD
+				,A.ORGN_CD
+				,REPLICATE('0', 2-LEN(CONVERT(NVARCHAR(2), A.TRML_NO))) + CONVERT(NVARCHAR(2), A.TRML_NO) AS DETAIL_CD
+				,CONCAT(B.CMMN_DETAIL_CD_NM,' ',REPLICATE('0', 2-LEN(CONVERT(NVARCHAR(2), A.TRML_NO))) + CONVERT(NVARCHAR(2), A.TRML_NO)) AS DETAIL_CD_NM
+				,CAST(A.TRML_NO AS NVARCHAR) AS DETAIL_NM
+		FROM T_STD_TRML A
+		INNER JOIN COM_CMMN_CODE_DETAIL B
+			ON A.ORGN_CD = B.CMMN_DETAIL_CD
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND TRML_TYPE = '1'
+			AND B.CMMN_CD = 'ORGN_CD'
+		ORDER BY ORGN_CD ASC, TRML_NO ASC
+	</select>
+	
+	<select id="getCardIssuerCorpList" parameterType="Map" resultType="CMap">
+		/* getCardIssuerCorpList 카드발급사 */
+		SELECT
+			  CARDCORP_CD AS DETAIL_CD
+			, CARDCORP_CD + ' ' + CARDCORP_NM AS DETAIL_CD_NM
+			, CARDCORP_NM AS DETAIL_NM
+		FROM T_STD_CARDCORP
+		WHERE
+			1=1
+		ORDER BY ORGN_CD ASC, CARDCORP_CD ASC
+	</select>
+	
+	<select id="getCardAcquirerCorpList" parameterType="Map" resultType="CMap">
+		/* getCardAcquirerCorpList 카드매입사 */
+		SELECT
+			ORGN_DIV_CD
+			,ORGN_CD
+			, CAST(CARDCORP_CD AS INT) AS DETAIL_CD
+			, CONCAT(B.CMMN_DETAIL_CD_NM,' ',CARDCORP_NM) AS DETAIL_CD_NM
+			, CARDCORP_NM AS DETAIL_NM
+		FROM T_STD_CARDCORP A
+		INNER JOIN COM_CMMN_CODE_DETAIL B
+			ON A.ORGN_CD = B.CMMN_DETAIL_CD
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND ISNULL(SLIP_PUR_TYPE,'0') <![CDATA[ <> ]]> '0'
+			AND B.CMMN_CD = 'ORGN_CD'
+		ORDER BY ORGN_CD ASC, DETAIL_CD ASC
+	</select>
+	
+	<select id="getSearchableOrgnDivCdList" parameterType="Map" resultType="CMap">
+		/* getSearchableOrgnDivCdList */
+		SELECT
+			DISTINCT
+			CC.CMMN_DETAIL_CD AS DETAIL_CD
+			, CC.CMMN_DETAIL_CD + ' ' + CC.CMMN_DETAIL_CD_NM AS DETAIL_CD_NM
+			, CC.CMMN_DETAIL_CD_NM AS DETAIL_NM
+			, ORDR
+		FROM COM_ORGN_INFO OI
+			INNER JOIN (SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'ORGN_DIV_CD' AND USE_YN = 'Y') CC
+			ON OI.ORGN_DIV_CD = CC.CMMN_DETAIL_CD
+			INNER JOIN (SELECT CMMN_DETAIL_CD FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'ORGN_DIV_TYPE' AND USE_YN = 'Y') CC2
+			ON LEFT(CC.CMMN_DETAIL_CD, 1) = CC2.CMMN_DETAIL_CD
+		WHERE
+			1=1
+			<if test='searchable_auth_cd_list.length > 0'>
+				AND
+				<foreach collection="searchable_auth_cd_list" item="searchable_auth_cd" separator="OR" open="(" close=")">
+					(
+						#{searchable_auth_cd} IN (
+							SELECT VAL1
+							FROM
+								(
+									SELECT CAST(VAL1 AS NVARCHAR) AS VAL1
+									FROM [dbo].[FN_SPLIT](ISNULL(OI.SEARCHABLE_AUTH_CD,''),',')
+								) TMP1
+								INNER JOIN (
+									SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'SEARCHABLE_AUTH_CD'
+								) TMP2
+								ON TMP1.VAL1 = TMP2.CMMN_DETAIL_CD
+							WHERE 
+								DIV1 = '' OR (DIV1 = 'LUI' AND ORGN_DELEGATE_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{LUI_orgn_cd}))
+						)
+						<if test='exclude_auth_cd != null and exclude_auth_cd != ""'>
+							AND #{searchable_auth_cd} NOT IN (SELECT VAL1 FROM [dbo].[FN_SPLIT](#{exclude_auth_cd}, ','))
+						</if>
+					)
+				</foreach>
+			</if>
+		ORDER BY ORDR ASC
+	</select>
+	
+	<select id="getSearchableOrgnCdList" parameterType="Map" resultType="CMap">
+		/* getSearchableOrgnCdList */
+		SELECT 
+			ORGN_CD AS DETAIL_CD
+			, ORGN_CD + ' ' + ORGN_NM AS DETAIL_CD_NM
+			, ORGN_NM AS DETAIL_NM
+		FROM
+			COM_ORGN_INFO OI
+			INNER JOIN (
+						SELECT * 
+						FROM COM_CMMN_CODE_DETAIL 
+						WHERE CMMN_CD = 'ORGN_CD'
+							<if test='exclude_orgn_type != null and exclude_orgn_type != ""'>
+							AND DIV1 NOT IN (SELECT VAL1 FROM FN_SPLIT(#{exclude_orgn_type}, ','))
+							</if>
+						) CC
+			ON OI.ORGN_CD = CC.CMMN_DETAIL_CD
+		WHERE
+			1=1
+			<if test='ORGN_DIV_CD != ""'>
+				AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='searchable_auth_cd_list.length > 0'>
+				AND
+				<foreach collection="searchable_auth_cd_list" item="searchable_auth_cd" separator="OR" open="(" close=")">
+					(
+						#{searchable_auth_cd} IN (
+							SELECT VAL1
+							FROM
+								(
+									SELECT CAST(VAL1 AS NVARCHAR) AS VAL1
+									FROM [dbo].[FN_SPLIT](ISNULL(OI.SEARCHABLE_AUTH_CD,''),',')
+								) TMP1
+								INNER JOIN (
+									SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'SEARCHABLE_AUTH_CD'
+								) TMP2
+								ON TMP1.VAL1 = TMP2.CMMN_DETAIL_CD
+							WHERE 
+								DIV1 = '' OR (DIV1 = 'LUI' AND ORGN_CD = (SELECT ORGN_DELEGATE_CD FROM COM_ORGN_INFO WHERE ORGN_CD = #{LUI_orgn_cd}))
+						)
+					)
+				</foreach>
+			</if>
+		ORDER BY OI.ORGN_CD ASC
+	</select>
+	
+	<select id="getBoardPublishScope" parameterType="Map" resultType="CMap">
+		/* getBoardPublishScope */
+		SELECT 
+			*
+		FROM V_BOARD_PUBLISH_SCOPE
+		WHERE
+			1=1
+			<if test='PART != null and PART != ""'>
+				AND PART = #{PART}
+			</if>
+	</select>
+	<select id="getSaleRegTypeList" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT 
+			A.CMMN_DETAIL_CD									SALE_REG_TYPE
+			,B.CMMN_DETAIL_CD									SALE_TYPE
+			,A.CMMN_DETAIL_CD									DETAIL_CD
+			,A.CMMN_DETAIL_CD + ' ' + A.CMMN_DETAIL_CD_NM		DETAIL_CD_NM
+			,A.CMMN_DETAIL_CD_NM								DETAIL_NM
+			,A.USE_YN											USE_YN
+		FROM (
+			select 
+					CMMN_CD
+					,CMMN_DETAIL_CD
+					,CMMN_DETAIL_CD_NM
+					,DIV2
+					,USE_YN
+			from COM_CMMN_CODE_DETAIL where CMMN_CD = 'SALE_REG_TYPE'
+		) A
+		INNER JOIN (
+			select
+					CMMN_CD
+					,CMMN_DETAIL_CD
+					,CMMN_DETAIL_CD_NM
+					,USE_YN
+			from COM_CMMN_CODE_DETAIL where CMMN_CD = 'POS_SALE_KIND'
+		) B
+		ON A.DIV2 = B.CMMN_DETAIL_CD AND A.USE_YN = B.USE_YN
+		WHERE 1=1
+		<if test='SALE_TYPE != ""'>
+			AND B.CMMN_DETAIL_CD = #{SALE_TYPE}
+		</if>
+			AND A.USE_YN = 'Y'
+	</select>
+	
+	<select id="getOrgnCustomerList" parameterType="Map" resultType="CMap">
+		/* getOrgnCustomerList 센터 조직코드로 거래처코드 구하기 */
+ 		SELECT
+			      RM AS DETAIL_CD
+			   ,  RM + ' ' + CMMN_DETAIL_CD_NM AS DETAIL_CD_NM
+			   ,  CMMN_DETAIL_CD_NM AS DETAIL_NM
+		   FROM  COM_CMMN_CODE_DETAIL
+	  	  WHERE  CMMN_CD = 'ORGN_CD'
+		    AND  DIV1    = 'CT'
+		  ORDER  BY CMMN_DETAIL_CD ASC
+	</select>
+		
+</mapper>

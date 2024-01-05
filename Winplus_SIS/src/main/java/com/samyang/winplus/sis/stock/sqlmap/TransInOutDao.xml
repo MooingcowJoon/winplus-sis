@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.stock.dao.TransInOutDao">
+
+	<select id="getPdaTransSummaryList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPdaTransSummaryList */
+		SELECT 
+			CONCAT(PT.ORGN_DIV_CD,'_',PT.ORGN_CD,'_',#{PDA_DATE},'_',PT.STORE_AREA,'_',SUM(GOODS_QTY),'_',MAX(CUSER)) AS UNI_KEY
+			,PT.ORGN_DIV_CD
+			,PT.ORGN_CD
+			,PT.STORE_AREA
+			,CASE
+				WHEN COUNT(PT.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PT.BCD_CD)),' 외 ',(COUNT(PT.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PT.BCD_CD))
+			END AS TOT_GOODS_NM
+			,SUM(GOODS_QTY) AS TOT_CNT
+			,MAX(CUSER) AS RESP_USER
+			,MAX(CONVERT(NVARCHAR(8), PT.CDATE, 112)) AS CDATE
+		FROM [WINPLUS_SIS].[dbo].[T_PDA_TEMP] PT
+		WHERE PT.DATA_TYPE = '6'			-- 재고이동
+		AND PT.FLAG_YN = '0'
+		AND PT.ORGN_CD = #{OUT_ORGN_CD}
+		AND REPLACE(CONVERT(NVARCHAR(10),PT.CDATE,120),'-','') = #{PDA_DATE}
+		GROUP BY PT.ORGN_DIV_CD,PT.ORGN_CD,PT.STORE_AREA
+	</select>
+	
+	<select id="getPdaTransItemList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPdaTransItemList */
+		SELECT
+			PT.ORGN_CD
+			,PT.STORE_AREA
+			,SMB.BCD_NM
+			,PT.GOODS_QTY
+			,PT.CUSER
+		FROM T_PDA_TEMP PT
+		INNER JOIN T_STD_MAST_BCD SMB
+		ON PT.BCD_CD = SMB.BCD_CD
+		WHERE PT.DATA_TYPE = '6'			-- 재고이동
+		AND PT.FLAG_YN = '0'
+		AND PT.STORE_AREA = #{STORE_AREA}
+		AND PT.ORGN_CD = #{ORGN_CD}
+		AND CONVERT(NVARCHAR(8),PT.CDATE,112) = #{CDATE}
+	</select>
+	
+	<select id="getStockTransMastList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockTransMastList */
+		SELECT
+			STM.TRANS_DATE
+			,CONVERT(NVARCHAR(10),CONVERT(DATE,STM.TRANS_DATE),23) AS TRANS_YYYYMMDD
+			,STM.TRANS_NO
+			,STM.OUT_ORGN_CD
+			,STM.IN_ORGN_CD
+			,SUMM.TOT_GOODS_NM
+			,SUMM.TOT_QTY
+			,STM.TRANS_STATE
+			,STM.RESP_USER
+			,CONCAT(STM.TRANS_DATE,'_',STM.TRANS_NO) AS UNI_KEY
+		FROM T_STOCK_TRANS_MAST STM
+		INNER JOIN (
+			SELECT
+				STM.TRANS_DATE
+				,STM.TRANS_NO
+				,CASE
+					WHEN COUNT(STD.GOODS_BCD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(STD.GOODS_BCD)),' 외 ',(COUNT(STD.GOODS_BCD)-1),'건')
+					ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(STD.GOODS_BCD))
+				END AS TOT_GOODS_NM
+				,SUM(TRANS_QTY) AS TOT_QTY
+			FROM T_STOCK_TRANS_MAST STM
+			INNER JOIN T_STOCK_TRANS_DETL STD
+			ON STM.TRANS_DATE = STD.TRANS_DATE
+			AND STM.TRANS_NO = STD.TRANS_NO
+			WHERE STM.TRANS_DATE = #{TRANS_DATE}
+			AND STM.OUT_ORGN_CD = #{OUT_ORGN_CD}
+			GROUP BY STM.TRANS_DATE,STM.TRANS_NO
+		) SUMM
+		ON STM.TRANS_DATE = SUMM.TRANS_DATE
+		AND STM.TRANS_NO = SUMM.TRANS_NO
+	</select>
+	
+	<select id="getStockTransDetlList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockTransDetlList */
+		SELECT
+			STD.TRANS_DATE
+			,STD.TRANS_NO
+			,STD.GOODS_BCD
+			,SMB.BCD_NM
+			,STD.TRANS_QTY
+			,STM.TRANS_STATE
+		FROM T_STOCK_TRANS_DETL STD
+		INNER JOIN T_STOCK_TRANS_MAST STM
+		ON STD.TRANS_DATE = STM.TRANS_DATE
+		AND STD.TRANS_NO = STM.TRANS_NO
+		INNER JOIN T_STD_MAST_BCD SMB
+		ON STD.GOODS_BCD = SMB.BCD_CD
+		WHERE STD.TRANS_DATE = #{TRANS_DATE}
+		AND STD.TRANS_NO = #{TRANS_NO}
+	</select>
+	
+	<select id="createTransData" resultType="java.lang.String" parameterType="java.util.Map">
+		/* createTransData */
+		DECLARE @PARAM_YYYYMMDD NVARCHAR(8)
+				,@PARAM_OUT_ORGN_CD NVARCHAR(10)
+				,@PARAM_IN_ORGN_CD NVARCHAR(10)
+				,@PARAM_UNIKEYS NVARCHAR(MAX)
+				,@PARAM_RESP_USER NVARCHAR(10)
+		
+		SET @PARAM_YYYYMMDD = #{PDA_DATE}
+		SET @PARAM_OUT_ORGN_CD = #{OUT_ORGN_CD}
+		SET @PARAM_IN_ORGN_CD = #{IN_ORGN_CD}
+		SET @PARAM_UNIKEYS = #{UNI_KEYS}
+		SET @PARAM_RESP_USER = #{RESP_USER}
+		
+		EXEC SP_STOCK_TRANS_C @PARAM_YYYYMMDD,@PARAM_OUT_ORGN_CD,@PARAM_IN_ORGN_CD,@PARAM_UNIKEYS,@PARAM_RESP_USER
+	</select>
+	
+	<select id="deletePdaData" resultType="java.lang.String" parameterType="java.util.Map">
+		/* deletePdaData */
+		DECLARE @PARAM_YYYYMMDD NVARCHAR(8)
+				,@PARAM_OUT_ORGN_CD NVARCHAR(10)
+				,@PARAM_UNIKEYS NVARCHAR(MAX)
+				,@PARAM_PDA_DATA_TYPE NVARCHAR(1)
+		
+		SET @PARAM_YYYYMMDD = #{PDA_DATE}
+		SET @PARAM_OUT_ORGN_CD = #{OUT_ORGN_CD}
+		SET @PARAM_UNIKEYS = #{UNI_KEYS}
+		SET @PARAM_PDA_DATA_TYPE = #{PDA_DATA_TYPE}
+		
+		EXEC SP_STOCK_PDA_D @PARAM_YYYYMMDD,@PARAM_OUT_ORGN_CD,@PARAM_UNIKEYS,@PARAM_PDA_DATA_TYPE
+	</select>
+	
+	<update id="requestTransData" parameterType="java.util.Map">
+		/* requestTransData */
+		DECLARE @UNI_KEY NVARCHAR(20)
+				,@TRANS_DATE NVARCHAR(8)
+				,@TRANS_NO NVARCHAR(10)
+				,@RESP_USER NVARCHAR(10)
+				,@VALID_TF NVARCHAR(1)
+		
+		SET @UNI_KEY = #{UNI_KEY}
+		SET @RESP_USER = #{RESP_USER}
+		SET @VALID_TF = 'T'
+		SET @TRANS_DATE = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '1'
+						)
+		SET @TRANS_NO = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '2'
+						)
+		
+		IF(IFNULL(@TRANS_DATE,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		IF(IFNULL(@TRANS_NO,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		
+		IF(@VALID_TF = 'T')
+			BEGIN
+				UPDATE T_STOCK_TRANS_MAST
+				SET TRANS_STATE = '2'
+					,MPROGRM = 'requestTransData'
+					,MDATE = NOW()
+					,MUSER = @RESP_USER
+				WHERE TRANS_DATE = @TRANS_DATE
+				AND TRANS_NO = @TRANS_NO
+				AND TRANS_STATE = '1'
+			END
+	</update>
+	
+	<update id="requestCancelTransData" parameterType="java.util.Map">
+		/* requestCancelTransData */
+		DECLARE @UNI_KEY NVARCHAR(20)
+				,@TRANS_DATE NVARCHAR(8)
+				,@TRANS_NO NVARCHAR(10)
+				,@RESP_USER NVARCHAR(10)
+				,@VALID_TF NVARCHAR(1)
+		
+		SET @UNI_KEY = #{UNI_KEY}
+		SET @RESP_USER = #{RESP_USER}
+		SET @VALID_TF = 'T'
+		SET @TRANS_DATE = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '1'
+						)
+		SET @TRANS_NO = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '2'
+						)
+		
+		IF(IFNULL(@TRANS_DATE,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		IF(IFNULL(@TRANS_NO,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		
+		IF(@VALID_TF = 'T')
+			BEGIN
+				UPDATE T_STOCK_TRANS_MAST
+				SET TRANS_STATE = '1'
+					,MPROGRM = 'requestCancelTransData'
+					,MDATE = NOW()
+					,MUSER = @RESP_USER
+				WHERE TRANS_DATE = @TRANS_DATE
+				AND TRANS_NO = @TRANS_NO
+				AND TRANS_STATE = '2'
+			END
+	</update>
+	
+	<delete id = "deleteTransDataItem" parameterType="java.util.Map">
+		/* deleteTransDataItem */
+		IF EXISTS(
+			SELECT
+				TRANS_DATE,TRANS_NO
+			FROM T_STOCK_TRANS_MAST
+			WHERE TRANS_DATE = #{TRANS_DATE}
+			AND TRANS_NO = #{TRANS_NO}
+			AND TRANS_STATE = '1'
+		)
+			BEGIN
+				DELETE FROM T_STOCK_TRANS_DETL
+				WHERE TRANS_DATE = #{TRANS_DATE}
+				AND TRANS_NO = #{TRANS_NO}
+				AND GOODS_BCD= #{GOODS_BCD}
+			END
+	</delete>
+	
+	<update id = "updateTransDataItem" parameterType="java.util.Map">
+		/* updateTransDataItem */
+		IF EXISTS(
+			SELECT
+				TRANS_DATE,TRANS_NO
+			FROM T_STOCK_TRANS_MAST
+			WHERE TRANS_DATE = #{TRANS_DATE}
+			AND TRANS_NO = #{TRANS_NO}
+			AND TRANS_STATE = '1'
+		)
+			BEGIN
+				IF EXISTS(
+					SELECT
+						GOODS_BCD
+					FROM T_STOCK_TRANS_DETL
+					WHERE TRANS_DATE = #{TRANS_DATE}
+					AND TRANS_NO = #{TRANS_NO}
+					AND GOODS_BCD= #{GOODS_BCD}
+				)
+					BEGIN
+						UPDATE T_STOCK_TRANS_DETL
+						SET TRANS_QTY = #{TRANS_QTY}
+							,MDATE = NOW()
+							,MPROGRM = 'updateTransDataItem'
+							,MUSER = #{RESP_USER}
+						WHERE TRANS_DATE = #{TRANS_DATE}
+						AND TRANS_NO = #{TRANS_NO}
+						AND GOODS_BCD= #{GOODS_BCD}
+					END
+				ELSE
+					BEGIN
+						INSERT INTO T_STOCK_TRANS_DETL (
+							TRANS_DATE
+							,TRANS_NO
+							,GOODS_BCD
+							,TRANS_QTY
+							,CPROGRM
+							,CUSER
+							,CDATE
+						) VALUES (
+							#{TRANS_DATE}
+							,#{TRANS_NO}
+							,#{GOODS_BCD}
+							,#{TRANS_QTY}
+							,'updateTransDataItem'
+							,#{RESP_USER}
+							,NOW()
+						)
+					END
+			END
+	</update>
+	
+	<select id="getStockTransReqList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockTransReqList */
+		SELECT
+			STM.TRANS_DATE
+			,CONVERT(NVARCHAR(10),CONVERT(DATE,STM.TRANS_DATE),23) AS TRANS_YYYYMMDD
+			,STM.TRANS_NO
+			,STM.OUT_ORGN_CD
+			,STM.IN_ORGN_CD
+			,SUMM.TOT_GOODS_NM
+			,SUMM.TOT_QTY
+			,STM.TRANS_STATE
+			,STM.RESP_USER
+			,CONCAT(STM.TRANS_DATE,'_',STM.TRANS_NO) AS UNI_KEY
+		FROM T_STOCK_TRANS_MAST STM
+		INNER JOIN (
+			SELECT
+				STM.TRANS_DATE
+				,STM.TRANS_NO
+				,CASE
+					WHEN COUNT(STD.GOODS_BCD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(STD.GOODS_BCD)),' 외 ',(COUNT(STD.GOODS_BCD)-1),'건')
+					ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(STD.GOODS_BCD))
+				END AS TOT_GOODS_NM
+				,SUM(TRANS_QTY) AS TOT_QTY
+			FROM T_STOCK_TRANS_MAST STM
+			INNER JOIN T_STOCK_TRANS_DETL STD
+			ON STM.TRANS_DATE = STD.TRANS_DATE
+			AND STM.TRANS_NO = STD.TRANS_NO
+			WHERE STM.TRANS_DATE = #{TRANS_DATE}
+			AND (STM.OUT_ORGN_CD = #{ORGN_CD} OR STM.IN_ORGN_CD = #{ORGN_CD})
+			AND STM.TRANS_STATE NOT IN ('1')
+			GROUP BY STM.TRANS_DATE,STM.TRANS_NO
+		) SUMM
+		ON STM.TRANS_DATE = SUMM.TRANS_DATE
+		AND STM.TRANS_NO = SUMM.TRANS_NO
+	</select>
+	
+	<update id="confirmTransData" parameterType="java.util.Map">
+		/* confirmTransData */
+		DECLARE @UNI_KEY NVARCHAR(20)
+				,@TRANS_DATE NVARCHAR(8)
+				,@TRANS_NO NVARCHAR(10)
+				,@RESP_USER NVARCHAR(10)
+				,@VALID_TF NVARCHAR(1)
+		
+		SET @UNI_KEY = #{UNI_KEY}
+		SET @RESP_USER = #{RESP_USER}
+		SET @VALID_TF = 'T'
+		SET @TRANS_DATE = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '1'
+						)
+		SET @TRANS_NO = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '2'
+						)
+		
+		IF(IFNULL(@TRANS_DATE,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		IF(IFNULL(@TRANS_NO,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		
+		IF(@VALID_TF = 'T')
+			BEGIN
+				UPDATE T_STOCK_TRANS_MAST
+				SET TRANS_STATE = '3'
+					,MPROGRM = 'confirmTransData'
+					,MDATE = NOW()
+					,MUSER = @RESP_USER
+				WHERE TRANS_DATE = @TRANS_DATE
+				AND TRANS_NO = @TRANS_NO
+				AND TRANS_STATE = '2'
+			END
+	</update>
+	
+	<update id="confirmCancelTransData" parameterType="java.util.Map">
+		/* confirmCancelTransData */
+		DECLARE @UNI_KEY NVARCHAR(20)
+				,@TRANS_DATE NVARCHAR(8)
+				,@TRANS_NO NVARCHAR(10)
+				,@RESP_USER NVARCHAR(10)
+				,@VALID_TF NVARCHAR(1)
+		
+		SET @UNI_KEY = #{UNI_KEY}
+		SET @RESP_USER = #{RESP_USER}
+		SET @VALID_TF = 'T'
+		SET @TRANS_DATE = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '1'
+						)
+		SET @TRANS_NO = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '2'
+						)
+		
+		IF(IFNULL(@TRANS_DATE,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		IF(IFNULL(@TRANS_NO,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		
+		IF(@VALID_TF = 'T')
+			BEGIN
+				UPDATE T_STOCK_TRANS_MAST
+				SET TRANS_STATE = '2'
+					,MPROGRM = 'confirmCancelTransData'
+					,MDATE = NOW()
+					,MUSER = @RESP_USER
+				WHERE TRANS_DATE = @TRANS_DATE
+				AND TRANS_NO = @TRANS_NO
+				AND TRANS_STATE = '3'
+			END
+	</update>
+	
+	<update id="deleteTransData" parameterType="java.util.Map">
+		/* deleteTransData */
+		DECLARE @UNI_KEY NVARCHAR(20)
+				,@TRANS_DATE NVARCHAR(8)
+				,@TRANS_NO NVARCHAR(10)
+				,@RESP_USER NVARCHAR(10)
+				,@VALID_TF NVARCHAR(1)
+		
+		SET @UNI_KEY = #{UNI_KEY}
+		SET @RESP_USER = #{RESP_USER}
+		SET @VALID_TF = 'T'
+		SET @TRANS_DATE = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '1'
+						)
+		SET @TRANS_NO = (
+							SELECT
+								VAL1
+							FROM dbo.FN_SPLIT(@UNI_KEY,'_')
+							WHERE POS = '2'
+						)
+		
+		IF(IFNULL(@TRANS_DATE,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		IF(IFNULL(@TRANS_NO,'') = '')
+			BEGIN
+				SET @VALID_TF = 'F'
+			END
+		
+		IF(@VALID_TF = 'T')
+			BEGIN
+				SET NOCOUNT ON;
+				DELETE FROM T_STOCK_TRANS_DETL
+				WHERE TRANS_DATE = @TRANS_DATE
+				AND TRANS_NO = @TRANS_NO
+				AND '1' IN (
+							SELECT
+								TRANS_STATE
+							FROM T_STOCK_TRANS_MAST
+							WHERE TRANS_DATE = @TRANS_DATE
+							AND TRANS_NO = @TRANS_NO
+						)
+				SET NOCOUNT OFF;
+				
+				DELETE FROM T_STOCK_TRANS_MAST
+				WHERE TRANS_DATE = @TRANS_DATE
+				AND TRANS_NO = @TRANS_NO
+				AND TRANS_STATE = '1'
+			END
+	</update>
+	
+</mapper>

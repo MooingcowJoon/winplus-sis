@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+	<bean name="propertyManagement"
+		class="com.samyang.winplus.common.system.property.PropertyManagementImpl">
+		<property name="properties">
+			<map>
+
+				<!-- MSSQL Detail Debug Mode -->
+				<entry key="system.debug.mssql" value="N" />
+				<!-- MSSQL Detail Debug String Length Limit Mode, Default : 250 -->
+				<!-- Debug String이 너무 길면 팝업 출력에 문제가 있어 제한 필요 -->
+				<entry key="system.debug.mssql.length" value="1000" />
+
+				<!-- MAIL SMTP -->
+				<!-- 				
+				<entry key="mail.smtp.auth" value="true" />
+				<entry key="mail.smtp.host" value="smtp.jounlife.com" />
+				<entry key="mail.smtp.socketFactory.port" value="25" />
+				<entry key="mail.smtp.auth.account" value="syds" />
+				<entry key="mail.smtp.auth.password" value="" />
+				-->
+
+				<!-- System Default Setting -->
+				<entry key="system.default.defaultPath" value="/index.sis" />
+
+			</map>
+		</property>
+	</bean>
+</beans>

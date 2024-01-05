@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.myAccount.dao.MyAccountDao">
+	
+	<select id="passwordChange" parameterType="java.util.Map" resultType="java.lang.String">
+		/* passwordChange */
+		DECLARE @FIND_ID NVARCHAR(30)
+		DECLARE @BEFORE_PW NVARCHAR(256)
+		DECLARE @NOW_PW NVARCHAR(256)
+		DECLARE @AFTER_PW1 NVARCHAR(256)
+		DECLARE @AFTER_PW2 NVARCHAR(256)
+		
+		SET @NOW_PW = damo.dbo.damo_hash_data(#{NOW_PW},'SHA512')
+		SET @AFTER_PW1 = damo.dbo.damo_hash_data(#{AFTER_PW1},'SHA512')
+		SET @AFTER_PW2 = damo.dbo.damo_hash_data(#{AFTER_PW2},'SHA512')
+		
+		SELECT
+			@FIND_ID = ID,
+			@BEFORE_PW = BEFR_PASSWORD
+		FROM COM_EMP_ACNT
+		WHERE 1=1
+			AND ID = #{LOGIN_ID}
+			AND PASSWORD = @NOW_PW
+		
+		IF @FIND_ID IS NOT NULL
+			BEGIN
+				IF @AFTER_PW1 != @AFTER_PW2
+					BEGIN
+						SELECT '변경할 비밀번호와 확인 비밀번호가 일치하지 않습니다.'
+					END
+				ELSE IF @BEFORE_PW = @AFTER_PW1
+					BEGIN
+						SELECT '변경할 비밀번호가 이전에 사용한 비밀번호입니다.'
+					END
+				ELSE IF @NOW_PW = @AFTER_PW1
+					BEGIN
+						SELECT '현재 비밀번호와 변경할 비밀번호가 동일합니다.'
+					END
+				ELSE
+					BEGIN
+						UPDATE COM_EMP_ACNT
+						SET
+							PASSWORD = @AFTER_PW1
+							, PASSWORD_CHANGE_DT = NOW()
+							, PASSWORD_ERROR_TIME = 0
+							, INITL_YN = 'N'
+							, BEFR_PASSWORD = @NOW_PW
+							, UPD_PROGRM = 'passwordChange'
+							, UPD_ID = #{LOGIN_ID}
+							, UPD_DT = NOW()
+						WHERE ID = @FIND_ID
+						
+						SELECT '비밀번호 변경 완료'
+					END
+			END
+			
+		ELSE
+			BEGIN
+				SELECT '현재 비밀번호가 일치하지 않습니다.'
+			END
+	</select>
+</mapper>

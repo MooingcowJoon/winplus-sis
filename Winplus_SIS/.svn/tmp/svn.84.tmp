@@ -1,0 +1,202 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_page_script_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header_override.jsp"/>
+
+<script type="text/javascript">
+	<%--
+	
+		■ VirtualAcntByCustomer.jsp			유통사업 업무 - 고객사 - 고객사가상계좌_조회
+		
+		■ VirtualAcntByMember.jsp			직영점 업무 - 마감/승인 - 신용승인 - 가상계좌현황(회원)_조회
+		
+		■ 조회시 같은 메소드로 매핑되므로 수정 시 유의
+	
+	--%>
+	LUI = JSON.parse('${empSessionDto.lui}');
+	//유통사업부 - 고객사가상계좌
+	LUI.exclude_auth_cd = "";
+	LUI.exclude_orgn_type = "";
+	
+	var total_layout;
+	var top_layout;
+	var mid_layout;
+	var mid_layout_ribbon;
+	var bot_layout;
+	var bot_layout_grid;
+
+	$(document).ready(function() {
+		
+		init_total_layout();
+		init_top_layout();
+		init_mid_layout();
+		init_bot_layout();
+	});
+	
+	function init_total_layout() {
+		total_layout = new dhtmlXLayoutObject({
+			parent : document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "3E"
+			, cells : [
+				{id: "a", text: "검색 조건", header:false, fix_size : [true, true]}
+				,{id: "b", text: "미드영역", header:false, fix_size : [true, true]}
+				,{id: "c", text: "가상계좌 목록", header: true, fix_size:[true,true]}
+			]
+		});
+		total_layout.cells("a").attachObject("div_top_layout");
+		total_layout.cells("a").setHeight(30);
+		total_layout.cells("b").attachObject("div_mid_layout");
+		total_layout.cells("b").setHeight(36);
+		total_layout.cells("c").attachObject("div_bot_layout");
+		
+		total_layout.setSeparatorSize(0, 1);
+		total_layout.setSeparatorSize(1, 1);
+	}
+	
+	function init_top_layout(){
+// 		cmbORGN_DIV_CD = $erp.getDhtmlXComboCommonCode("cmbORGN_DIV_CD","cmbORGN_DIV_CD", ["ORGN_DIV_CD","ALL"],210, false, false, "A01", function(){},"Y");
+// 		cmbORGN_CD = $erp.getDhtmlXComboCommonCode("cmbORGN_CD", "ORGN_CD", ["ORGN_CD","CS"], 210, false, false, false, false, "Y");
+	}
+	
+	function init_mid_layout(){
+		ribbon = new dhtmlXRibbon({
+			parent : "div_mid_layout"
+				, skin : ERP_RIBBON_CURRENT_SKINS
+				, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+				, items : [
+							{
+							type : "block"
+							, mode : 'rows'
+							, list : [
+										{id : "search_grid",	type : "button", text:'<spring:message code="ribbon.search" />',	isbig : false, img : "menu/search.gif", imgdis : "menu/search_dis.gif", disable : true}
+										,{id : "excel_grid",	type : "button", text:'<spring:message code="ribbon.excel" />',		isbig : false, img : "menu/excel.gif", 	imgdis : "menu/excel_dis.gif", 	disable : true}
+									]
+							}
+							]
+		});
+		ribbon.attachEvent("onClick", function(itemId, bId){
+			//고객사 가상계좌 조회
+			if(itemId == "search_grid"){
+				var dataObj = $erp.dataSerialize("tb_search");
+				
+				console.log(dataObj);
+				total_layout.progressOn();
+				$.ajax({
+					url : "/sis/basic/getVirtualAcntDetailList.do"
+					,data : dataObj
+					,method : "POST"
+					,dataType : "JSON"
+					,success : function(data){
+						if(data.isError){
+							$erp.ajaxErrorMessage(data);
+						} else {
+							$erp.clearDhtmlXGrid(bot_layout_grid);
+							var gridDataList = data.gridDataList;
+							if($erp.isEmpty(gridDataList)){
+								$erp.addDhtmlXGridNoDataPrintRow(
+										bot_layout_grid
+									, '<spring:message code="grid.noSearchData" />'
+								);
+								total_layout.progressOff();
+							} else {
+								bot_layout_grid.parse(gridDataList, 'js');
+								total_layout.progressOff();
+							}
+						}
+						$erp.setDhtmlXGridFooterRowCount(bot_layout_grid);//현재 행 수 계산
+					}, error : function(jqXHR, textStatus, errorThrown){
+						$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+					}
+				});
+			} else if (itemId == "add_grid"){
+					
+			} else if (itemId == "delete_grid"){
+				
+			} else if (itemId == "save_grid"){
+				
+			} else if	(itemId == "excel_grid"){
+				$erp.exportGridToExcel({
+					"grid" : bot_detail_layout_grid
+					, "fileName" : "고객사가상계좌현황"
+					, "isOnlyEssentialColumn" : true
+					, "excludeColumnIdList" : []
+					, "isIncludeHidden" : false
+					, "isExcludeGridData" : false
+				});
+			} else if (itemId == "print_grid"){
+				
+			}
+		});
+	}
+	function init_bot_layout() {
+		var grid_Columns = [
+							{id : "NO", label:["순번", "#rspan"], type : "cntr", width : "36", sort : "int", align : "center", isHidden : false, isEssential : false}
+							, {id : "VRT_ORG_CD", label:["기관코드(농협)", "#rspan"], type : "ro", width : "100", sort : "str", align : "center", isHidden : false, isEssential : true}
+							, {id : "VRT_ORG_CD", label:["기관명(농협)", "#rspan"], type : "combo", width : "140", sort : "str", align : "center", isHidden : false, isEssential : false, isDisabled : true, commonCode : "VRT_ORG_CD"}
+							, {id : "VRT_ACNT", label:["가상계좌번호", "#text_filter"], type : "ro", width : "130", sort : "str", align : "center", isHidden : false, isEssential : true}
+							, {id : "OBJ_TARGET", label:["대상", "#rspan"], type : "combo", width : "130", sort : "str", align : "center", isHidden : false, isEssential : false, isDisabled : true, commonCode : "LOAN_APPLY_TYPE"}
+							, {id : "OBJ_NM", label:["사업자명", "#text_filter"], type : "ro", width : "130", sort : "str", align : "center", isHidden : false, isEssential : true}
+							, {id : "ISSN_DATE", label:["발행일", "#rspan"], type : "ro", width : "130", sort : "str", align : "center", isHidden : false, isEssential : true}
+							, {id : "LAST_TRANS_DATE", label:["최종입금일", "#rspan"], type : "ro", width : "130", sort : "str", align : "center", isHidden : false, isEssential : true}
+							];
+		
+		bot_layout_grid = new dhtmlXGridObject({
+			parent: "div_bot_layout"
+				, skin : ERP_GRID_CURRENT_SKINS
+				, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+				, columns : grid_Columns
+		});
+		$erp.initGrid(bot_layout_grid,{multiSelect : true});
+	}
+	<%-- ■ erpDetailGrid 관련 Function 끝 --%>
+	
+	<%-- ■ searchErpDetailGrid 관련 Function 시작 --%>
+	function searchErpGrid(){
+		
+	}
+</script>
+</head>
+<body>
+	<div id="div_top_layout" class="samyang_div" style="display:none">
+		<div id="div_top_layout_search" class="samyang_div" style="diplay:none;">
+			<table id="tb_search" class="table">
+				<colgroup>
+					<col width="120px"/>
+					<col width="100px"/>
+					<col width="120px"/>
+					<col width="100px"/>
+					<col width="120px"/>
+					<col width="100px"/>
+					<col width="120px"/>
+					<col width="100px"/>
+					<col width="120px"/>
+					<col width="100px"/>
+					<col width="*"/>
+				</colgroup>
+				<tr>
+					<th colspan="1">구좌구분</th>
+					<td colspan="1"><input type="text" id="txtORGN_DIV_CD_NM" name="KEY_WORD" value="${SearchInfo.ORGN_DIV_CD_NM}" class="input_common" readonly="readonly" style="text-align: left;width:85px;"></td>
+					<th colspan="1">기관명(농협)</th>
+					<td colspan="1">
+						<input type="hidden" id="txtVRT_ORG_CD" value="${SearchInfo.VRT_ORG_CD}">
+						<input type="text" id="txtVRT_ORG_CD_NM" name="KEY_WORD" value="${SearchInfo.VRT_ORG_CD_NM}" class="input_common" readonly="readonly" style="text-align: center;width:85px;">
+					</td>
+					<th colspan="1">총 구좌</th>
+					<td colspan="1"><input type="text" id="txtTOT_ACNT" name="KEY_WORD" value="${SearchInfo.TOT_ACNT}" class="input_common" readonly="readonly" style="text-align: right;width:85px;"></td>
+					<th colspan="1">발행 구좌</th>
+					<td colspan="1"><input type="text" id="txtISSU_ACNT" name="KEY_WORD" value="${SearchInfo.ISSU_ACNT}" class="input_common" readonly="readonly" style="text-align: right;width:85px;"></td>
+					<th colspan="1">남은 구좌</th>
+					<td colspan="1"><input type="text" id="txtBAL_ACNT" name="KEY_WORD" value="${SearchInfo.BAL_ACNT}" class="input_common" readonly="readonly" style="text-align: right;width:85px;"></td>
+				</tr>
+			</table>
+		</div>
+	</div>
+	<div id="div_mid_layout" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_bot_layout" class="div_grid_full_size" style="display:none"></div>
+</body>
+</html>

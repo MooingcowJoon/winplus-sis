@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.report.dao.EtcDao">
+	<select id="getPriceChangeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPriceChangeList */
+		DECLARE @PARAM_FROM_DATE NVARCHAR(10)
+			,@PARAM_TO_DATE NVARCHAR(10)
+
+			SET @PARAM_FROM_DATE = #{SEARCH_DATE_FROM}
+			SET @PARAM_TO_DATE = #{SEARCH_DATE_TO}
+			
+			SELECT
+				A.BCD_CD
+				,A.GOODS_NO
+				,A.BCD_NM
+				,A.DIMEN_NM
+				<choose>
+					<when test='SEARCH_GUBUN == "MONTH"'>
+						,SUBSTRING(LEFT(REPLACE(A.ORD_DATE, '-', ''),6),1,4) + '-' + SUBSTRING(LEFT(REPLACE(A.ORD_DATE, '-', ''),6),5,6) AS ORD_DATE
+					</when>
+					<when test='SEARCH_GUBUN == "YEAR"'>
+						,LEFT(REPLACE(A.ORD_DATE,'-', ''), 4) AS ORD_DATE
+					</when>
+					<when test='SEARCH_GUBUN == "DAY"'>
+						,A.ORD_DATE
+					</when>
+					<otherwise>
+						,A.ORD_CD
+					</otherwise>
+				</choose>
+				,SUM(B.PUR_QTY) AS PUR_QTY
+				,AVG(B.PUR_PRICE) AS AVG_PUR_PRICE
+				,MAX(B.PUR_PRICE) AS MAX_PUR_PRICE
+				,MIN(B.PUR_PRICE) AS MIN_PUR_PRICE
+				,SUM(C.SALE_QTY) AS SALE_QTY
+				,AVG(ISNULL(C.CONF_AMT, C.SALE_TOT_AMT)/C.SALE_QTY) AS AVG_SALE_AMT
+				,MAX(ISNULL(C.CONF_AMT, C.SALE_TOT_AMT)/C.SALE_QTY) AS MAX_SALE_AMT
+				,MIN(ISNULL(C.CONF_AMT, C.SALE_TOT_AMT)/C.SALE_QTY) AS MIN_SALE_AMT
+			FROM (
+				<choose>
+					<when test='ORGN_DIV_CD == "B01"'>
+						SELECT DISTINCT
+							SCM.ORD_CD
+							,CONVERT(NVARCHAR(10),SCM.ORD_DATE,120) AS ORD_DATE						
+							,SCMD.BCD_CD
+							,BCD.GOODS_NO
+							,BCD.BCD_NM
+							,BCD.DIMEN_NM
+							,SCM.ORGN_DIV_CD
+							,SCM.ORGN_CD
+						FROM T_SALE_CENT_MAST SCM
+						INNER JOIN T_SALE_CENT_MAST_DETL SCMD
+						ON SCM.ORGN_DIV_CD = SCMD.ORGN_DIV_CD
+						AND SCM.ORGN_CD = SCMD.ORGN_CD
+						AND SCM.ORD_CD = SCMD.ORD_CD
+						INNER JOIN T_STD_MAST_BCD BCD
+						ON BCD.BCD_CD = SCMD.BCD_CD
+						WHERE 1=1
+						AND SCM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+						AND SCM.ORGN_CD = #{ORGN_CD}
+						<choose>
+							<when test='SEARCH_GUBUN == "DAY"'>
+								AND CONVERT(NVARCHAR(8),SCM.ORD_DATE,112) BETWEEN @PARAM_FROM_DATE AND @PARAM_TO_DATE
+							</when>
+							<when test='SEARCH_GUBUN == "MONTH"'>
+								AND LEFT(CONVERT(NVARCHAR(8),SCM.ORD_DATE,112), 6) BETWEEN LEFT(@PARAM_FROM_DATE, 6) AND LEFT(@PARAM_TO_DATE, 6)
+							</when>
+							<when test='SEARCH_GUBUN == "YEAR"'>
+								AND LEFT(CONVERT(NVARCHAR(8),SCM.ORD_DATE,112), 4) BETWEEN LEFT(@PARAM_FROM_DATE, 4) AND LEFT(@PARAM_TO_DATE, 4)
+							</when>
+						</choose>
+						<if test='CUSTMR_CD != ""'>
+						AND SCM.CUSTMR_CD IN (${CUSTMR_CD})
+						</if>
+						<if test='BCD_CD != ""'>
+						AND SCMD.BCD_CD IN (${BCD_CD})
+						</if>
+					</when>
+					<otherwise>
+						SELECT DISTINCT
+							SCM.ORD_CD
+							,CONVERT(NVARCHAR(10),SCM.ORD_DATE,120) AS ORD_DATE						
+							,SCMD.BCD_CD
+							,BCD.GOODS_NO
+							,BCD.BCD_NM
+							,BCD.DIMEN_NM
+							,SCM.ORGN_DIV_CD
+							,SCM.ORGN_CD
+						FROM T_SALE_MAST SCM
+						INNER JOIN T_SALE_MAST_DETL SCMD
+						ON SCM.ORGN_DIV_CD = SCMD.ORGN_DIV_CD
+						AND SCM.ORGN_CD = SCMD.ORGN_CD
+						AND SCM.ORD_CD = SCMD.ORD_CD
+						INNER JOIN T_STD_MAST_BCD BCD
+						ON BCD.BCD_CD = SCMD.BCD_CD
+						WHERE 1=1
+						AND SCM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+						AND SCM.ORGN_CD = #{ORGN_CD}
+						<choose>
+							<when test='SEARCH_GUBUN == "DAY"'>
+								AND CONVERT(NVARCHAR(8),SCM.ORD_DATE,112) BETWEEN @PARAM_FROM_DATE AND @PARAM_TO_DATE
+							</when>
+							<when test='SEARCH_GUBUN == "MONTH"'>
+								AND LEFT(CONVERT(NVARCHAR(8),SCM.ORD_DATE,112), 6) BETWEEN LEFT(@PARAM_FROM_DATE, 6) AND LEFT(@PARAM_TO_DATE, 6)
+							</when>
+							<when test='SEARCH_GUBUN == "YEAR"'>
+								AND LEFT(CONVERT(NVARCHAR(8),SCM.ORD_DATE,112), 4) BETWEEN LEFT(@PARAM_FROM_DATE, 4) AND LEFT(@PARAM_TO_DATE, 4)
+							</when>
+						</choose>
+						<if test='CUSTMR_CD != ""'>
+						AND SCM.CUSTMR_CD IN (${CUSTMR_CD})
+						</if>
+						<if test='BCD_CD != ""'>
+						AND SCMD.BCD_CD IN (${BCD_CD})
+						</if>
+					</otherwise>
+				</choose>
+				
+			
+				UNION
+			
+				SELECT DISTINCT
+					PM.PUR_SLIP_CD AS ORD_CD
+					,CONVERT(NVARCHAR(10),CONVERT(DATE,PM.PUR_DATE),120) AS PUR_DATE			
+					,PD.BCD_CD
+					,BCD.GOODS_NO
+					,BCD.BCD_NM
+					,BCD.DIMEN_NM
+					,PM.ORGN_DIV_CD
+					,PM.ORGN_CD
+				FROM T_PUR_MAST PM
+				INNER JOIN T_PUR_DETL PD
+				ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD
+				AND PM.ORGN_CD = PD.ORGN_CD
+				AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+				INNER JOIN T_STD_MAST_BCD BCD
+				ON BCD.BCD_CD = PD.BCD_CD
+				WHERE 1=1
+				AND PM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+				AND PM.ORGN_CD = #{ORGN_CD}
+				<choose>
+					<when test='SEARCH_GUBUN == "DAY"'>
+						AND PM.PUR_DATE BETWEEN @PARAM_FROM_DATE AND @PARAM_TO_DATE
+					</when>
+					<when test='SEARCH_GUBUN == "MONTH"'>
+						AND LEFT(PM.PUR_DATE, 6) BETWEEN LEFT(@PARAM_FROM_DATE, 6) AND LEFT(@PARAM_TO_DATE, 6)
+					</when>
+					<when test='SEARCH_GUBUN == "YEAR"'>
+						AND LEFT(PM.PUR_DATE, 4) BETWEEN LEFT(@PARAM_FROM_DATE, 4) AND LEFT(@PARAM_TO_DATE, 4)
+					</when>
+				</choose>
+				<!-- AND PD.ORGN_CD = #{ORGN_CD} -->
+				<if test='CUSTMR_CD != ""'>
+				AND PM.SUPR_CD IN (${CUSTMR_CD})
+				</if>
+				<if test='BCD_CD != ""'>
+				AND PD.BCD_CD IN (${BCD_CD})
+				</if>
+			) A
+			LEFT OUTER JOIN T_PUR_DETL B ON A.BCD_CD = B.BCD_CD
+			LEFT OUTER JOIN T_SALE_CENT_MAST_DETL C ON A.BCD_CD = C.BCD_CD
+			<choose>
+				<when test='SEARCH_GUBUN == "MONTH"'>
+					WHERE LEFT(REPLACE(A.ORD_DATE,'-', ''), 6) BETWEEN LEFT(@PARAM_FROM_DATE, 6) AND LEFT(@PARAM_TO_DATE, 6)
+					GROUP BY A.BCD_CD, A.BCD_NM, A.DIMEN_NM, LEFT(REPLACE(A.ORD_DATE, '-', ''),6),A.GOODS_NO
+				</when>
+				<when test='SEARCH_GUBUN == "YEAR"'>
+					WHERE LEFT(REPLACE(A.ORD_DATE,'-', ''), 4) BETWEEN LEFT(@PARAM_FROM_DATE, 4) AND LEFT(@PARAM_TO_DATE, 4)
+					GROUP BY A.BCD_CD, A.BCD_NM, A.DIMEN_NM, LEFT(REPLACE(A.ORD_DATE, '-', ''),4),A.GOODS_NO
+				</when>
+				<when test='SEARCH_GUBUN == "DAY"'>
+					WHERE REPLACE(A.ORD_DATE,'-', '') BETWEEN @PARAM_FROM_DATE AND @PARAM_TO_DATE
+					GROUP BY A.BCD_CD, A.BCD_NM, A.DIMEN_NM, A.ORD_DATE,A.GOODS_NO
+				</when>
+				<otherwise>
+					WHERE REPLACE(A.ORD_DATE,'-', '') BETWEEN @PARAM_FROM_DATE AND @PARAM_TO_DATE
+					GROUP BY A.BCD_CD, A.BCD_NM, A.DIMEN_NM, A.ORD_CD,A.GOODS_NO
+				</otherwise>
+			</choose>
+			ORDER BY A.BCD_CD
+	</select>
+</mapper>

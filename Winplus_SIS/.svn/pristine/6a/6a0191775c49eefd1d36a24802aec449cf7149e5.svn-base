@@ -1,0 +1,225 @@
+package com.samyang.winplus.sis.order.service;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.samyang.winplus.sis.order.dao.OrderInputGridPopupDao;
+import com.samyang.winplus.sis.order.service.OrderInputGridPopupService;
+
+@Service("OrderInputGridPopupService")
+public class OrderInputGridPopupServiceImpl implements OrderInputGridPopupService {
+	
+	@Autowired
+	OrderInputGridPopupDao orderInputGridPopupDao;
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	@Override
+	public int insertTpurOrd(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int insertTpurOrdGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
+	public int updateTpurOrd(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
+	public int updateTpurOrdGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int deleteTpurOrd(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}	
+	
+
+	@Override
+	public int deleteTpurOrdGoods(Map<String, Object> paramMap) throws SQLException, Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}	
+	
+	/**
+	  * saveTpurOrdGoodsScreenList -  발주서마스터 및 상세 C,U,D
+	  * @author 손경락
+	  * @param paramMapList
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  * 
+	  * 1. 발주서마스터상세가 Insert될경우 발주서마스터는 insert or Update 
+	  * 2. 발주서마스터상세가 Update될경우 발주서마스터는 Update 될수있음
+	  * 3. 발주사마스터상세가 Delete될경우 발주서마스터는 Update 
+	  * 
+	  */
+	@Transactional
+	@Override
+	public Map<String, Object>  saveTpurOrdGoodsScreenList(List<Map<String, Object>> paramMapList, Map<String, Object> paramMap) throws SQLException, Exception {
+		int resultInt  = 0;
+		int resultInt2 = 0;
+		int proces_cnt = 0;
+		Map<String, Object> resultMap  = new HashMap<String, Object>();
+
+        //logger.debug("@@@@@@@@@@ saveTpurOrdGoodsScreenList.java 발주서상세 처리 ============" );
+		String ls_ord_no =  (String) paramMap.get("ORD_NO");
+        
+		/* 발주서 order번호구하기 나중에 DB SEQUENCE(IDENTITY) 처리시 뺄것 */ 
+		String OrderNumber = orderInputGridPopupDao.GetOrderNumber(paramMap);
+		//logger.debug("@@@@@@@@@@  GetOrderNumber  ============"+ OrderNumber );
+
+        for(Map<String, Object> processMap : paramMapList){
+			Object crud = processMap.get("CRUD");
+			
+			if(crud != null) {
+				if("C".equals(crud)){
+
+					/* 최초 발주서  작성시만 :  발주서 order번호구하기 나중에 DB SEQUENCE(IDENTITY) 처리시 뺄것  */
+					if(ls_ord_no == null || ls_ord_no == ""){
+						processMap.put("ORD_NO", OrderNumber);
+					}
+					
+					processMap.put("PARAM_PROGRM", "insertOrderGoods");
+					resultInt  += orderInputGridPopupDao.insertTpurOrdGoods(processMap);
+					proces_cnt += 1;
+				} else if ("U".equals(crud)){
+					processMap.put("PARAM_PROGRM", "updateOrderGoods");
+					resultInt  += orderInputGridPopupDao.updateTpurOrdGoods(processMap);
+					proces_cnt += 1;
+				} else if ("D".equals(crud)){
+					resultInt += orderInputGridPopupDao.deleteTpurOrdGoods(processMap);
+					proces_cnt += 1;
+				}
+			}
+		}
+		
+		/*  변경분(CUD)이 있으면   */
+		if ( resultInt > 0 )
+		{
+			//logger.debug("@@@@@@@@@@ saveTpurOrdGoodsScreenList.java 발주서마스터 처리  ============" );
+
+			/*  발주서 Order번호가 존재하면 마스터 Update */
+			if( null  != ls_ord_no && ls_ord_no != ""){
+				/*
+				 *  1. 발주일시 : 최초시간을 유지한다므로 updte시 생략 
+				 *    UPDATE T_PUR_ORD
+				 *    SET    ORD_TITLE        = #{ORD_TITLE       }         발주제목       
+				 *         , DELI_DATE        = #{DELI_DATE       }         납기일자       
+				 *	       , RESP_USER        = #{RESP_USER       }         담당자코드     
+				 *         , SUPR_CD          = #{SUPR_CD         }         협력사코드     
+				 *         , PROJ_CD          = #{PROJ_CD         }         프로젝트코드   
+				 *         , OUT_WARE_CD      = #{OUT_WARE_CD     }         출하창고코드   
+				 *	       , IN_WARE_CD       = #{IN_WARE_CD      }         입고창고코드   
+				 *         , MEMO             = #{MEMO            }         메모           
+				 *	       , ORD_TYPE         = #{ORD_TYPE        }         발주유형       
+				 *	       , ORD_STATE        = #{ORD_STATE       }         발주상태       
+				 *	       , RETN_YN          = #{RETN_YN         }         반품여부       
+				 *	       , RESN_CD          = #{RESN_CD         }         반품사유코드   
+				 *	       , SEND_FAX_STATE   = #{SEND_FAX_STATE  }         펙스발송상태(여부)  
+				 *	       , SEND_EMAIL_STATE = #{SEND_EMAIL_STATE}         Email발송상태(여부) 
+				 *	       , PRINT_STATE      = #{PRINT_STATE     }         PRINT인쇄상태(여부)  
+				 *         , SUPR_AMT         = #{SUPR_AMT        }         공급가액       
+				 *         , VAT              = #{VAT             }         부가세         
+				 *         , TOT_AMT          = #{TOT_AMT         }         합계금액       
+				 *	       , ORD_CUSTMR       = #{ORD_CUSTMR      }         발행구분       			 
+				 */
+				paramMap.put("PARAM_PROGRM", "insertOrderGoods");
+				resultInt2  += orderInputGridPopupDao.updateTpurOrd(paramMap);
+			}
+			else  /*  발주서 Order번호가 없으면 마스터 INSERT */
+			{
+				
+				paramMap.put("ORD_NO" , OrderNumber );   /* 발주서 order번호구하기 나중에 DB SEQUENCE(IDENTITY) 처리시 뺄것  */
+				
+				paramMap.put("PARAM_PROGRM", "insertOrderGoods");
+				resultInt2  += orderInputGridPopupDao.insertTpurOrd(paramMap);
+			}
+		}
+		else
+		{
+			/*  발주서 Order번호가 존재하면 마스터 Update */
+			if( null  != ls_ord_no && ls_ord_no != ""){
+				paramMap.put("PARAM_PROGRM", "insertOrderGoods");
+				resultInt2  += orderInputGridPopupDao.updateTpurOrd(paramMap);
+			}
+		}
+		
+		resultMap.put("resultInt", resultInt);
+		resultMap.put("resulOrderNumber", OrderNumber);
+		
+		return resultMap;
+		
+	}
+
+	@Override
+	public String GetOrderNumber(Map<String, Object> paramMap) throws SQLException, Exception {
+		return orderInputGridPopupDao.GetOrderNumber(paramMap);
+	}	
+	
+	@Override
+	public int getTpurOrdCount(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getTpurOrdCount(paramMap);
+	}
+
+	/* 상품가격정보에서 최저가 가져오기 */
+	@Override
+	public List<Map<String, Object>> getSearchMasterBarcodePriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getSearchMasterBarcodePriceList(paramMap);
+	}
+	
+	/* PDA수신리스트를 기준으로 최저가 가져오기 */
+	@Override
+	public List<Map<String, Object>> getSearchPdaOrderBarcodePriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getSearchPdaOrderBarcodePriceList(paramMap);
+	}
+	
+	/* 주문서복사용 주문서기준으로 현재 센터 최저가적용후 가져오기 */
+	@Override
+	public List<Map<String, Object>> getSearchOrderDetailListCopy2(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getSearchOrderDetailListCopy2(paramMap);
+	}
+	
+	/* 거래처포털  바코드 전문(취급)점 센터주문 최저가 가져오기) */
+	@Override
+	public List<Map<String, Object>> getSearchMasterBarcodeCustmrPriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getSearchMasterBarcodeCustmrPriceList(paramMap);
+	}
+
+	/* 거래처포털 센터주문 상품기준 최저 구매가격 가져오기   */
+	@Override
+	public List<Map<String, Object>> getSearchMasterBarcodeCustomerLowestPriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getSearchMasterBarcodeCustomerLowestPriceList(paramMap);
+	}
+
+	/* 거래처포털 교한반품 최저가 가져오기   */
+	@Override
+	public List<Map<String, Object>> getReturnMasterBarcodeLowestPriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getReturnMasterBarcodeLowestPriceList(paramMap);
+	}
+
+	/* 센터 착지변경 2차발주 대상 및 최저가 가져오기 */
+	@Override
+	public List<Map<String, Object>> getSearchCHGOrderBarcodePriceList(Map<String, Object> paramMap)  throws SQLException, Exception {
+		return orderInputGridPopupDao.getSearchCHGOrderBarcodePriceList(paramMap);
+	}
+	
+}

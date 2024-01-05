@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.partnerportal.dao.LoanChgHisSearchDao">
+    <select id="getloanChgHisSearchList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getloanChgHisSearchList [loanChgHisSearchDao.xml 협력사포털 거래처여신변경이력조회] */
+		WITH OBJ AS (
+		SELECT TOP 1 CHG_DATE CHG_DATE, NULL CHG_YYYYMMDD, BRIEFS, DEPOSIT, CREDIT,BAL_AMT, LOAN_AMT
+		 FROM  (
+		        SELECT  NULL       CHG_DATE, /* 변경일시 */
+		                '이월잔액' BRIEFS,
+		                NULL       DEPOSIT,
+		                NULL       CREDIT,
+		                BAL_AMT,
+		                LOAN_AMT,            /* 여신한도 */
+		                1          ROWNUM
+		          FROM  T_STD_MAST_CREDITLOAN A
+		                 JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+		         WHERE  B.OBJ_CD = #{PARAM_OBJ_CD}
+		           AND  A.CDATE = (
+		                SELECT MAX(A.CDATE)
+		                  FROM T_STD_MAST_CREDITLOAN A
+		                       JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+		                 WHERE B.OBJ_CD = #{PARAM_OBJ_CD}
+		                   AND CONVERT(CHAR(8), A.CDATE, 112) <![CDATA[ < ]]> #{PARAM_STR_YYYYMMDD}
+		                )
+		        UNION   ALL
+		        SELECT  NULL       CHG_DATE,       /* 변경일시 */
+		                '이월잔액' BRIEFS,
+		                NULL       DEPOSIT,
+		                NULL       CREDIT,
+		                0          BAL_AMT,
+		                NULL       LOAN_AMT,       /* 여신한도 */
+		                2          ROWNUM
+		        )  B
+		    ORDER BY ROWNUM
+		)
+		SELECT CHG_DATE, CHG_YYYYMMDD, BRIEFS, DEPOSIT, CREDIT, BAL_AMT, LOAN_AMT
+		  FROM OBJ
+		 UNION
+		SELECT CONVERT(CHAR(23), A.CDATE, 21)  CHG_DATE,     /* 변경일시 */
+		       CONVERT(CHAR(10), A.CDATE, 23)  CHG_YYYYMMDD, /* 변경일자 */
+		       CASE SIGN(INDE_AMT) WHEN 1 THEN
+		            '여신증액'
+		       ELSE CASE SIGN(INDE_AMT) WHEN 0 THEN
+		            '여신증액'
+		            ELSE '여신감액' END
+		       END  BRIEFS,
+		
+		       CASE SIGN(INDE_AMT) WHEN 1 THEN
+		            INDE_AMT
+		       ELSE CASE SIGN(INDE_AMT) WHEN 0 THEN
+		            INDE_AMT
+		            ELSE 0  END
+		       END  DEPOSIT,
+		       CASE SIGN(INDE_AMT) WHEN -1 THEN
+		            INDE_AMT
+		       ELSE 0
+		       END  CREDIT,
+		       BAL_AMT,
+		       LOAN_AMT           /* 여신한도 */
+		  FROM T_STD_MAST_CREDITLOAN A
+		       JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+		 WHERE B.OBJ_CD = #{PARAM_OBJ_CD}
+		   AND CONVERT(CHAR(8), A.CDATE, 112) BETWEEN #{PARAM_STR_YYYYMMDD} AND #{PARAM_END_YYYYMMDD}
+    </select>
+
+    <select id="getSaleCentSearchList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSaleCentSearchList [loanChgHisSearchDao.xml 협력사포털 거래처여신변경이력(납품)상세조회] */
+        SELECT   A.TRADE_TYPE        /* 거래종류 */
+                ,B.CMMN_DETAIL_CD_NM TRADE_TYPE_NM
+                ,A.BCD_CD            /* 바코드   */
+                ,C.BCD_NM            /* 바코드명 */
+                ,A.PUR_AMT           /* 매입금액 */
+                ,A.SALE_AMT          /* 원금     */
+                ,A.SALE_VAT_AMT      /* VAT      */
+                ,A.SALE_TOT_AMT      /* 합계금액 */
+                ,A.SALE_QTY          /* 판매수량 */
+                ,A.SALE_UNITQTY      /* 판매단위량 */
+                ,A.INSP_QTY          /* 단위수량(판매) */
+         FROM   T_SALE_CENT_MAST_DETL A
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL B ON  B.CMMN_CD   = 'TRADE_TYPE'   AND B.CMMN_DETAIL_CD = A.TRADE_TYPE
+                LEFT OUTER JOIN T_STD_MAST_BCD       C ON  C.BCD_CD    = A.BCD_CD
+                JOIN T_SALE_CENT_MAST                D ON  D.ORGN_DIV_CD = A.ORGN_DIV_CD AND D.ORGN_CD = A.ORGN_CD AND D.ORD_CD = A.ORD_CD               
+        WHERE   D.CUSTMR_CD  =   #{PARAM_OBJ_CD}
+          AND   CONVERT(CHAR(8), D.ORD_DATE, 112) = #{PARAM_YYYYMMDD}
+         ORDER  BY C.BCD_NM
+    </select>
+     
+</mapper>

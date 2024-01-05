@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.board.dao.BoardDao">
+	
+	<select id="mainBoardList" parameterType="java.util.Map" resultType="CMap">
+		/* mainBoardList (BoardDao) */
+		SELECT 
+			  A.BOARD_PUBLISH_SCOPE
+			, A.BOARD_NO
+			, A.BOARD_KIND_CD
+			, A.SUBJECT
+			, A.CONTENT
+			, A.RDCNT
+			, A.MAIN_DISPLAY_YN
+			, A.CUSER
+			, A.MUSER
+			, CONVERT(VARCHAR,A.CDATE, 120) CDATE
+			, CONVERT(VARCHAR,A.MDATE, 120) MDATE
+			, FILE_GRUP_NO
+		FROM COM_BOARD A
+		WHERE 
+			1=1
+			
+			AND MAIN_DISPLAY_YN = 'Y'
+			
+			<if test='LOGIN_USER_BOARD_PUBLISH_SCOPE_CD != "000000"'>
+				AND #{LOGIN_USER_BOARD_PUBLISH_SCOPE_CD} in (SELECT VAL1 FROM FN_SPLIT(A.BOARD_PUBLISH_SCOPE, ','))
+			</if>
+			
+			<if test='DATE_YN == "Y"'>
+				AND A.CDATE BETWEEN DATEADD(dd,-7,NOW()) AND NOW()
+			</if>
+			
+			AND DELETE_YN <![CDATA[ <> ]]> 'Y'
+		ORDER BY BOARD_NO DESC
+	</select>
+
+	<select id="getBoardList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBoardList (BoardDao) */
+		<if test='BOARD_PUBLISH_SCOPE != null and BOARD_PUBLISH_SCOPE.size() > 0'>
+			SELECT 
+			  A.BOARD_PUBLISH_SCOPE
+			, A.BOARD_NO
+			, A.BOARD_KIND_CD
+			, A.SUBJECT
+			, A.CONTENT
+			, A.RDCNT
+			, A.MAIN_DISPLAY_YN
+			, A.CUSER
+			, A.MUSER
+			, CONVERT(VARCHAR,A.CDATE, 120) CDATE
+			, CONVERT(VARCHAR,A.MDATE, 120) MDATE
+			, FILE_GRUP_NO
+		FROM COM_BOARD A
+		WHERE 
+			1=1
+			
+			AND BOARD_KIND_CD = #{BOARD_KIND_CD}
+			
+			<choose>
+				<when test='LOGIN_USER_BOARD_PUBLISH_SCOPE_CD == "000000"'>
+					<foreach collection="BOARD_PUBLISH_SCOPE" item="str" open="AND (" separator="OR" close=")">
+						#{str} in (SELECT VAL1 FROM FN_SPLIT(A.BOARD_PUBLISH_SCOPE, ','))
+					</foreach>
+					
+				</when>
+				<otherwise>
+					AND #{LOGIN_USER_BOARD_PUBLISH_SCOPE_CD} in (SELECT VAL1 FROM FN_SPLIT(A.BOARD_PUBLISH_SCOPE, ','))
+				</otherwise>
+			</choose>
+			
+			<if test='BOARD_SEARCH_TYPE == "00001" and SEARCH_STRING != ""'>
+				AND A.SUBJECT LIKE CONCAT('%',#{SEARCH_STRING},'%')
+			</if>
+			<if test='BOARD_SEARCH_TYPE == "00002" and SEARCH_STRING != ""'>
+				AND A.CONTENT LIKE CONCAT('%',#{SEARCH_STRING},'%')
+			</if>
+			<if test='DATE_YN == "Y"'>
+				AND A.CDATE BETWEEN DATEADD(dd,-7,NOW()) AND NOW()
+			</if>
+				AND DELETE_YN <![CDATA[ <> ]]> 'Y'
+		ORDER BY BOARD_NO DESC
+		</if>
+	</select>
+	
+	<select id="getBoardInfo" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBoardInfo (BoardDao) */
+		EXEC SP_BOARD_GET_INFO #{BOARD_NO}
+	</select>
+	
+	<update id="updateReadCount" parameterType="java.util.Map">
+		/* updateReadCount (BoardDao) */
+		UPDATE COM_BOARD SET 
+			RDCNT = RDCNT+1
+		WHERE BOARD_NO = #{BOARD_NO}
+	</update>
+	
+	<select id="insertBoard" parameterType="java.util.Map" resultType="CMap">
+		/* insertBoard (BoardDao) */
+		SET NOCOUNT ON
+		
+		DECLARE @TEMP NVARCHAR(MAX)
+		
+		INSERT INTO COM_BOARD( 
+			  BOARD_PUBLISH_SCOPE
+			, BOARD_KIND_CD
+			, SUBJECT
+			, CONTENT
+			, RDCNT
+			, DELETE_YN
+			, MAIN_DISPLAY_YN
+			, FILE_GRUP_NO
+			, CUSER
+			, CDATE
+		) values (
+			REPLACE(REPLACE(REPLACE(REPLACE(
+			<foreach collection="BOARD_PUBLISH_SCOPE" item="str" open="'" separator="," close="'">
+				${str}
+			</foreach>
+				, CHAR(9) , ''), CHAR(10), ''), CHAR(13), ''), ' ', '')
+			, #{BOARD_KIND_CD}
+			, #{SUBJECT}
+			, #{CONTENT}
+			, 0
+			, 'N'
+			, #{MAIN_DISPLAY_YN}
+			<choose>
+				<when test='FILE_GRUP_NO == null or FILE_GRUP_NO == ""'>
+					, null
+				</when>
+				<otherwise>
+					, #{FILE_GRUP_NO}
+				</otherwise>
+			</choose>
+			, #{CUSER}
+			, NOW()
+		)
+		
+		EXEC SP_BOARD_GET_INFO @@IDENTITY
+		
+	</select>
+	
+	<update id="updateBoard" parameterType="java.util.Map">
+		/* updateBoard (BoardDao) */
+		UPDATE COM_BOARD
+		SET 
+			SUBJECT = #{SUBJECT}
+			, CONTENT = #{CONTENT}
+			, BOARD_KIND_CD = #{BOARD_KIND_CD}
+			, MAIN_DISPLAY_YN = #{MAIN_DISPLAY_YN}
+			, FILE_GRUP_NO = #{FILE_GRUP_NO}
+			, MDATE = NOW()
+			, MUSER = #{MUSER}
+		WHERE 1=1 
+		AND BOARD_NO = #{BOARD_NO}
+	</update>
+	
+	<update id="deleteBoard" parameterType="java.util.Map">
+		/* deleteBoard (BoardDao) */
+		UPDATE COM_BOARD 
+		SET 
+		  DELETE_YN = 'Y'
+		  , MDATE = NOW()
+		  , MUSER = #{MUSER}
+		WHERE 1=1 
+		  AND BOARD_NO = #{BOARD_NO}
+	</update>
+	
+	<update id="deleteBoardList" parameterType="java.util.Map">
+		/* deleteBoard (BoardDao) */
+		UPDATE COM_BOARD 
+		SET
+		  DELETE_YN = 'Y'
+		  , MDATE = NOW()
+		  , MUSER = #{MUSER}
+		WHERE 1=1 
+		  AND BOARD_NO IN (SELECT VAL1 FROM [DBO].[FN_SPLIT](#{BOARD_NO_LIST_STRING}, ','))
+	</update>
+	
+	<select id="getBoardSubjectAndContent" parameterType="java.util.Map" resultType="CMap">
+		/* getBoardSubjectAndContent (BoardDao) */
+		SELECT 
+			A.SUBJECT
+			, A.CONTENT
+		FROM COM_BOARD A
+		WHERE BOARD_NO = #{BOARD_NO}
+	</select>
+	
+</mapper>

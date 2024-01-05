@@ -1,0 +1,57 @@
+package com.samyang.winplus.sis.code.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.samyang.winplus.sis.code.dao.TableCodeDao;
+
+@Service("TableCodeService")
+public class TableCodeServiceImpl implements TableCodeService {
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	@Autowired
+	private TableCodeDao tableCodeDao;
+	
+	@Override
+	public List<Map<String, Object>> getPosNoList(Map<String, Object> paramMap) {
+		return tableCodeDao.getPosNoList(paramMap);
+	}
+
+	@Override
+	public List<Map<String, Object>> getCardIssuerCorpList(Map<String, Object> paramMap) {
+		return tableCodeDao.getCardIssuerCorpList(paramMap);
+	}
+
+	@Override
+	public List<Map<String, Object>> getCardAcquirerCorpList(Map<String, Object> paramMap) {
+		return tableCodeDao.getCardAcquirerCorpList(paramMap);
+	}
+
+	@Override
+	public List<Map<String, Object>> getSearchableOrgnDivCdList(Map<String, Object> paramMap) {
+		String searchable_auth_cd = (String) paramMap.get("LUI_searchable_auth_cd");
+		String [] searchable_auth_cd_list = searchable_auth_cd.split(",");
+		paramMap.put("searchable_auth_cd_list", searchable_auth_cd_list);
+		return tableCodeDao.getSearchableOrgnDivCdList(paramMap);
+	}
+
+	@Override
+	public List<Map<String, Object>> getSearchableOrgnCdList(Map<String, Object> paramMap) {
+		String searchable_auth_cd = (String) paramMap.get("LUI_searchable_auth_cd");
+		String [] searchable_auth_cd_list = searchable_auth_cd.split(",");
+		paramMap.put("searchable_auth_cd_list", searchable_auth_cd_list);
+		return tableCodeDao.getSearchableOrgnCdList(paramMap);
+	}
+
+	@Override
+	public List<Map<String, Object>> getBoardPublishScope(Map<String, Object> paramMap) {
+		return tableCodeDao.getBoardPublishScope(paramMap);
+	}
+}

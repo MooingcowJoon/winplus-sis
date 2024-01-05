@@ -1,0 +1,686 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ include file="/WEB-INF/jsp/common/include/taglib.jspf" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_page_script_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header_override.jsp"/>
+<script type="text/javascript">
+
+	//LUI : 로그인한 유저의 세션 정보에서 그리드 데이터 직렬화시 공통으로 추가 시키고 싶은 데이터를 넣는 객체
+	LUI = JSON.parse('${empSessionDto.lui}');
+	LUI.exclude_auth_cd = "ALL,1,2";
+
+	var erpLayout;
+	var erpRibbon;
+	var erpGrid;
+	var erpGridColumns;
+	
+	var cmbORGN_DIV_CD;
+	var cmbORGN_CD;
+	
+	var today = $erp.getToday("");
+	var thisYear = today.substring(0,4);
+	var thisMonth = today.substring(4,6);
+	var thisDay = today.substring(6,8);
+	today = thisYear + "-" + thisMonth + "-" + thisDay;
+	var firstDay = thisYear + "-" + thisMonth + "-01";
+	
+	$(document).ready(function(){
+		initErpLayout();
+		initErpRibbon();
+		initErpGrid();
+		initDhtmlXCombo();
+		
+		document.getElementById("searchDateFrom").value = firstDay;
+		document.getElementById("searchDateTo").value = today;
+	});
+	
+	<%-- ■ erpLayout 관련 Function 시작 --%>
+	function initErpLayout(){
+		erpLayout = new dhtmlXLayoutObject({
+			parent : document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "3E"
+			, cells : [
+				{id: "a", text: "조회조건영역", header:false, fix_size : [true, true]}
+				,{id: "b", text: "리본영역", header:false, fix_size : [true, true]}
+				,{id: "c", text: "그리드영역", header:false}
+			]
+		});
+		
+		erpLayout.cells("a").attachObject("div_erp_table");
+		erpLayout.cells("a").setHeight($erp.getTableHeight(2));
+		erpLayout.cells("b").attachObject("div_erp_ribbon");
+		erpLayout.cells("b").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		erpLayout.cells("c").attachObject("div_erp_grid");
+	}
+	<%-- ■ erpLayout 관련 Function 끝 --%>
+	
+	<%-- ■ erpRibbon 관련 Function 시작 --%>
+	function initErpRibbon(){
+		erpRibbon = new dhtmlXRibbon({
+			parent : "div_erp_ribbon"
+			, skin : ERP_RIBBON_CURRENT_SKINS
+			, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+			, items : [
+				{type : "block", mode : 'rows', list : [
+					{id : "search_erpGrid", type : "button", text:'<spring:message code="ribbon.search" />', isbig : false, img : "menu/search.gif", imgdis : "menu/search_dis.gif", disable : true}
+					,{id : "apply_erpGrid", type : "button", text:'확정', isbig : false, img : "menu/apply.gif", imgdis : "menu/apply_dis.gif", disable : true}
+					,{id : "delete_erpGrid", type : "button", text:'확정취소', isbig : false, img : "menu/delete.gif", imgdis : "menu/delete_dis.gif", disable : true}
+					,{id : "excel_erpGrid", type : "button", text:'<spring:message code="ribbon.excel" />', isbig : false, img : "menu/excel.gif", imgdis : "menu/excel_dis.gif", disable : true}
+					,{id : "send_erpGrid", type : "button", text:'ERP전송', isbig : false, img : "menu/apply.gif", imgdis : "menu/apply_dis.gif", disable : true}
+				]}
+			]
+		});
+		
+		erpRibbon.attachEvent("onClick", function(itemId, bId){
+			if (itemId == "search_erpGrid"){
+				searchErpGrid();
+			} else if(itemId == "apply_erpGrid") {
+				confirmPurData();
+			} else if (itemId == "delete_erpGrid"){
+				confirmCancelPurData();
+			} else if (itemId == "excel_erpGrid"){
+				$erp.exportDhtmlXGridExcel({
+					"grid" : erpGrid
+					, "fileName" : "구매확정"
+					, "isForm" : false
+				});
+			} else if(itemId == "send_erpGrid") {
+				alert("준비 중 입니다.");
+				//confirmPurSendErp();
+			}
+		});
+	}
+	<%-- ■ erpRibbon 관련 Function 끝 --%>
+	
+	<%-- ■ erpGrid 관련 Function 시작 --%>	
+	function initErpGrid(){
+		erpGridColumns = [
+			{id : "NO", label:["NO", "#rspan"], type: "cntr", width: "30", sort : "int", align : "center", isHidden : false, isEssential : false}
+			,{id : "CHECK", label:["#master_checkbox", "#rspan"], type: "ro", width: "30", sort : "int", align : "center", isHidden : false, isEssential : false}
+			,{id : "ORGN_CD", label:["조직코드", "#rspan"], type: "ro", width: "150", sort : "str", align : "center", isHidden : true, isEssential : false}
+			,{id : "PUR_DATE", label:["거래일자", "#rspan"], type: "ro", width: "150", sort : "str", align : "center", isHidden : true, isEssential : false}
+			,{id : "SUPR_CD", label:["협력사코드", "#rspan"], type: "ro", width: "150", sort : "str", align : "center", isHidden : true, isEssential : false}
+			,{id : "YMD", label:["거래일자", "#rspan"], type: "ro", width: "75", sort : "str", align : "center", isHidden : false, isEssential : false}
+			,{id : "TOT_GOODS_NM", label:["공급내역", "#rspan"], type: "ro", width: "300", sort : "str", align : "left", isHidden : false, isEssential : false}
+			,{id : "TOT_SUPR_AMT", label:["공급가액", "#rspan"], type: "ron", width: "90", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "TOT_VAT", label:["부가세", "#rspan"], type: "ron", width: "90", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "TOT_PAY_SUM_AMT", label:["총액", "#rspan"], type: "ron", width: "90", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "CONF_TYPE", label:["확정여부", "#rspan"], type: "ro", width: "60", sort : "str", align : "center", isHidden : false, isEssential : false}
+			,{id : "SEND_TYPE", label:["ERP전송여부", "#rspan"], type: "ro", width: "80", sort : "str", align : "center", isHidden : false, isEssential : false}
+			,{id : "CLSE_TOT_AMT", label:["협력사입력금액", "#rspan"], type: "ron", width: "95", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "CALC_AMT", label:["차이금액", "#rspan"], type: "ron", width: "60", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "TOT_TAXA_SUPR_AMT", label:["과세물품공급가액", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			,{id : "TOT_TAXA_VAT", label:["과세물품부가세", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			,{id : "TOT_PAY_SUM_AMT", label:["과세물품총액", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			,{id : "TOT_FREE_SUPR_AMT", label:["면세물품액", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			
+		];
+		
+		erpGrid = new dhtmlXGridObject({
+			parent: "div_erp_grid"
+			, skin : ERP_GRID_CURRENT_SKINS
+			, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+			, columns : erpGridColumns
+		});
+		
+		$erp.initGridCustomCell(erpGrid);
+		$erp.initGridComboCell(erpGrid);
+		$erp.attachDhtmlXGridFooterPaging(erpGrid, 50);
+		erpGrid.attachFooter('총 합계,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,<div id="totalSuprAmt" style="text-align:right;">0</div>,<div id="totalVat" style="text-align:right;">0</div>,<div id="totalTotAmt" style="text-align:right;">0</div>,,#cspan,#cspan,#cspan,#cspan',["text-align:left;"]);
+		erpGrid.attachFooter('과세합계,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,<div id="totalTaxaSuprAmt" style="text-align:right;">0</div>,<div id="totalTaxaVat" style="text-align:right;">0</div>,<div id="totalTaxaTotAmt" style="text-align:right;">0</div>,,#cspan,#cspan,#cspan,#cspan',["text-align:left;"]);
+		erpGrid.attachFooter('면세합계,#cspan,#cspan,#cspan,#cspan,#cspan,#cspan,<div id="totalFreeSuprAmt" style="text-align:right;">0</div>,<div id="totalFreeVat" style="text-align:right;">0</div>,<div id="totalFreeTotAmt" style="text-align:right;">0</div>,,#cspan,#cspan,#cspan,#cspan',["text-align:left;"]);
+		$erp.attachDhtmlXGridFooterRowCount(erpGrid, '<spring:message code="grid.allRowCount" />');
+		
+		erpGrid.attachEvent("onRowDblClicked",function(rId,cInd){
+			var purDate = erpGrid.cells(rId,erpGrid.getColIndexById("PUR_DATE")).getValue();
+			var orgnCd = erpGrid.cells(rId,erpGrid.getColIndexById("ORGN_CD")).getValue();
+			var suprCd = erpGrid.cells(rId,erpGrid.getColIndexById("SUPR_CD")).getValue();
+			if(!$erp.isEmpty(purDate) && !$erp.isEmpty(orgnCd) && !$erp.isEmpty(suprCd)){
+				var paramData = new Object();
+				paramData.PUR_DATE = purDate;
+				paramData.ORGN_CD = orgnCd;
+				paramData.SUPR_CD = suprCd;
+				openPurchaseDetailList(paramData);
+			}
+		});
+	}
+	
+	function calculateFooterValues(){
+		document.getElementById("totalSuprAmt").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_SUPR_AMT")));
+		document.getElementById("totalVat").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_VAT")));
+		document.getElementById("totalTotAmt").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_PAY_SUM_AMT")));
+		document.getElementById("totalTaxaSuprAmt").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_TAXA_SUPR_AMT")));
+		document.getElementById("totalTaxaVat").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_TAXA_VAT")));
+		document.getElementById("totalTaxaTotAmt").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_PAY_SUM_AMT")));
+		document.getElementById("totalFreeSuprAmt").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_FREE_SUPR_AMT")));
+		document.getElementById("totalFreeTotAmt").innerHTML = moneyType(sumColumn(erpGrid.getColIndexById("TOT_FREE_SUPR_AMT")));
+	}
+	
+	function moneyType(amt){
+		return amt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	}
+	
+	function sumColumn(ind){
+		var allRowIds = erpGrid.getAllRowIds();
+		var allRowArray = [];
+		var out = 0;
+		if(allRowIds != ""){
+			allRowArray = allRowIds.split(",");
+			for(var i=0; i<allRowArray.length; i++){
+				out+= erpGrid.cells(allRowArray[i],ind).getValue()*1;
+			}
+		}
+		return out;
+	}
+	
+	function activateCheck(){
+		var allRowIds = erpGrid.getAllRowIds();
+		var allRowArray = [];
+		if(allRowIds != ""){
+			allRowArray = allRowIds.split(",");
+			for(var i=0; i<allRowArray.length; i++){
+				if(
+					erpGrid.cells(allRowArray[i],erpGrid.getColIndexById("CALC_AMT")).getValue() == "0"
+					&& erpGrid.cells(allRowArray[i],erpGrid.getColIndexById("PUR_DATE")).getValue() != ""
+					&& erpGrid.cells(allRowArray[i],erpGrid.getColIndexById("SUPR_CD")).getValue() != ""
+					&& erpGrid.cells(allRowArray[i],erpGrid.getColIndexById("SEND_TYPE")).getValue() != "Y"
+				){
+					erpGrid.setCellExcellType(allRowArray[i],erpGrid.getColIndexById("CHECK"),"ch");
+				}
+			}
+		}
+	}
+	
+	function searchErpGrid() {
+		
+		var isValidated = true;
+		var alertMessage = "";
+		var alertType = "error";
+		var alertCode = "";
+		
+		var searchDateFrom = document.getElementById("searchDateFrom").value.replace(/\-/g,'');
+		var searchDateTo = document.getElementById("searchDateTo").value.replace(/\-/g,'');
+		var orgnCd = cmbORGN_CD.getSelectedValue();
+		var suprCd = document.getElementById("hidCustmr_CD").value;
+		
+		if($erp.isEmpty(searchDateFrom)){
+			isValidated = false;
+			alertMessage = "시작일자를 지정해야 합니다.";
+			alertCode = "1";
+		}else if($erp.isEmpty(searchDateTo)){
+			isValidated = false;
+			alertMessage = "종료일자를 지정해야 합니다.";
+			alertCode = "2";
+		}else if(Number(searchDateFrom.split("-").join("")) > Number(searchDateTo.split("-").join(""))) {
+			isValidated = false;
+			alertMessage = "시작일자가 종료일자 이후일 수 없습니다.";
+		}else if($erp.isEmpty(orgnCd)){
+			isValidated = false;
+			alertMessage = "선택된 조직이 없습니다.";
+		}else if($erp.isEmpty(suprCd)){
+			isValidated = false;
+			alertMessage = "선택된 협력사가 없습니다.";
+			alertCode = "3";
+		}
+		
+		if(!isValidated){
+			$erp.alertMessage({
+				"alertMessage" : alertMessage
+				,"alertType" : alertType
+				,"isAjax" : false
+				,"alertCallbackFn" : function(){
+					if(alertCode == "1"){
+						document.getElementById("searchDateFrom").focus();
+					}else if(alertCode == "2"){
+						document.getElementById("searchDateTo").focus();
+					}else if(alertCode == "3"){
+						document.getElementById("Custmr_Name").focus();
+					}
+				}
+			});
+		}else{
+			$.ajax({
+				url: "/sis/order/purchaseClose/getSuprByPurchaseHeaderList.do"		// 매입내역 자료 조회
+				, data : {
+					"ORGN_CD" : orgnCd
+					,"searchDateFrom" : searchDateFrom
+					,"searchDateTo" : searchDateTo
+					,"SUPR_CD" : suprCd
+				}
+				, method : "POST"
+				, dataType : "JSON"
+				, success : function(data){
+					erpLayout.progressOn();
+					if(data.isError){
+						$erp.ajaxErrorMessage(data);
+					}else {
+						$erp.clearDhtmlXGrid(erpGrid);
+						var gridDataList = data.dataMap;
+						if($erp.isEmpty(gridDataList)){
+							$erp.addDhtmlXGridNoDataPrintRow(
+								erpGrid
+								,  '<spring:message code="grid.noSearchData" />'
+							);
+						}else {
+							erpGrid.parse(gridDataList, 'js');
+							calculateFooterValues();
+							activateCheck();
+						}
+					}
+					$erp.setDhtmlXGridFooterRowCount(erpGrid);
+					erpLayout.progressOff();
+				}, error : function(jqXHR, textStatus, errorThrown){
+					erpLayout.progressOff();
+					$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+				}
+			});
+		}
+	}
+	
+	function openPurchaseDetailList(paramData){
+		var url = "/sis/order/purchaseClose/openPurchaseDetailList.sis";
+		var option = {
+				"width" : 850
+				,"height" :766
+				,"resize" : false
+				,"win_id" : "openPurchaseDetailList"
+		}
+		
+		var onContentLoaded = function(){
+			var popWin = this.getAttachedObject().contentWindow;
+			
+			this.progressOff();
+		}
+		
+		$erp.openPopup(url, {"purInfo" : JSON.stringify(paramData)}, onContentLoaded, option);
+	}
+	
+	function confirmPurData(){
+		var gridCheckedRowIds = erpGrid.getCheckedRows(erpGrid.getColIndexById("CHECK"));
+		if(gridCheckedRowIds == ""){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noCheckedData"
+				, "alertCode" : null
+				, "alertType" : "notice"
+			});
+		}else{
+			var gridCheckedRowArray = gridCheckedRowIds.split(",");
+			
+			if(gridCheckedRowArray == "NoDataPrintRow" || gridCheckedRowArray.length == 0){
+				$erp.alertMessage({
+					"alertMessage" : "error.common.noCheckedData"
+					, "alertCode" : null
+					, "alertType" : "notice"
+				});
+				return;
+			}else{
+				var gridCheckDateArray = [];
+				var gridCheckSuprArray = [];
+				var gridCheckOrgnArray = [];
+				
+				var validTF = true;
+				var validCode = "";
+				
+				for(var i=0; i<gridCheckedRowArray.length; i++){
+					gridCheckDateArray[i] = erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("PUR_DATE")).getValue();
+					gridCheckSuprArray[i] = erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("SUPR_CD")).getValue();
+					gridCheckOrgnArray[i] = erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("ORGN_CD")).getValue();
+					if("N" != erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("CONF_TYPE")).getValue()){
+						validTF = false;
+						validCode = "1";
+						break;
+					}else if("Y" == erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("SEND_TYPE")).getValue()){
+						validTF = false;
+						validCode = "2";
+						break;
+					}
+				}
+				
+				if(!validTF){
+					if(validCode == "1"){
+						$erp.alertMessage({
+							"alertMessage" : "확정하지 않은 자료만 확정처리가 가능합니다.",
+							"alertType" : "alert",
+							"isAjax" : false
+						});
+					}else if(validCode == "2"){
+						$erp.alertMessage({
+							"alertMessage" : "ERP전송한 자료를 처리 할 수 없습니다.",
+							"alertType" : "alert",
+							"isAjax" : false
+						});
+					}
+					return false;
+				}else{
+					$erp.confirmMessage({
+						"alertMessage" : "체크된 자료를 확정처리 하시겠습니까?",
+						"alertType" : "alert",
+						"isAjax" : false,
+						"alertCallbackFn" : function(){
+							$.ajax({
+								url : "/sis/order/purchaseClose/approvalSuprByPurchase.do" //구매확정 처리
+								,data : {
+									"paramDateList" : gridCheckDateArray
+									,"paramSuprList" : gridCheckSuprArray
+									,"paramOrgnList" : gridCheckOrgnArray
+								}
+								,method : "POST"
+								,dataType : "JSON"
+								,success : function(data) {
+									erpLayout.progressOff();
+									if(data.isError){
+										$erp.ajaxErrorMessage(data);
+									}else {
+										if(data.resultMsg == "SUCCESS"){
+											$erp.clearDhtmlXGrid(erpGrid);
+											$erp.alertMessage({
+												"alertMessage" : "확정 처리 되었습니다.",
+												"alertType" : "alert",
+												"isAjax" : false,
+												"alertCallbackFn" : function(){
+													searchErpGrid();
+												}
+											});
+										}else{
+											$erp.alertMessage({
+												"alertMessage" : "확정처리가 실패 하였습니다.",
+												"alertType" : "alert",
+												"isAjax" : false
+											});
+										}
+									}
+								}, error : function(jqXHR, textStatus, errorThrown){
+									erpLayout.progressOff();
+									$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+								}
+							});
+						}
+					});
+				}
+			}
+		}
+	}
+	
+	function confirmCancelPurData(){
+		var gridCheckedRowIds = erpGrid.getCheckedRows(erpGrid.getColIndexById("CHECK"));
+		if(gridCheckedRowIds == ""){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noCheckedData"
+				, "alertCode" : null
+				, "alertType" : "notice"
+			});
+		}else{
+			var gridCheckedRowArray = gridCheckedRowIds.split(",");
+			
+			if(gridCheckedRowArray == "NoDataPrintRow" || gridCheckedRowArray.length == 0){
+				$erp.alertMessage({
+					"alertMessage" : "error.common.noCheckedData"
+					, "alertCode" : null
+					, "alertType" : "notice"
+				});
+				return;
+			}else{
+				var gridCheckDateArray = [];
+				var gridCheckSuprArray = [];
+				var gridCheckOrgnArray = [];
+				
+				var validTF = true;
+				var validCode = "";
+				
+				for(var i=0; i<gridCheckedRowArray.length; i++){
+					gridCheckDateArray[i] = erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("PUR_DATE")).getValue();
+					gridCheckSuprArray[i] = erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("SUPR_CD")).getValue();
+					gridCheckOrgnArray[i] = erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("ORGN_CD")).getValue();
+					if("Y" != erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("CONF_TYPE")).getValue()){
+						validTF = false;
+						validCode = "1";
+						break;
+					}else if("Y" == erpGrid.cells(gridCheckedRowArray[i], erpGrid.getColIndexById("SEND_TYPE")).getValue()){
+						validTF = false;
+						validCode = "2";
+						break;
+					}
+				}
+				
+				if(!validTF){
+					if(validCode == "1"){
+						$erp.alertMessage({
+							"alertMessage" : "확정한 자료만 확정취소가 가능합니다.",
+							"alertType" : "alert",
+							"isAjax" : false
+						});
+					}else if(validCode == "2"){
+						$erp.alertMessage({
+							"alertMessage" : "ERP전송한 자료를 처리 할 수 없습니다.",
+							"alertType" : "alert",
+							"isAjax" : false
+						});
+					}
+					return false;
+				}else{
+					$erp.confirmMessage({
+						"alertMessage" : "체크된 자료를 확정취소 하시겠습니까?",
+						"alertType" : "alert",
+						"isAjax" : false,
+						"alertCallbackFn" : function(){
+							$.ajax({
+								url : "/sis/order/purchaseClose/cancelSuprByPurchase.do" //구매확정 취소 처리
+								,data : {
+									"paramDateList" : gridCheckDateArray
+									,"paramSuprList" : gridCheckSuprArray
+									,"paramOrgnList" : gridCheckOrgnArray
+								}
+								,method : "POST"
+								,dataType : "JSON"
+								,success : function(data) {
+									erpLayout.progressOff();
+									if(data.isError){
+										$erp.ajaxErrorMessage(data);
+									}else {
+										if(data.resultMsg == "SUCCESS"){
+											$erp.clearDhtmlXGrid(erpGrid);
+											$erp.alertMessage({
+												"alertMessage" : "확정 취소 처리 되었습니다.",
+												"alertType" : "alert",
+												"isAjax" : false,
+												"alertCallbackFn" : function(){
+													searchErpGrid();
+												}
+											});
+										}else{
+											$erp.alertMessage({
+												"alertMessage" : "확정취소가 실패 하였습니다.",
+												"alertType" : "alert",
+												"isAjax" : false
+											});
+										}
+									}
+								}, error : function(jqXHR, textStatus, errorThrown){
+									erpLayout.progressOff();
+									$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+								}
+							});
+						}
+					});
+				}
+			}
+		}
+	}
+	<%-- ■ erpGrid 관련 Function 끝 --%>
+	
+	<%-- ■ dhtmlXCombo 관련 Function 시작 --%>
+	function initDhtmlXCombo(){
+		cmbORGN_DIV_CD = $erp.getDhtmlXComboTableCode("cmbORGN_DIV_CD", "ORGN_DIV_CD", "/sis/code/getSearchableOrgnDivCdList.do", LUI, 210, null, true, null, function(){
+			cmbORGN_CD = $erp.getDhtmlXComboTableCode("cmbORGN_CD", "ORGN_CD", "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : cmbORGN_DIV_CD.getSelectedValue()}]), 210, null, false, null);
+			cmbORGN_DIV_CD.attachEvent("onChange", function(value, text){
+				cmbORGN_CD.unSelectOption();
+				cmbORGN_CD.clearAll();
+				$erp.setDhtmlXComboTableCodeUseAjax(cmbORGN_CD, "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : value}]), null, false, null);
+				$erp.clearDhtmlXGrid(erpGrid);
+			});
+			cmbORGN_CD.attachEvent("onChange", function(value, text){
+				$erp.clearDhtmlXGrid(erpGrid);
+			});
+		});
+	}
+	<%-- ■ dhtmlXCombo 관련 Function 끝 --%>
+	
+	<%-- ■ 기타 Function 시작 --%>
+	function confirmPurSendErp(){
+		$erp.confirmMessage({
+			"alertMessage" : "확정된 자료를 <span style='color:red; font-weight:bold;'>ERP전송</span>하시겠습니까?<br>(전송 후 데이터 변경 필요 시<br>시스템담당자의 확인이 필요합니다.)",
+			"alertType" : "alert",
+			"isAjax" : false,
+			"alertCallbackFn" : function(){
+				$.ajax({
+					url : "/sis/order/purchaseClose/confirmPurSendErp.do" //구매확정 ERP전송
+					,data : {}
+					,method : "POST"
+					,dataType : "JSON"
+					,success : function(data) {
+						erpLayout.progressOff();
+						if(data.isError){
+							$erp.ajaxErrorMessage(data);
+						}else {
+							if(data.resultMsg == "SUCCESS"){
+								$erp.clearDhtmlXGrid(erpGrid);
+								$erp.alertMessage({
+									"alertMessage" : "ERP전송 처리 되었습니다.<br>잠시 후 ERP에서 전송된 데이터를 확인해주세요.",
+									"alertType" : "alert",
+									"isAjax" : false,
+									"alertCallbackFn" : function(){
+										searchErpGrid();
+									}
+								});
+							}else{
+								$erp.alertMessage({
+									"alertMessage" : "ERP전송이 실패 하었습니다.<br>시스템담당자에게 문의해주세요.",
+									"alertType" : "alert",
+									"isAjax" : false
+								});
+							}
+						}
+					}, error : function(jqXHR, textStatus, errorThrown){
+						erpLayout.progressOff();
+						$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+					}
+				});
+			}
+		});
+	}
+	
+	function openSearchCustmrGridPopup(searchText) {
+		var pur_sale_type = "1"; //협력사(매입처) == "1" 고객사(매출처) == "2"
+		var onRowSelect = function(id, ind) {
+			custmr_cd = this.cells(id, this.getColIndexById("CUSTMR_CD")).getValue();
+			document.getElementById("hidCustmr_CD").value = custmr_cd;
+			document.getElementById("Custmr_Name").value = this.cells(id, this.getColIndexById("CUSTMR_NM")).getValue();
+			$erp.closePopup2("autoBindSearchCustmrPopup");
+		}
+		
+		var searchParams = {};
+		searchParams.SEARCH_URL = "/common/popup/getCustmrList.do";
+		searchParams.SEARCH_AUTO = "Y";
+		searchParams.KEY_WORD = searchText;
+		searchParams.PUR_SALE_TYPE = pur_sale_type;
+		searchParams.SEARCH_TYPE = "custmr";
+		searchParams.USE_YN = "Y";
+		
+		var fnParamMap = new Map();
+		fnParamMap.set("erpPopupCustmrOnRowSelect",onRowSelect);
+		
+		if(searchParams.KEY_WORD == undefined){
+			searchParams.SEARCH_AUTO = "N";
+			$erp.autoBindSearchCustmrPopup(searchParams, fnParamMap);
+		}else{
+			erpLayout.progressOn();
+			$.ajax({
+				url : searchParams.SEARCH_URL
+				,data : searchParams
+				,method : "POST"
+				,dataType : "JSON"
+				,success : function(data){
+					erpLayout.progressOff();
+					if(data.isError){
+						$erp.ajaxErrorMessage(data);
+					} else {
+						var CustmrList = data.CustmrList;
+						if(CustmrList.length == 1){
+							document.getElementById("hidCustmr_CD").value = CustmrList[0].CUSTMR_CD;
+							document.getElementById("Custmr_Name").value = CustmrList[0].CUSTMR_NM;
+						}else{
+							$erp.autoBindSearchCustmrPopup(searchParams, fnParamMap);
+						}
+					}
+				}, error : function(jqXHR, textStatus, errorThrown){
+					erpLayout.progressOff();
+					$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+				}
+			});
+		}
+	}
+	
+	function enterSearchToGrid(kcode){
+		if(kcode == 13){
+			document.getElementById("searchDateFrom").blur();
+			document.getElementById("searchDateTo").blur();
+			searchErpGrid();
+		}
+	}
+	
+	function enterSearchToCustmr(kcode){
+		if(kcode == 13){
+			var searchText = document.getElementById("Custmr_Name").value;
+			openSearchCustmrGridPopup(searchText);
+		}else{
+			document.getElementById("hidCustmr_CD").value = "";
+		}
+	}
+	<%-- ■ 기타 Function 끝 --%>
+</script>
+</head>
+<body>
+	<div id="div_erp_table" class="samyang_div" style="display:none">
+		<table id = "tb_search_01" class = "table">
+			<colgroup>
+				<col width="80px">
+				<col width="230px">
+				<col width="80px">
+				<col width="*">
+			</colgroup>
+			<tr>
+				<th>법인구분</th>
+				<td>
+					<div id="cmbORGN_DIV_CD"></div>
+				</td>
+				<th>조직명</th>
+				<td>
+					<div id="cmbORGN_CD"></div>
+				</td>
+			</tr>
+			<tr>
+				<th>기 간</th>
+				<td>
+					<input type="text" id="searchDateFrom" name="searchDateFrom" class="input_common input_calendar" onkeydown="enterSearchToGrid(event.keyCode);">
+					<span style="float: left;">~</span>
+					<input type="text" id="searchDateTo" name="searchDateTo" class="input_common input_calendar" onkeydown="enterSearchToGrid(event.keyCode);">
+				</td>
+				<th>협력사</th>
+				<td>
+					<input type="text" id="hidCustmr_CD" style="width: 80px;" class="input_common input_readonly" readonly="readonly">
+					<input type="text" id="Custmr_Name" name="Custmr_Name" class="input_common" onkeydown="enterSearchToCustmr(event.keyCode);">
+					<input type="button" id="Custmr_Search" value="검 색" class="input_common_button" onclick="openSearchCustmrGridPopup();">
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div id="div_erp_ribbon" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_erp_grid" class="div_grid_full_size" style="display:none"></div>
+</body>
+</html>

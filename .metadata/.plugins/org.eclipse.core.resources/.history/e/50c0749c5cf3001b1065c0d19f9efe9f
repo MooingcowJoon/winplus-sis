@@ -1,0 +1,9 @@
+servername:
+  name: dev
+
+datasource:
+  driverClassName: org.mariadb.jdbc.Driver
+  url: jdbc:mariadb://192.168.0.6:3306/OSSTEST
+  username: root
+  password: 'ubuntu'
+

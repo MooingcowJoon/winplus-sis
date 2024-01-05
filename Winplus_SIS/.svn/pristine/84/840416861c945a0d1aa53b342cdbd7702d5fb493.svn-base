@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.order.dao.OnlineOrderDao">
+	<select id="getOnlineOrderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOnlineOrderList 온라인 주문서 조회 */
+		SELECT
+			SCM.ORGN_CD
+			,SCM.ORD_CD
+			,SMC.CUSTMR_CD
+			,SMC.CUSTMR_NM
+			,SCM.ORGN_CD
+			,SCM.RESP_USER
+			,CASE
+				WHEN COUNT(SCMD.BCD_CD) > 1 THEN CONCAT((SELECT RTRIM(BCD_NM) FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(SCMD.BCD_CD)),' 외 ',(COUNT(SCMD.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(SCMD.BCD_CD))
+			END AS TOT_GOODS_NM
+			,CONVERT(CHAR(19), SCM.CDATE, 21) AS CDATE
+			,CONVERT(CHAR(19), SCM.ORD_DATE, 21) AS ORD_DATE
+			,SCM.SALE_TOT_AMT
+			,SCM.CONF_TYPE
+		FROM T_SALE_CENT_MAST SCM
+			INNER JOIN T_STD_MAST_CUSTMR SMC
+				ON SCM.CUSTMR_CD = SMC.CUSTMR_CD
+			INNER JOIN T_SALE_CENT_MAST_DETL SCMD
+				ON SCM.ORD_CD = SCMD.ORD_CD
+		WHERE SCM.ORGN_CD = #{ORGN_CD}
+			<if test = 'DATE == "1"'>
+				AND SCM.ORD_DATE BETWEEN #{DATE_FR} AND #{DATE_TO}
+			</if>
+			<if test = 'DATE == "2"'>
+				AND SCM.CDATE BETWEEN #{DATE_FR} AND #{DATE_TO}
+			</if>
+			GROUP BY SCM.ORGN_CD,SCM.ORD_CD,SMC.CUSTMR_CD,SMC.CUSTMR_NM,SCM.ORGN_CD,SCM.RESP_USER,SCM.CDATE,SCM.ORD_DATE,SCM.SALE_TOT_AMT,SCM.CONF_TYPE
+ 		
+	</select>
+	<select id="getopenOnlineOrderDetail" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getopenOnlineOrderDetail 온라인 주문서 조회 */
+		SELECT
+			SCMD.ORD_CD
+			,SCMD.BCD_CD
+			,TSMG.GOODS_NM
+			,SCMD.SALE_UNITQTY
+			,SCMD.INSP_QTY
+			,SCMD.SALE_QTY
+			,SCMD.PUR_AMT
+			,SCMD.SALE_AMT
+			,SCMD.SALE_VAT_AMT
+			,SCMD.SALE_TOT_AMT
+		FROM T_SALE_CENT_MAST_DETL SCMD
+		JOIN T_STD_MAST_GOODS TSMG
+			ON SCMD.GOODS_CD = TSMG.GOODS_NO
+		WHERE SCMD.ORD_CD = #{ORD_CD}
+	</select>
+	
+</mapper>

@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.system.code.dao.SystemCodeDao">
+	<select id="getCommonCodeTable" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCommonCodeTable */
+		SELECT A.CMMN_CD
+				, A.CMMN_CD_NM
+				, A.CMMN_CD_DESC
+				, A.USE_YN
+				, A.BEGIN_DATE
+				, A.END_DATE
+				, A.REG_PROGRM
+				, A.REG_ID
+				, CONVERT(VARCHAR,A.REG_DT, 120) AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, CONVERT(VARCHAR,A.UPD_DT, 120) AS UPD_DT
+		FROM COM_CMMN_CODE A
+		WHERE (A.CMMN_CD LIKE CONCAT('%',#{CMMN_CD},'%') OR A.CMMN_CD_NM LIKE CONCAT('%',#{CMMN_CD},'%'))
+		AND USE_YN  LIKE CONCAT(#{USE_YN},'%')
+	</select>		
+	
+	<insert id="insertCommonCode" parameterType="java.util.Map">
+		/* insertCommonCode */
+		INSERT INTO COM_CMMN_CODE (
+			CMMN_CD
+			, CMMN_CD_NM
+			, CMMN_CD_DESC
+			, USE_YN
+			, BEGIN_DATE
+			, END_DATE
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			#{CMMN_CD}
+			, #{CMMN_CD_NM}
+			, #{CMMN_CD_DESC}
+			, #{USE_YN}
+			, #{BEGIN_DATE}
+			, #{END_DATE}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, GETDATE()
+		)
+	</insert>		
+	
+	<update id="updateCommonCode" parameterType="java.util.Map">
+		/* updateCommonCode */
+		UPDATE COM_CMMN_CODE
+			SET CMMN_CD_NM	= #{CMMN_CD_NM}
+			, CMMN_CD_DESC	= #{CMMN_CD_DESC}
+			, USE_YN				= #{USE_YN}
+			, BEGIN_DATE		= #{BEGIN_DATE}
+			, END_DATE			= #{END_DATE}
+			, UPD_PROGRM 		= #{REG_PROGRM}
+			, UPD_ID				= #{REG_ID}
+			, UPD_DT				= GETDATE()
+		WHERE CMMN_CD=#{CMMN_CD}
+	</update>
+	
+	<select id="getCommonCodeDetailCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getCommonCodeDetailCount */
+		SELECT COUNT(*) 
+		FROM COM_CMMN_CODE_DETAIL A
+		WHERE A.CMMN_CD=#{CMMN_CD}
+	</select>		
+	
+	<delete id="deleteCommonCode" parameterType="java.util.Map">
+		/* deleteCommonCode */
+		DELETE FROM COM_CMMN_CODE WHERE CMMN_CD=#{CMMN_CD}
+	</delete>	
+	
+	<select id="getCommonCodeDetailTable" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCommonCodeDetailTable */
+		SELECT A.CMMN_CD
+				, A.CMMN_DETAIL_CD
+				, A.CMMN_DETAIL_CD_NM
+				, A.ORDR
+				, A.USE_YN
+				, A.BEGIN_DATE
+				, A.END_DATE
+				, A.DIV1
+				, A.DIV2
+				, A.DIV3
+				, A.DIV4
+				, A.DIV5
+				, A.RM
+				, A.REG_PROGRM
+				, A.REG_ID
+				, CONVERT(VARCHAR,A.REG_DT, 120) AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, CONVERT(VARCHAR,A.UPD_DT, 120) AS UPD_DT
+		FROM COM_CMMN_CODE_DETAIL A
+		WHERE A.CMMN_CD=#{CMMN_CD}
+		ORDER BY A.ORDR, A.CMMN_DETAIL_CD
+	</select>		
+	
+	<insert id="insertCommonCodeDetail" parameterType="java.util.Map">
+		/* insertCommonCodeDetail */
+		INSERT INTO COM_CMMN_CODE_DETAIL (
+			CMMN_CD
+			, CMMN_DETAIL_CD
+			, CMMN_DETAIL_CD_NM
+			, ORDR
+			, USE_YN
+			, BEGIN_DATE
+			, END_DATE
+			, DIV1
+			, DIV2
+			, DIV3
+			, DIV4
+			, DIV5
+			, RM
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			  #{CMMN_CD}
+			, #{CMMN_DETAIL_CD}
+			, #{CMMN_DETAIL_CD_NM}
+			, #{ORDR}
+			, #{USE_YN}
+			, #{BEGIN_DATE}
+			, #{END_DATE}
+			, #{DIV1}
+			, #{DIV2}
+			, #{DIV3}
+			, #{DIV4}
+			, #{DIV5}
+			, #{RM}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, GETDATE()
+		)
+	</insert>		
+	
+	<update id="updateCommonCodeDetail" parameterType="java.util.Map">
+		/* updateCommonCodeDetail */
+		UPDATE COM_CMMN_CODE_DETAIL
+			SET CMMN_DETAIL_CD_NM	= #{CMMN_DETAIL_CD_NM}
+			, ORDR					= #{ORDR}
+			, USE_YN				= #{USE_YN}
+			, BEGIN_DATE			= #{BEGIN_DATE}
+			, END_DATE				= #{END_DATE}
+			, DIV1					= #{DIV1}
+			, DIV2					= #{DIV2}
+			, DIV3					= #{DIV3}
+			, DIV4					= #{DIV4}
+			, DIV5					= #{DIV5}
+			, RM					= #{RM}
+			, UPD_PROGRM 			= #{REG_PROGRM}
+			, UPD_ID				= #{REG_ID} 
+			, UPD_DT				= GETDATE()
+		WHERE CMMN_CD				= #{CMMN_CD}
+		AND CMMN_DETAIL_CD			= #{CMMN_DETAIL_CD}
+	</update>
+	
+	<delete id="deleteCommonCodeDetail" parameterType="java.util.Map">
+		/* deleteCommonCodeDetail */
+		DELETE FROM COM_CMMN_CODE_DETAIL 
+		WHERE 	CMMN_CD			=#{CMMN_CD} 
+		AND 	CMMN_DETAIL_CD	=#{CMMN_DETAIL_CD}
+	</delete>
+
+	<select id="getTreeCodeTable" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getTreeCodeTable */
+		SELECT A.TREE_CODE
+				, A.TREE_CODE_NAME
+				, A.DESCRIPTION
+				, A.USE_YN
+				, A.BEGIN_DATE
+				, A.END_DATE
+				, A.REG_PROGRM
+				, A.REG_ID
+				, CONVERT(VARCHAR,A.REG_DT, 120) AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, CONVERT(VARCHAR,A.UPD_DT, 120) AS UPD_DT
+		FROM COM_TREE_CODE A
+		WHERE (A.TREE_CODE LIKE CONCAT('%',#{TREE_CODE},'%') OR A.TREE_CODE_NAME LIKE CONCAT('%',#{TREE_CODE},'%'))
+		AND USE_YN LIKE CONCAT(#{USE_YN},'%')
+	</select>		
+	
+	<insert id="insertTreeCode" parameterType="java.util.Map">
+		/* insertTreeCode */
+		INSERT INTO COM_TREE_CODE (
+			TREE_CODE
+			, TREE_CODE_NAME
+			, DESCRIPTION
+			, USE_YN
+			, BEGIN_DATE
+			, END_DATE
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			#{TREE_CODE}
+			, #{TREE_CODE_NAME}
+			, #{DESCRIPTION}
+			, #{USE_YN}
+			, #{BEGIN_DATE}
+			, #{END_DATE}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, GETDATE()
+		)
+	</insert>		
+	
+	<update id="updateTreeCode" parameterType="java.util.Map">
+		/* updateTreeCode */
+		UPDATE COM_TREE_CODE
+			SET TREE_CODE_NAME	= #{TREE_CODE_NAME}
+			, DESCRIPTION		= #{DESCRIPTION}
+			, USE_YN			= #{USE_YN}
+			, BEGIN_DATE		= #{BEGIN_DATE}
+			, END_DATE			= #{END_DATE}
+			, UPD_PROGRM 		= #{REG_PROGRM}
+			, UPD_ID				= #{REG_ID}
+			, UPD_DT				= GETDATE()
+		WHERE TREE_CODE=#{TREE_CODE}
+	</update>
+	
+	<select id="getTreeDetailCodeCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getTreeDetailCodeCount */
+		SELECT COUNT(*) 
+		FROM COM_TREE_DETAIL_CODE A
+		WHERE A.TREE_CODE=#{TREE_CODE}
+	</select>		
+	
+	<delete id="deleteTreeCode" parameterType="java.util.Map">
+		/* deleteTreeCode */
+		DELETE FROM COM_TREE_CODE WHERE TREE_CODE=#{TREE_CODE}
+	</delete>	
+	
+	<select id="getTreeDetailCodeTable" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getTreeDetailCodeTable */
+		SELECT A.TREE_CODE
+				, A.TREE_DETAIL_CODE
+				, A.TREE_DETAIL_CODE_NAME
+				, A.CODE_SEQ
+				, A.TREE_DETAIL_UPPER_CODE
+				, A.STEP
+				, A.USE_YN
+				, A.BEGIN_DATE
+				, A.END_DATE
+				, A.REG_PROGRM
+				, A.REG_ID
+				, CONVERT(VARCHAR,A.REG_DT, 120) AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, CONVERT(VARCHAR,A.UPD_DT, 120) AS UPD_DT
+		FROM COM_TREE_DETAIL_CODE A
+		WHERE A.TREE_CODE=#{TREE_CODE}
+		ORDER BY A.CODE_SEQ, A.TREE_DETAIL_CODE
+	</select>		
+	
+	<insert id="insertTreeDetailCode" parameterType="java.util.Map">
+		/* insertTreeDetailCode */
+		INSERT INTO COM_TREE_DETAIL_CODE (
+			TREE_CODE
+			, TREE_DETAIL_CODE
+			, TREE_DETAIL_CODE_NAME
+			, CODE_SEQ
+			, TREE_DETAIL_UPPER_CODE
+			, STEP
+			, USE_YN
+			, BEGIN_DATE
+			, END_DATE
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			  #{TREE_CODE}
+			, #{TREE_DETAIL_CODE}
+			, #{TREE_DETAIL_CODE_NAME}
+			, #{CODE_SEQ}
+			, #{TREE_DETAIL_UPPER_CODE}
+			, #{STEP}
+			, #{USE_YN}
+			, #{BEGIN_DATE}
+			, #{END_DATE}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, GETDATE()
+		)
+	</insert>		
+	
+	<update id="updateTreeDetailCode" parameterType="java.util.Map">
+		/* updateTreeDetailCode */
+		UPDATE COM_TREE_DETAIL_CODE`
+			SET 
+			TREE_DETAIL_CODE_NAME		= #{TREE_DETAIL_CODE_NAME}
+			, CODE_SEQ					= #{CODE_SEQ}
+			, TREE_DETAIL_UPPER_CODE	= #{TREE_DETAIL_UPPER_CODE}
+			, STEP						= #{STEP}
+			, USE_YN					= #{USE_YN}
+			, BEGIN_DATE				= #{BEGIN_DATE}
+			, END_DATE					= #{END_DATE}
+			, UPD_PROGRM 				= #{REG_PROGRM}
+			, UPD_ID					= #{REG_ID} 
+			, UPD_DT					= GETDATE()
+		WHERE TREE_CODE					= #{TREE_CODE}
+		AND TREE_DETAIL_CODE			= #{TREE_DETAIL_CODE}
+	</update>
+	
+	<delete id="deleteTreeDetailCode" parameterType="java.util.Map">
+		/* deleteTreeDetailCode */
+		DELETE FROM COM_TREE_DETAIL_CODE 
+		WHERE 	TREE_CODE			=#{TREE_CODE} 
+		AND 	TREE_DETAIL_CODE	=#{TREE_DETAIL_CODE}
+	</delete>
+	
+	<select id="getCommonCodeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCommonCodeList */
+		SELECT B.CMMN_DETAIL_CD
+				, B.CMMN_DETAIL_CD_NM	
+		FROM COM_CMMN_CODE A
+		JOIN COM_CMMN_CODE_DETAIL B
+		ON A.CMMN_CD=B.CMMN_CD
+		WHERE A.CMMN_CD=#{CMMN_CD}
+		AND A.USE_YN='Y'
+		AND B.USE_YN='Y'
+		AND CONVERT(VARCHAR(8),GETDATE(), 112) BETWEEN A.BEGIN_DATE AND A.END_DATE
+		AND CONVERT(VARCHAR(8),GETDATE(), 112) BETWEEN B.BEGIN_DATE AND B.END_DATE
+		<if test='DIV1 != null and DIV1 != ""'>
+			AND B.DIV1 IN (SELECT VAL1 FROM [DBO].[FN_SPLIT](REPLACE(#{DIV1}, ' ', ''), ','))
+		</if>
+		<if test='DIV2 != null and DIV2 != ""'>
+			AND B.DIV2 IN (SELECT VAL1 FROM [DBO].[FN_SPLIT](REPLACE(#{DIV2}, ' ', ''), ','))
+		</if>
+		<if test='DIV3 != null and DIV3 != ""'>
+			AND B.DIV3 IN (SELECT VAL1 FROM [DBO].[FN_SPLIT](REPLACE(#{DIV3}, ' ', ''), ','))
+		</if>
+		<if test='DIV4 != null and DIV4 != ""'>
+			AND B.DIV4 IN (SELECT VAL1 FROM [DBO].[FN_SPLIT](REPLACE(#{DIV4}, ' ', ''), ','))
+		</if>
+		<if test='DIV5 != null and DIV5 != ""'>
+			AND B.DIV5 IN (SELECT VAL1 FROM [DBO].[FN_SPLIT](REPLACE(#{DIV5}, ' ', ''), ','))
+		</if>
+		ORDER BY B.ORDR
+	</select>
+	
+	<select id="getDetailCommonCodeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getDetailCommonCodeList */
+		SELECT 
+			CMMN_DETAIL_CD AS CMMN_DETAIL_CD
+		  , CMMN_DETAIL_CD + ' ' + CMMN_DETAIL_CD_NM AS CMMN_DETAIL_CD_NM
+		  , CMMN_DETAIL_CD_NM AS CMMN_DETAIL_NM
+		  , DIV1
+		  , DIV2
+		  , DIV3
+		  , DIV4
+		  , DIV5
+		FROM COM_CMMN_CODE_DETAIL
+		WHERE CMMN_CD=#{CMMN_CD}
+		<if test='DIV1 != null and DIV1 != ""'>
+			AND DIV1 = #{DIV1}
+		</if>
+		<if test='DIV2 != null and DIV2 != ""'>
+			AND DIV2 = #{DIV2}
+		</if>
+		<if test='DIV3 != null and DIV3 != ""'>
+			AND DIV3 = #{DIV3}
+		</if>
+		<if test='DIV4 != null and DIV4 != ""'>
+			AND DIV4 = #{DIV4}
+		</if>
+		<if test='DIV5 != null and DIV5 != ""'>
+			AND DIV5 = #{DIV5}
+		</if>
+		<if test='USE_YN != null and USE_YN != ""'>
+			AND USE_YN = #{USE_YN}
+		</if>
+		ORDER BY ORDR, CMMN_DETAIL_CD
+	</select>
+	
+	<select id="getCommonCodeByUpperCodeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCommonCodeByUpperCodeList */
+		SELECT CMMN_CD
+				, CMMN_CD_NM
+				, CMMN_DETAIL_CD
+				, CMMN_DETAIL_CD_NM
+				, UPPER_CMMN_CD
+				, UPPER_CMMN_DETAIL_CD
+				, ORDR
+		FROM DBO.FN_GET_TB_COMCD_BY_UPPERCD(#{UPPER_CMMN_CD}, #{UPPER_CMMN_DETAIL_CD}, #{DIV1}, #{DIV2},  #{DIV3},  #{DIV4},  #{DIV5})
+		ORDER BY ORDR
+	</select>
+</mapper>

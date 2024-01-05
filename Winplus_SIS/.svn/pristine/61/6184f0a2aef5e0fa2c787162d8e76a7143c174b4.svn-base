@@ -1,0 +1,146 @@
+package com.samyang.winplus.common.system.config;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.embedded.AnnotationConfigEmbeddedWebApplicationContext;
+import org.springframework.boot.env.PropertySourceLoader;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.context.ApplicationContextException;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.util.StringUtils;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * 스프링 애플리케이션이 구성될 때 환경변수를 초기화해주는 기능을 수행한다.
+ * 프로파일 활성화는 JVM options 으로 -Dspring.profiles.active=<<profile name>> 을 사용한다.
+ *
+ *
+ */
+public class EnvironmentInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EnvironmentInitializer.class);
+    
+    private static final PropertySourceLoader propertySourceLoader = new YamlPropertySourceLoader();
+
+    //서버별 아이피
+    private static final Resource SERVER_DIVISION_PROPERTY = new ClassPathResource("server-division.yml");
+    
+    //서버별 프로퍼티
+    private static final Resource LOCAL_SERVER_PROPERTY = new ClassPathResource("server-local.yml");
+    private static final Resource DEV_SERVER_PROPERTY = new ClassPathResource("server-dev.yml");
+    private static final Resource REAL_SERVER_PROPERTY = new ClassPathResource("server-real.yml");
+    
+    //프로젝트 변수
+    private static final Resource SERVER_VARIABLE_PROPERTY = new ClassPathResource("server-variable.yml");
+    
+    private static String serverType;
+    
+    @Override
+    public void initialize(ConfigurableApplicationContext applicationContext) {
+        ConfigurableEnvironment environment = applicationContext.getEnvironment();
+
+        try {
+        	InetAddress inet= InetAddress.getLocalHost();
+        	String iNetHostAddress = inet.getHostAddress();
+        	LOGGER.debug("inet.getHostAddress: {}", iNetHostAddress);
+        	
+            List<String> profiles = new ArrayList<>();
+            profiles.add(null);
+            profiles.addAll(Arrays.asList(environment.getActiveProfiles()));
+            LOGGER.debug("load profiles: {}", profiles);
+            
+            String serverStr = "";
+            String server[];
+            String real_server = "";
+            String dev_server = "";
+            
+            if (SERVER_DIVISION_PROPERTY.exists()) {
+                for (String profile : profiles) {
+                	serverStr = propertySourceLoader.load("SERVER_DIVISION_PROPERTY", SERVER_DIVISION_PROPERTY, profile).getSource().toString();
+                	LOGGER.debug("serverStr: {}", serverStr);
+                	serverStr = serverStr.substring(1, serverStr.length()-1);
+                	LOGGER.debug("serverStr.substring: {}", serverStr);
+                	server = serverStr.split(",");
+                	
+                	for(int i=0;i<server.length;i++){
+                		LOGGER.debug("server[i]: {}", server[i]);
+                		if(server[i].contains("real_server")){
+                			real_server = server[i];
+                		}
+                		if(server[i].contains("dev_server")){
+                			dev_server = server[i];
+                		}
+                	}
+                	
+                }
+            }
+            LOGGER.debug("real_server: {}", real_server);
+            LOGGER.debug("dev_server: {}", dev_server);
+            
+            if (REAL_SERVER_PROPERTY.exists() && (real_server.contains(iNetHostAddress))) {
+            	
+            	LOGGER.debug("REAL_SERVER_PROPERTY: {}", iNetHostAddress);
+                for (String profile : profiles) {
+                    addPropertySource(environment, propertySourceLoader.load("REAL_SERVER_PROPERTY", REAL_SERVER_PROPERTY, profile));
+                }
+                
+                serverType = "REAL";
+            } else if (DEV_SERVER_PROPERTY.exists() && (dev_server.contains(iNetHostAddress))) {
+            	
+            	LOGGER.debug("DEV_SERVER_PROPERTY: {}", iNetHostAddress);
+                for (String profile : profiles) {
+                    addPropertySource(environment, propertySourceLoader.load("DEV_SERVER_PROPERTY", DEV_SERVER_PROPERTY, profile));
+                }
+                
+                serverType = "DEV";
+            } else if (LOCAL_SERVER_PROPERTY.exists()) {
+            	
+            	LOGGER.debug("LOCAL_SERVER_PROPERTY: {}", iNetHostAddress);
+                for (String profile : profiles) {
+                    addPropertySource(environment, propertySourceLoader.load("LOCAL_SERVER_PROPERTY", LOCAL_SERVER_PROPERTY, profile));
+                }
+                
+                serverType = "LOCAL";
+            }
+            
+            //공통 프로젝트 속성
+            for (String profile : profiles) {
+                addPropertySource(environment, propertySourceLoader.load("SERVER_VARIABLE_PROPERTY :" + profile, SERVER_VARIABLE_PROPERTY, profile));
+            }
+            
+        } catch (IOException error) {
+            throw new ApplicationContextException("환경변수를 구성하는데 실패했습니다.", error);
+        }
+
+        LOGGER.info("Spring Active Profiles: {}", StringUtils.arrayToCommaDelimitedString(environment.getActiveProfiles()));
+        environment.getPropertySources().forEach(propertySource -> LOGGER.debug("{} - {}", propertySource.getName(), propertySource.getSource()));
+    }
+
+    private void addPropertySource(ConfigurableEnvironment environment, PropertySource<?> propertySource) {
+        if (Objects.nonNull(propertySource)) {
+            environment.getPropertySources().addLast(propertySource);
+        }
+    }
+
+
+    public static void main(String[] args) {
+        EnvironmentInitializer initializer = new EnvironmentInitializer();
+        initializer.initialize(new AnnotationConfigEmbeddedWebApplicationContext());
+    }
+
+	public static String getServerType() {
+		return serverType;
+	}
+
+}

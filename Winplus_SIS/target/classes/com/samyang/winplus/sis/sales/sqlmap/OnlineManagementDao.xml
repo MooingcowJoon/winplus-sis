@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.sales.dao.OnlineManagementDao">
+	<select id="getOnlineOrderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getOnlineOrderList 온라인 주문서 조회 */
+		SELECT 
+			ORD_CD
+			,ORD_NO
+			,ORD_SEQ
+			,OUT_WARE_CD
+			,T3.GOODS_NO
+			,T3.BCD_NM
+			,T3.BCD_CD
+			,ORD_QTY
+			,SALE_PRICE
+			,IFNULL(T1.SALE_VAT,'0') AS SALE_VAT
+			,SALE_TOT_PRICE
+			,DELI_YN
+			,DELI_PRICE
+			,IFNULL(T1.DELI_PRICE,'0') AS DELI_PRICE
+			,DELI_PRICE_TYPE
+			,CONVERT(NVARCHAR(21), [PAY_DATE], 21) AS [PAY_DATE]
+			,IFNULL(CONVERT(NVARCHAR(10),CONVERT(DATE,RESV_DATE),120),'') AS RESV_DATE
+			,IFNULL(CONVERT(NVARCHAR(10),CONVERT(DATE,SALE_DATE),120),'') AS SALE_DATE
+			,T1.CUSTMR_CD,T2.CUSTMR_NM,BUY_NM,BUY_TEL,BUY_PHONE,SHIPPER_NM,SHIPPER_TEL,SHIPPER_PHONE,SHIPPER_ZIP_NO,SHIPPER_ADDR
+			,DELI_NO,DELI_MEMO,DELI_PAY_TYPE,SC_S_QTY,SC_M_QTY,SC_L_QTY,ORDER_TYPE,ORD_CENT_CD,WMS_STATE,PRINT_YN,PUR_CONF_STATE,T1.CPROGRM,T1.CUSER
+			,CONVERT(NVARCHAR(21), T1.CDATE, 21) AS CDATE
+			,T1.MUSER
+			,CONVERT(NVARCHAR(21), T1.MDATE, 21) AS MDATE
+			,(ORD_CD + '_' + ORD_NO + '_' + SALE_DATE + '_' + RESV_DATE) AS UNIQUE_KEY
+		 FROM T_SALE_ONLINE_ORD T1
+		 INNER JOIN
+			T_STD_MAST_CUSTMR T2
+			ON T1.CUSTMR_CD = T2.CUSTMR_CD
+		INNER JOIN
+			T_STD_MAST_BCD T3
+			ON T1.BCD_CD = T3.BCD_CD
+		WHERE 1=1 
+			AND T1.WMS_STATE != '06'
+			AND T1.ORDER_TYPE = #{ORDER_TYPE}
+		<if test='ORGN_CD != ""'>
+			AND OUT_WARE_CD = #{ORGN_CD}
+		</if>
+			AND 
+				<if test = 'DATE == "1"'>CONVERT(NVARCHAR(10),CONVERT(DATE,SALE_DATE),120)</if>
+				<if test = 'DATE == "2"'>CONVERT(NVARCHAR(10),CONVERT(DATE,RESV_DATE),120)</if>
+				BETWEEN #{DATE_FR} AND #{DATE_TO}
+		order by SALE_DATE
+	</select>
+	
+	<insert id="insertOnlineOrderList">
+		/* insertOnlineOrderList 임시테이블 저장 프로시저'C'*/
+		INSERT INTO T_SALE_ONLINE_ORD_TMP (
+							ORD_CD
+							,ORD_NO
+							,ORD_SEQ
+							,OUT_WARE_CD
+							,CUSTMR_CD
+							,BCD_CD
+							,ORD_QTY
+							,SALE_PRICE
+							,SALE_TOT_PRICE
+							,DELI_PRICE
+							,DELI_PRICE_TYPE
+							
+							,SALE_DATE
+							,RESV_DATE
+							,BUY_NM
+							,BUY_TEL
+							,BUY_PHONE
+							,SHIPPER_NM
+							,SHIPPER_TEL
+							,SHIPPER_PHONE
+							,SHIPPER_ZIP_NO
+							,SHIPPER_ADDR
+							,DELI_NO
+							,DELI_MEMO
+							,DELI_PAY_TYPE
+							,ORDER_TYPE
+							,CUSER
+							,SALE_VAT
+						<if test='ORDER_TYPE == "B2C"'>
+							,GOODS_NO
+							,PAY_DATE
+						</if>
+						<if test='ORDER_TYPE == "B2B"'>
+							
+						</if>
+							,DELI_YN
+							,CPROGRM
+					) VALUES(
+						#{ORD_CD}
+						,#{ORD_NO}
+						,1
+						,#{OUT_WARE_CD}
+						,#{CUSTMR_CD}
+						,#{BCD_CD}
+						,#{ORD_QTY}
+						,#{SALE_PRICE}
+						,#{SALE_TOT_PRICE}
+						,#{DELI_PRICE}
+						,#{DELI_PRICE_TYPE}
+						
+						,#{SALE_DATE}
+						,#{RESV_DATE}
+						,#{BUY_NM}
+						,#{BUY_TEL}
+						,#{BUY_PHONE}
+						,#{SHIPPER_NM}
+						,#{SHIPPER_TEL}
+						,#{SHIPPER_PHONE}
+						,#{SHIPPER_ZIP_NO}
+						,#{SHIPPER_ADDR}
+						,#{DELI_NO}
+						,#{DELI_MEMO}
+						,#{DELI_PAY_TYPE}
+						,#{ORDER_TYPE}
+						,#{CUSER}
+						<if test='ORDER_TYPE == "B2C"'>
+						,0
+						,case when len(#{GOODS_NO}) != 10 then null 
+							else #{GOODS_NO}
+							end
+						,#{PAY_DATE}
+						,'Y'
+						</if>
+						<if test='ORDER_TYPE == "B2B"'>
+						,#{SALE_VAT}
+						
+						,#{DELI_YN}
+						</if>
+						,#{CPROGRM}
+					)
+					
+<!-- 		EXEC [dbo].[SP_ONLINE_ORD_INSP] 'C', '' -->
+	</insert>
+	
+	<select id="saveOnlineOrderList" resultType="int" parameterType="java.lang.String">
+		/* saveOnlineOrderList 프로시저 호출*/
+		
+		EXEC [dbo].[SP_ONLINE_ORD_INSP] #{CRUD}, ''
+	</select>
+	
+	<insert id="updateOnlineOrderList">
+		/* updateOnlineOrderList  임시테이블 저장 프로시저'U'*/
+		INSERT INTO T_SALE_ONLINE_ORD_TMP (
+							ORD_CD
+							,ORD_NO
+							,ORD_SEQ
+							,OUT_WARE_CD
+							,CUSTMR_CD
+							,BCD_CD
+							,ORD_QTY
+							,SALE_PRICE
+							,SALE_TOT_PRICE
+							,DELI_PRICE
+							,DELI_PRICE_TYPE
+							
+							,SALE_DATE
+							,RESV_DATE
+							
+							,BUY_NM
+							,BUY_TEL
+							,BUY_PHONE
+							,SHIPPER_NM
+							,SHIPPER_TEL
+							,SHIPPER_PHONE
+							,SHIPPER_ZIP_NO
+							,SHIPPER_ADDR
+							,DELI_NO
+							,DELI_MEMO
+							,DELI_PAY_TYPE
+							,ORDER_TYPE
+							,CUSER
+						<if test='ORDER_TYPE == "B2C"'>
+							,GOODS_NO
+							,PAY_DATE
+						</if>
+						<if test='ORDER_TYPE == "B2B"'>
+							
+						</if>
+							,DELI_YN
+							,SALE_VAT
+							,CPROGRM
+						) VALUES(
+							#{ORD_CD}
+							,#{ORD_NO}
+							,#{ORD_SEQ}
+							,#{OUT_WARE_CD}
+							,#{CUSTMR_CD}
+							,#{BCD_CD}
+							,#{ORD_QTY}
+							,#{SALE_PRICE}
+							,#{SALE_TOT_PRICE}
+							,CAST(CAST(#{DELI_PRICE} AS INT) AS decimal(19,6))
+							,#{DELI_PRICE_TYPE}
+							
+							,CONVERT(nvarchar(8),CONVERT(datetime,#{SALE_DATE}),112)
+							,CONVERT(nvarchar(8),CONVERT(datetime,#{RESV_DATE}),112)
+	
+							,#{BUY_NM}
+							,#{BUY_TEL}
+							,#{BUY_PHONE}
+							,#{SHIPPER_NM}
+							,#{SHIPPER_TEL}
+							,#{SHIPPER_PHONE}
+							,#{SHIPPER_ZIP_NO}
+							,#{SHIPPER_ADDR}
+							,#{DELI_NO}
+							,#{DELI_MEMO}
+							,#{DELI_PAY_TYPE}
+							,#{ORDER_TYPE}
+							,#{CUSER}
+						<if test='ORDER_TYPE == "B2C"'>
+							,#{GOODS_NO}
+							,#{PAY_DATE}
+							,'Y'
+						</if>
+						<if test='ORDER_TYPE == "B2B"'>
+							,#{DELI_YN}
+						</if>
+						,CAST(CAST(#{SALE_VAT} AS INT) AS decimal(19,6))
+						,#{CPROGRM}
+						)
+	</insert>
+	<delete id="deletetmpList">
+		/* deletetmpList 임시테이블 데이터 비우기*/
+		DELETE FROM T_SALE_ONLINE_ORD_TMP
+	</delete>
+	<delete id="deleteOnlineOrderList" parameterType="java.util.Map">
+		/* deleteOnlineOrderList 선택 로우 삭제*/
+		DELETE FROM T_SALE_ONLINE_ORD 
+		WHERE
+			ORD_CD = #{ORD_CD}
+			AND ORD_NO = #{ORD_NO}
+			AND ORD_SEQ = #{ORD_SEQ}
+			AND SALE_DATE = CONVERT(nvarchar(8),CONVERT(datetime,#{SALE_DATE}),112)
+	</delete>
+	<select id="getOnlineSalesB2CInfo" parameterType="java.util.Map" resultType="CMap">
+		/* getOnlineSalesB2CInfo B2C엑셀 업로드*/
+		SELECT
+			T1.SEQ
+			,T3.BCD_CD
+			,T3.BCD_NM
+			,T3.GOODS_NO
+			,T2.CUSTMR_CD
+			,T1.CUSTMR_NM
+			,T1.UNIQUE_INDEX
+		FROM
+			(select
+					A.POS AS SEQ
+					,CASE
+						WHEN A.VAL1 = '' THEN NULL 
+						ELSE A.VAL1
+					END AS CUSTMR_NM
+					
+					,CASE
+						WHEN LEN(B.VAL1) = 10 THEN B.VAL1
+						END AS GOODS_NO
+						
+					,CASE
+						WHEN LEN(B.VAL1) != 10 THEN B.VAL1
+						END AS BCD_CD
+
+					,C.VAL1 AS UNIQUE_INDEX
+				from
+					[dbo].[FN_SPLIT](#{CUSTMR_NM_LIST_STRING}, ',') A
+				INNER JOIN
+					[dbo].[FN_SPLIT](#{GOODS_NO_LIST_STRING}, ',') B
+				ON 
+					A.POS = B.POS
+				INNER JOIN
+					[dbo].[FN_SPLIT](#{UNIQUE_INDEX_LIST_STRING}, ',') C
+				ON 
+					A.POS = C.POS) T1
+		INNER JOIN
+				T_STD_MAST_CUSTMR T2
+				ON T1.CUSTMR_NM = T2.CUSTMR_NM
+		INNER JOIN
+				T_STD_MAST_BCD T3
+				ON T1.GOODS_NO = T3.GOODS_NO OR T1.BCD_CD = T3.BCD_CD
+	</select>
+	
+	<select id="getOnlineSalesB2BInfo" parameterType="java.util.Map" resultType="CMap">
+		/* getOnlineSalesB2BInfo B2B엑셀 업로드*/
+		SELECT
+			T1.SEQ
+			,T3.BCD_NM
+			,T3.GOODS_NO
+			,T1.BCD_CD
+			,T2.CUSTMR_CD
+			,T1.CUSTMR_NM
+			,T1.UNIQUE_INDEX
+		FROM
+			(select
+					A.POS AS SEQ
+					,A.VAL1 AS CUSTMR_NM
+					,B.VAL1 AS BCD_CD
+					,C.VAL1 AS UNIQUE_INDEX
+				from
+					[dbo].[FN_SPLIT](#{CUSTMR_NM_LIST_STRING}, ',') A
+				INNER JOIN
+					[dbo].[FN_SPLIT](#{BCD_CD_LIST_STRING}, ',') B
+				ON 
+					A.POS = B.POS
+				INNER JOIN
+					[dbo].[FN_SPLIT](#{UNIQUE_INDEX_LIST_STRING}, ',') C
+				ON 
+					A.POS = C.POS) T1
+		INNER JOIN
+				T_STD_MAST_CUSTMR T2
+				ON T1.CUSTMR_NM = T2.CUSTMR_NM
+		INNER JOIN
+				T_STD_MAST_BCD T3
+				ON T1.BCD_CD = T3.BCD_CD
+	</select>
+
+	<select id="getOSHistoryList" parameterType="Map" resultType="CMap">
+		/* 판매내역 조회 getOSHistoryList */
+		SELECT 
+				T1.ORD_CD
+				,T1.ORD_NO
+				,(CONVERT(NVARCHAR(10),CONVERT(DATETIME,T1.SALE_DATE),120)) AS SALE_DATE
+				,(CONVERT(NVARCHAR(10),CONVERT(DATETIME,T1.RESV_DATE),120)) AS RESV_DATE
+				,(T1.ORD_CD+'_'+T1.ORD_NO+'_'+T1.SALE_DATE+'_'+T1.RESV_DATE) AS UNIQUE_INDEX
+				
+		 <choose>
+			<when test='TERM == "" and GROUPBY == ""'>
+				,(' 그룹 조건: 모두') AS GRUP_INDEX
+			</when>
+		 	<when test='TERM == "" and GROUPBY == "GOODS"'>
+				,(' 그룹 조건: ' + T3.BCD_NM) AS GRUP_INDEX
+			</when>
+			<when test='TERM == "" and GROUPBY == "CUSTMR"'>
+				,(' 그룹 조건: ' + T2.CUSTMR_NM) AS GRUP_INDEX
+			</when>
+				
+			<when test='TERM == "DATE" and GROUPBY == ""'>
+				,(' 그룹 조건: ' + (CONVERT(NVARCHAR(10),CONVERT(DATETIME,T1.SALE_DATE),120))) AS GRUP_INDEX
+			</when>
+			<when test='TERM == "DATE" and GROUPBY == "GOODS"'>
+				,(' 그룹 조건: ' + (CONVERT(NVARCHAR(10),CONVERT(DATETIME,T1.SALE_DATE),120)) + ' / ' + T3.BCD_NM) AS GRUP_INDEX
+			</when>
+			<when test='TERM == "DATE" and GROUPBY == "CUSTMR"'>
+				,(' 그룹 조건: ' + (CONVERT(NVARCHAR(10),CONVERT(DATETIME,T1.SALE_DATE),120)) + ' / ' + T2.CUSTMR_NM) AS GRUP_INDEX
+			</when>
+				
+			<when test='TERM == "MONTH" and GROUPBY == ""'>
+				,(' 그룹 조건: '+ (CONVERT(NVARCHAR(7),CONVERT(DATETIME,T1.SALE_DATE),120))) AS GRUP_INDEX
+			</when>
+			<when test='TERM == "MONTH" and GROUPBY == "GOODS"'>	
+				,(' 그룹 조건: '+ (CONVERT(NVARCHAR(7),CONVERT(DATETIME,T1.SALE_DATE),120)) + ' / ' + T3.BCD_NM) AS GRUP_INDEX
+			</when>	
+			<when test='TERM == "MONTH" and GROUPBY == "CUSTMR"'>
+				,(' 그룹 조건: '+ (CONVERT(NVARCHAR(7),CONVERT(DATETIME,T1.SALE_DATE),120)) + ' / ' + T2.CUSTMR_NM) AS GRUP_INDEX
+			</when>
+		 </choose>		
+				
+				
+				,T1.OUT_WARE_CD
+				,T1.ORDER_TYPE
+				,T1.CUSTMR_CD
+				,T2.CUSTMR_NM
+				,T1.BCD_CD
+				,T3.BCD_NM
+				,T1.ORD_QTY
+				,T1.SALE_PRICE
+				,T1.SALE_VAT
+				,T1.SALE_TOT_PRICE
+				,T1.DELI_YN
+				,T1.WMS_STATE
+				,T1.PUR_CONF_STATE
+		FROM T_SALE_ONLINE_ORD T1
+		
+			INNER JOIN T_STD_MAST_CUSTMR T2
+				ON T1.CUSTMR_CD	= T2.CUSTMR_CD
+			INNER JOIN T_STD_MAST_BCD T3
+				ON T1.BCD_CD = T3.BCD_CD
+				
+		WHERE 1=1
+			AND T1.WMS_STATE = '06'
+			<if test='TERM == "MONTH"'>
+				AND CONVERT(NVARCHAR(7),CONVERT(DATE,SALE_DATE),120) BETWEEN #{MONTH_FR} AND #{MONTH_TO}
+			</if>
+			<if test='TERM != "MONTH"'>
+				AND CONVERT(NVARCHAR(10),CONVERT(DATE,SALE_DATE),120) BETWEEN #{DATE_FR} AND #{DATE_TO}
+			</if>
+		ORDER BY T1.SALE_DATE
+	</select>
+	
+	<select id="getPurFixInfo" parameterType="java.util.Map" resultType="CMap">
+		/* getPurFixInfo 판매내역 엑셀 업로드*/
+		SELECT
+			T1.SEQ
+			,T1.UNIQUE_INDEX
+			,T1.ORD_CD
+			,T1.ORD_NO
+			,T1.SALE_DATE
+			,T1.RESV_DATE
+			,T2.OUT_WARE_CD
+			,T4.CUSTMR_NM
+			,T2.BCD_CD
+			,T3.BCD_NM
+			,T2.ORD_QTY
+			,T2.SALE_PRICE
+			,T2.SALE_VAT
+			,T2.SALE_TOT_PRICE
+			,T2.DELI_YN
+			,T2.WMS_STATE
+		FROM
+			(SELECT
+					A.POS AS SEQ
+					,A.VAL1 AS ORD_CD
+					,B.VAL1 AS ORD_NO
+					,(CONVERT(NVARCHAR(10),CONVERT(DATETIME,C.VAL1),120)) AS SALE_DATE
+					,(CONVERT(NVARCHAR(10),CONVERT(DATETIME,D.VAL1),120)) AS RESV_DATE
+					,E.VAL1 AS UNIQUE_INDEX
+			FROM
+				[dbo].[FN_SPLIT](#{ORD_CD_LIST_STRING}, ',') A
+			INNER JOIN
+				[dbo].[FN_SPLIT](#{ORD_NO_LIST_STRING}, ',') B
+			ON 
+				A.POS = B.POS
+			INNER JOIN
+				[dbo].[FN_SPLIT](#{SALE_DATE_LIST_STRING}, ',') C
+			ON 
+				A.POS = C.POS
+			INNER JOIN
+				[dbo].[FN_SPLIT](#{RESV_DATE_LIST_STRING}, ',') D
+			ON 
+				A.POS = D.POS
+			INNER JOIN
+				[dbo].[FN_SPLIT](#{UNIQUE_INDEX_LIST_STRING}, ',') E
+			ON 
+				A.POS = E.POS) T1
+		INNER JOIN T_SALE_ONLINE_ORD T2
+			ON T1.ORD_CD = T2.ORD_CD
+				AND T1.ORD_NO = T2.ORD_NO
+		INNER JOIN T_STD_MAST_BCD T3
+			ON T2.BCD_CD = T3.BCD_CD
+		INNER JOIN T_STD_MAST_CUSTMR T4
+			ON T2.CUSTMR_CD = T4.CUSTMR_CD
+	</select>
+	<select id="updateOnlineHistoryList" parameterType="java.util.Map" resultType="CMap">
+			DECLARE @I_CRUD						NVARCHAR(1)				= #{CRUD}
+			DECLARE @I_PURCONF					NVARCHAR(MAX)			= #{PUR_CONF_STATE_LIST_STRING}
+			DECLARE @I_ORD_CD					NVARCHAR(MAX)			= #{ORD_CD_LIST_STRING}
+			DECLARE @I_ORD_NO					NVARCHAR(MAX)			= #{ORD_NO_LIST_STRING}
+			DECLARE @PARAM_SALEDATE				NVARCHAR(MAX)			= #{SALE_DATE_LIST_STRING}
+			DECLARE @PARAM_RESVDATE				NVARCHAR(MAX)			= #{RESV_DATE_LIST_STRING}
+			
+			DECLARE @V_RETURN					INT						-- 리턴값 정상 :0, 비정상 : -1
+				
+			SET @V_RETURN = 0
+			
+			EXEC [dbo].[SP_ONLINE_ORD_UPDATE] 
+			
+			@I_CRUD, @I_PURCONF, @I_ORD_CD, @I_ORD_NO, @PARAM_SALEDATE, @PARAM_RESVDATE, @V_RETURN output
+			
+			SELECT @V_RETURN
+	</select>
+	<select id="getOnlineFixList" parameterType="java.util.Map" resultType="CMap">
+	/* getOnlineFixList 판매확정 헤더 조회 */
+		SELECT 
+				T1.ORGN_DIV_CD
+				,T1.ORGN_CD
+				,T1.ORD_CD
+				,T1.CUSTMR_CD
+				,T2.CUSTMR_NM
+				,T1.OUT_WARE_CD
+				,T1.ORD_DATE
+
+				,CASE
+					WHEN COUNT(T4.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(T4.BCD_CD)),' 외 ',(COUNT(T4.BCD_CD)-1),'건')
+					ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(T4.BCD_CD))
+				END AS TOT_GOODS_NM
+
+
+				,T1.[CURRCY_TYPE]
+				,T1.[ORD_TYPE]
+				,T1.[RESP_USER]
+				,T1.[REG_TYPE]
+				,T1.[SALE_VAT_AMT]
+				,T1.[SALE_AMT]
+				,T1.[SALE_TOT_AMT]
+				,T1.[CONF_AMT]
+				,IFNULL(T1.[CONF_TYPE],'N') AS CONF_TYPE
+				,IFNULL(T1.[SEND_TYPE],'N') AS SEND_TYPE
+				,IFNULL(T1.[OLINE_CONF_TYPE],'N') AS OLINE_CONF_TYPE
+				,T1.[CPROGRM]
+				,T1.[CUSER]
+				,T1.[CDATE]
+				,T1.[MUSER]
+				,T1.[MDATE]
+		FROM
+			T_SALE_ONLINE_MAST T1
+		INNER JOIN T_STD_MAST_CUSTMR T2
+		ON T1.CUSTMR_CD = T2.CUSTMR_CD
+		INNER JOIN T_SALE_ONLINE_MAST_DETL T3
+		ON T1.ORD_CD = T3.ORD_CD AND T1.ORGN_DIV_CD = T3.ORGN_DIV_CD AND T1.ORGN_CD = T3.ORGN_CD 
+		INNER JOIN T_STD_MAST_BCD T4
+		ON T3.BCD_CD = T4.BCD_CD
+		WHERE 1=1
+		AND ORD_DATE BETWEEN #{DATE_FR} AND #{DATE_TO}
+
+		GROUP BY 
+				T1.ORGN_DIV_CD
+				,T1.ORGN_CD
+				,T1.ORD_CD
+				,T1.CUSTMR_CD
+				,T2.CUSTMR_NM
+				,T1.OUT_WARE_CD
+				,T1.ORD_DATE
+				,T1.[CURRCY_TYPE]
+				,T1.[ORD_TYPE]
+				,T1.[RESP_USER]
+				,T1.[REG_TYPE]
+				,T1.[SALE_VAT_AMT]
+				,T1.[SALE_AMT]
+				,T1.[SALE_TOT_AMT]
+				,T1.[CONF_AMT]
+				,T1.[CONF_TYPE]
+				,T1.[SEND_TYPE]
+				,T1.[OLINE_CONF_TYPE]
+				,T1.[CPROGRM]
+				,T1.[CUSER]
+				,T1.[CDATE]
+				,T1.[MUSER]
+				,T1.[MDATE]
+		
+<!-- 	AND ORDER_TYPE = #{ORDER_TYPE}  -->
+	</select>
+	
+	<select id="getOnlineFixDetailList" parameterType="java.util.Map" resultType="CMap">
+	/* getOnlineFixDetailList 판매확정 디테일 조회*/
+		SELECT 
+			T1.ORD_CD
+			,T1.BCD_CD
+			,T2.BCD_NM
+			,IFNULL(T1.PUR_AMT,'0') AS PUR_AMT
+			,IFNULL(T1.SALE_AMT,'0') AS SALE_AMT
+			,IFNULL(T1.SALE_VAT_AMT,'0') AS SALE_VAT_AMT
+			,IFNULL(T1.SALE_TOT_AMT,'0') AS SALE_TOT_AMT
+			,T3.CUSTMR_CD
+			,IFNULL(T1.SALE_QTY,'0') AS SALE_QTY
+			,CASE
+				WHEN #{CUSTMR_CD} = 'DS00002020' THEN T1.CONF_AMT
+				ELSE T3.SALE_TOT_AMT
+				END AS CONF_AMT
+				
+			FROM T_SALE_ONLINE_MAST_DETL T1
+					INNER JOIN T_STD_MAST_BCD T2
+					ON T1.BCD_CD = T2.BCD_CD
+					INNER JOIN T_SALE_ONLINE_MAST T3
+					ON T1.ORD_CD = T3.ORD_CD AND T1.ORGN_DIV_CD = T3.ORGN_DIV_CD AND T1.ORGN_CD = T3.ORGN_CD 
+			WHERE T1.ORD_CD = #{ORD_CD}
+			AND T3.CUSTMR_CD = #{CUSTMR_CD}
+	</select>
+	<select id="saveOnlineFixList" parameterType="java.util.Map" resultType="CMap">
+		/* saveOnlineFixList 판매내역 - 구매상태 업데이트*/
+			DECLARE @TMP_PUR TABLE (
+				SEQ								INT
+				,CONF_TYPE						NVARCHAR(10)
+				,ORD_CD							NVARCHAR(10)
+			)
+			INSERT INTO @TMP_PUR (
+				SEQ, CONF_TYPE, ORD_CD
+			)
+			
+			SELECT 
+				T1.POS														AS SEQ
+				, T1.VAL1													AS CONF_TYPE
+				, T2.VAL1													AS ORD_CD
+			FROM (SELECT * FROM [dbo].[FN_SPLIT](#{CONF_TYPE_LIST}, ',')
+			) T1
+			INNER JOIN (
+				SELECT * FROM [dbo].[FN_SPLIT](#{ORD_CD_LIST}, ',')
+			) T2													ON T1.POS = T2.POS
+
+			UPDATE T_SALE_ONLINE_MAST
+			SET CONF_TYPE =
+				CASE
+				WHEN TP.CONF_TYPE = 'N' THEN 'Y'
+				WHEN TP.CONF_TYPE = 'Y' THEN 'N'
+				END
+
+				, MPROGRM = #{MPROGRM}
+				, MUSER = #{MUSER}
+				, MDATE = NOW()
+			FROM @TMP_PUR TP
+			WHERE T_SALE_ONLINE_MAST.ORD_CD = TP.ORD_CD
+	</select>
+	<update id="updateOSFDList" parameterType="java.util.Map">
+		/* updateOSFDList 판매확정 - 디테일 확정금액 업데이트*/
+		UPDATE T_SALE_ONLINE_MAST_DETL
+			SET
+				CONF_AMT	=	CAST(CAST(#{CONF_AMT} AS INT) AS decimal(19,6))
+			WHERE
+				ORD_CD		=	#{ORD_CD}
+			AND
+				BCD_CD		=	#{BCD_CD}
+	</update>
+	<select id="TransmissionToWMS" parameterType="java.util.Map" resultType="CMap">
+		DECLARE 	@PARAM_ORD_CD NVARCHAR(MAX) 
+					, @PARAM_ORD_NO NVARCHAR(MAX)
+					, @PARAM_SALE_DATE NVARCHAR(MAX)
+					, @PARAM_RESV_DATE NVARCHAR(MAX)
+					, @STD_DATE_TYPE NVARCHAR(2)
+					, @DATE_FR NVARCHAR(8)
+					, @DATE_TO NVARCHAR(8)
+			
+		SET @PARAM_ORD_CD = #{ORD_CD_LIST}
+		SET @PARAM_ORD_NO = #{ORD_NO_LIST}
+		SET @PARAM_SALE_DATE = #{SALE_DATE_LIST}
+		SET @PARAM_RESV_DATE = #{RESV_DATE_LIST}
+		SET @STD_DATE_TYPE = #{STD_DATE_TYPE}
+		SET @DATE_FR = #{DATE_FR}
+		SET @DATE_TO = #{DATE_TO}
+
+		EXEC [dbo].[SP_WMS_SEND_ONLINE_ORD] @PARAM_ORD_CD, @PARAM_ORD_NO, @PARAM_SALE_DATE, @PARAM_RESV_DATE, @STD_DATE_TYPE, @DATE_FR, @DATE_TO
+	</select>
+</mapper>

@@ -1,0 +1,8 @@
+servername:
+  name: dev
+
+datasource:
+  driverClassName: org.mariadb.jdbc.Driver
+  url: jdbc:mariadb://211.33.184.136:3306/KOREA_SIS
+  username: root
+  password: 'ubuntu'

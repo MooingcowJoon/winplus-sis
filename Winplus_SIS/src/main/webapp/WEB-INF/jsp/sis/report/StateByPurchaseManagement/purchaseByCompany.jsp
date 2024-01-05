@@ -1,0 +1,564 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ include file="/WEB-INF/jsp/common/include/taglib.jspf" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_page_script_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header_override.jsp"/>
+<script type="text/javascript">
+	//LUI : 로그인한 유저의 세션 정보에서 그리드 데이터 직렬화시 공통으로 추가 시키고 싶은 데이터를 넣는 객체
+	LUI = JSON.parse('${empSessionDto.lui}');
+	LUI.LUI_searchable_auth_cd = "ALL,1,2,3,4,5,6"
+	LUI.exclude_auth_cd = "ALL,1";
+	LUI.exclude_orgn_type = "PS,CS";
+	
+	var total_layout;
+	var top_layout;
+	var mid_layout;
+	var mid_layout_ribbon;
+	var bot_header_layout;
+	var erpHeaderGrid;
+	var bot_detail_layout;
+	var Dbcheck_h = 0;
+	var Dbcheck_d = 0;
+	var DATE_FR;
+	var DATE_TO;
+	
+	$(document).ready(function() {
+		init_total_layout();
+		init_top_layout();
+		
+		init_header_layout();
+		init_header_ribbon();
+		init_header_grid();
+		
+		init_detail_layout();
+		init_detail_ribbon();
+		init_detail_grid();
+		init_detail_grid_toExcel();
+	});
+	
+	<%-- ■ erpLayout 관련 Function 시작 --%>
+	function init_total_layout(){
+		total_layout = new dhtmlXLayoutObject({
+			parent : document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "3T"
+			, cells : [
+				{id: "a", text: "검색 조건", header:false, fix_size : [true, true]}
+				,{id: "b", text: "업체별 매입현황", header: true, fix_size:[false,true], width: 820}
+				,{id: "c", text: "상세 매입현황", header: true, fix_size:[false,true]}
+			]
+		});
+		total_layout.cells("a").attachObject("div_top_layout");
+		total_layout.cells("a").setHeight(60);
+		total_layout.cells("b").attachObject("div_bot_header_layout");
+		total_layout.cells("c").attachObject("div_bot_detail_layout");
+		
+		$erp.setEventResizeDhtmlXLayout(total_layout, function(names){
+			header_layout.setSizes();
+			detail_layout.setSizes();
+		});
+	}
+	
+	function init_top_layout(){
+		cmbORGN_DIV_CD = $erp.getDhtmlXComboTableCode("cmbORGN_DIV_CD", "ORGN_DIV_CD", "/sis/code/getSearchableOrgnDivCdList.do", LUI, 210, "AllOrOne", false, null, function(){
+			cmbORGN_CD = $erp.getDhtmlXComboTableCode("cmbORGN_CD", "ORGN_CD", "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : cmbORGN_DIV_CD.getSelectedValue()}]), 210, "AllOrOne", false, null);
+			cmbORGN_DIV_CD.attachEvent("onChange", function(value, text){
+				cmbORGN_CD.unSelectOption();
+				cmbORGN_CD.clearAll();
+				$erp.setDhtmlXComboTableCodeUseAjax(cmbORGN_CD, "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : value}]), "AllOrOne", false, null, null);
+			});
+			cmbORGN_CD.attachEvent("onChange", function(value, text){
+
+			});
+		});
+		cmbPAY_DATE_TYPE = $erp.getDhtmlXComboCommonCode("cmbPAY_DATE_TYPE","PAY_DATE_TYPE", ["PAY_DATE_TYPE"], 100,"모두조회", false);
+		cmbPAY_STD = $erp.getDhtmlXComboCommonCode("cmbPAY_STD","PAY_STD", ["PAY_STD"], 100,"모두조회", false);
+	}
+
+	function init_header_layout() {
+		header_layout = new dhtmlXLayoutObject({
+			parent: "div_bot_header_layout"
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern: "2E"
+			, cells: [
+				{id: "a", text: "", header:false, fix_size : [true, true]}
+				,{id: "b", text: "", header:false, fix_size : [true, true]}
+				]
+		});
+		header_layout.cells("a").attachObject("div_bot_header_ribbon");
+		header_layout.cells("a").setHeight(36);
+		header_layout.cells("b").attachObject("div_bot_header_grid");
+		
+		$erp.setEventResizeDhtmlXLayout(total_layout, function(names){
+			header_layout.setSizes();
+			detail_layout.setSizes();
+		});
+	}
+	function init_header_ribbon(){
+		var ribbon_h = new dhtmlXRibbon({
+			parent : "div_bot_header_ribbon"
+			, skin : ERP_RIBBON_CURRENT_SKINS
+			, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+			, items : [
+				{type : "block", mode : "rows", list : [
+					{id : "search_erpHeaderGrid", type : "button", text:'<spring:message code="ribbon.search" />', isbig : false, img : "menu/search.gif", imgdis : "menu/search_dis.gif"}
+					,{id : "excel_erpGrid", type : "button", text:'<spring:message code="ribbon.excel" />', isbig : false, img : "menu/excel.gif", imgdis : "menu/excel_dis.gif"}
+				]}
+			]
+		});
+
+		ribbon_h.attachEvent("onClick", function(itemId, bId){
+			if(itemId == "search_erpHeaderGrid"){
+				isSearchValidate();
+			} else if (itemId == "excel_erpGrid"){
+				if(Dbcheck_h == 1){
+					$erp.exportGridToExcel({
+						"grid" : erpHeaderGrid
+						, "fileName" : "업체별 매입현황"
+						, "isOnlyEssentialColumn" : false
+						, "excludeColumnIdList" : ['NO','CUSTMR_CD','ORGN_DIV_CD','ORGN_CD']
+						, "isIncludeHidden" : true
+						, "isExcludeGridData" : false
+					});
+				} else if(Dbcheck_h == 0){
+					$erp.alertMessage({
+						"alertMessage" : "업체별 매입현황 조회 후 이용 가능합니다.",
+						"alertType" : "alert",
+						"isAjax" : false,
+						"alertCallbackFn" : function(){
+							$erp.clearDhtmlXGrid(erpDetailGrid);
+						}
+					});
+				} else {
+					$erp.alertMessage({
+						"alertMessage" : '<spring:message code="grid.noSearchData" />',
+						"alertType" : "alert",
+						"isAjax" : false
+					});
+				}
+			}
+		});
+	}
+	function init_header_grid() {
+		var grid_Columns = [
+			{id : "NO", label:["순번", "#rspan"], type: "cntr", width: "30", sort : "str", align : "center", isHidden : false, isEssential : false}
+			,{id : "ORGN_DIV_CD", label:["법인코드", "#rspan"], type: "ro", width: "60", sort : "str", align : "center", isHidden : true, isEssential : false}
+			,{id : "ORGN_DIV_NM", label:["법인구분", "#select_filter"], type: "ro", width: "150", sort : "str", align : "center", isHidden : false, isEssential : false}
+			,{id : "ORGN_CD", label:["조직코드", "#rspan"], type: "ro", width: "60", sort : "str", align : "center", isHidden : true, isEssential : false}
+			,{id : "ORGN_NM", label:["조직명", "#select_filter"], type: "ro", width: "60", sort : "str", align : "center", isHidden : false, isEssential : false}
+			,{id : "CUSTMR_CD", label:["업체코드", "#rspan"], type: "ro", width: "60", sort : "str", align : "center", isHidden : true, isEssential : false}
+			,{id : "CUSTMR_NM", label:["업체명", "#text_filter"], type: "ro", width: "118", sort : "str", align : "left", isHidden : false, isEssential : false}
+			,{id : "CORP_NO", label:["사업자번호", "#rspan"], type: "ro", width: "85", sort : "str", align : "center", isHidden : false, isEssential : false}
+			,{id : "PUR_TAXA_AMT", label:["과세</br>구매 금액", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "PUR_FREE_AMT", label:["면세</br>구매 금액", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "PAY_SUM_AMT", label:["구매 합계", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "CONF_TYPE", label:["확정 여부", "#select_filter"], type: "combo", width: "75", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "CONF_AMT", label:["확정 금액", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+			,{id : "SEND_TYPE", label:["ERP</br>전송 여부", "#select_filter"], type: "combo", width: "75", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "SUPR_CONF_TYPE", label:["협력사</br>확정 여부", "#select_filter"], type: "combo", width: "85", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "CLSE_TOT_AMT", label:["협력사</br>확정 금액", "#rspan"], type: "ron", width: "85", sort : "int", align : "right", isHidden : false, isEssential : false, numberFormat : "0,000"}
+		];
+		
+		erpHeaderGrid = new dhtmlXGridObject({
+			parent: "div_bot_header_grid"			
+				, skin : ERP_GRID_CURRENT_SKINS
+				, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+				, columns : grid_Columns
+		});
+		$erp.attachDhtmlXGridFooterSummary(erpHeaderGrid
+										, ["PUR_TAXA_AMT","PUR_FREE_AMT","PAY_SUM_AMT","CONF_AMT","CLSE_TOT_AMT"]
+										,"H"
+										,"합계");
+		$erp.initGrid(erpHeaderGrid,{multiSelect : true});
+		//onClick, onRowDblClicked, onCheck
+		erpHeaderGrid.attachEvent("onRowDblClicked", function (rId,columnIdx){
+			Dbcheck_d = 1;
+			var paramGridData = {};
+			paramGridData["DATE_FR"] = DATE_FR;
+			paramGridData["DATE_TO"] = DATE_TO;
+			paramGridData["ORGN_CD"] = erpHeaderGrid.cells(rId, erpHeaderGrid.getColIndexById("ORGN_CD")).getValue();
+			paramGridData["CUSTMR_CD"] = erpHeaderGrid.cells(rId, erpHeaderGrid.getColIndexById("CUSTMR_CD")).getValue();
+			
+			searchErpDetailGrid(paramGridData);
+		});
+	}
+	
+	function init_detail_layout() {
+		detail_layout = new dhtmlXLayoutObject({
+			parent: "div_bot_detail_layout"
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern: "2E"
+			, cells: [
+				{id: "a", text: "", header:false, fix_size : [false, false]}
+				,{id: "b", text: "", header:false, fix_size : [false, false]}
+				]
+			, fullScreen : true
+		});
+		detail_layout.cells("a").attachObject("div_bot_detail_ribbon");
+		detail_layout.cells("a").setHeight(36);
+		detail_layout.cells("b").attachObject("div_bot_detail_grid");
+		
+		$erp.setEventResizeDhtmlXLayout(total_layout, function(names){
+			header_layout.setSizes();
+			detail_layout.setSizes();
+		});
+	}
+	function init_detail_ribbon(){
+		ribbon_d = new dhtmlXRibbon({
+			parent : "div_bot_detail_ribbon"
+			, skin : ERP_RIBBON_CURRENT_SKINS
+			, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+			, items : [
+				{type : "block", mode : "rows", list : [
+					{id : "excel_erpGrid", type : "button", text:'<spring:message code="ribbon.excel" />', isbig : false, img : "menu/excel.gif", imgdis : "menu/excel_dis.gif", disable : true}
+				]}
+			]
+		});
+
+		ribbon_d.attachEvent("onClick", function(itemId, bId){
+			if(itemId == "excel_erpGrid"){
+				if(Dbcheck_d == 1){
+					$erp.exportGridToExcel({
+						"grid" : erpDetailGridtoExcel
+						, "fileName" : "업체별 상세 매입현황"
+						, "isOnlyEssentialColumn" : false
+						, "excludeColumnIdList" : ['NO','CUSTMR_CD']
+						, "isIncludeHidden" : true
+						, "isExcludeGridData" : false
+					});
+				} else if(Dbcheck_d == 0){
+					$erp.alertMessage({
+						"alertMessage" : "상세 매입현황 조회 후 이용 가능합니다.",
+						"alertType" : "alert",
+						"isAjax" : false,
+						"alertCallbackFn" : function(){
+							$erp.clearDhtmlXGrid(erpDetailGrid);
+							$erp.clearDhtmlXGrid(erpDetailGridtoExcel);
+						}
+					});
+				} else {
+					$erp.alertMessage({
+						"alertMessage" : '<spring:message code="grid.noSearchData" />',
+						"alertType" : "alert",
+						"isAjax" : false
+					});
+				}
+			}
+		});
+	}
+	function init_detail_grid() {
+		var grid_Columns = [
+			{id : "NO", label:["순번", "#rspan"], type: "cntr", width: "50", sort : "int", align : "center", isHidden : false, isEssential : false}
+			,{id : "PUR_DATE", label:["구매일자", "#rspan"], type: "ro", width: "100", sort : "str", align : "center", isHidden : false, isEssential : true} 
+			,{id : "BCD_NM", label:["상품명", "#rspan"], type: "ro", width: "320", sort : "str", align : "left", isHidden : false, isEssential : true}
+			,{id : "PUR_TAXA_AMT", label:["과세</br>구매금액", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "PUR_FREE_AMT", label:["면세</br>구매금액", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "PAY_SUM_AMT", label:["구매합계", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "CONF_TYPE", label:["확정여부", "#select_filter"], type: "combo", width: "75", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "CONF_AMT", label:["확정금액", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "SEND_TYPE", label:["ERP</br>전송여부", "#select_filter"], type: "combo", width: "75", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "SUPR_CONF_TYPE", label:["협력사</br>확정여부", "#select_filter"], type: "combo", width: "75", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "CLSE_TOT_AMT", label:["협력사</br>확정금액", "#rspan"], type: "ron", width: "75", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"} 
+			,{id : "CUSTMR_CD", label:["업체코드", "#rspan"], type: "ro", width: "100", sort : "str", align : "center", isHidden : true, isEssential : false}
+			,{id : "CUSTMR_NM", label:["업체명", "#rspan"], type: "ro", width: "100", sort : "str", align : "center", isHidden : true, isEssential : true}
+			,{id : "GROUPBYKEY", label:["그룹키", "#rspan"], type: "ro", width: "100", sort : "str", align : "center", isHidden : true, isEssential : true}
+			];
+	
+		erpDetailGrid = new dhtmlXGridObject({
+			parent: "div_bot_detail_grid"
+				, skin : ERP_GRID_CURRENT_SKINS
+				, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+				, columns : grid_Columns
+		});
+		$erp.attachDhtmlXGridFooterSummary(erpDetailGrid
+											,["PUR_TAXA_AMT","PUR_FREE_AMT","PAY_SUM_AMT","CONF_AMT","CLSE_TOT_AMT"]
+											,"D"
+											,"합계");
+		
+		$erp.initGrid(erpDetailGrid,{multiSelect : true});
+		
+		//groupBy
+		erpDetailGrid.attachEvent("onPageChangeCompleted", function(){
+			total_layout.progressOn();
+			setTimeout(function(){
+				gridGroupBy(erpDetailGrid);
+				total_layout.progressOff();
+			}, 10);
+		});
+	}
+	
+	function init_detail_grid_toExcel(){
+		var grid_Columns = [
+			{id : "NO", label:["순번", "#rspan"], type: "cntr", width: "50", sort : "int", align : "center", isHidden : false, isEssential : false}
+			,{id : "PUR_DATE", label:["구매일자", "#rspan"], type: "ro", width: "80", sort : "str", align : "center", isHidden : false, isEssential : true} 
+			,{id : "ORGN_DIV_NM", label:["법인구분", "#rspan"], type: "ro", width: "150", sort : "str", align : "center", isHidden : false, isEssential : true}
+			,{id : "ORGN_NM", label:["조직명", "#rspan"], type: "ro", width: "150", sort : "str", align : "center", isHidden : false, isEssential : true}
+			,{id : "CUSTMR_NM", label:["업체명", "#rspan"], type: "ro", width: "150", sort : "str", align : "center", isHidden : false, isEssential : true}
+			,{id : "BCD_NM", label:["상품명", "#rspan"], type: "ro", width: "250", sort : "str", align : "left", isHidden : false, isEssential : true}
+			,{id : "PUR_TAXA_AMT", label:["과세 구매금액", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "PUR_FREE_AMT", label:["면세 구매금액", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "PAY_SUM_AMT", label:["구매합계", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "CONF_TYPE", label:["확정여부", "#select_filter"], type: "combo", width: "100", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "CONF_AMT", label:["확정금액", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+			,{id : "SEND_TYPE", label:["ERP 전송여부", "#select_filter"], type: "combo", width: "100", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "SUPR_CONF_TYPE", label:["협력사 확정여부", "#select_filter"], type: "combo", width: "100", sort : "str", align : "center", isHidden : false, isEssential : false, commonCode : ["YN_CD","YN"], isDisabled : true}
+			,{id : "CLSE_TOT_AMT", label:["협력사 확정금액", "#rspan"], type: "ron", width: "100", sort : "int", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"} 
+			,{id : "CUSTMR_CD", label:["업체코드", "#rspan"], type: "ro", width: "100", sort : "str", align : "center", isHidden : true, isEssential : false}
+			];
+		erpDetailGridtoExcel = new dhtmlXGridObject({
+				parent: "div_bot_detail_grid_toExcel"
+				, skin : ERP_GRID_CURRENT_SKINS
+				, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+				, columns : grid_Columns
+		});
+		$erp.initGrid(erpDetailGridtoExcel);
+	}
+	
+	function isSearchValidate(){
+		DATE_FR = $("#txtDATE_FR").val();
+		DATE_TO = $("#txtDATE_TO").val();
+		var isValidated = true;
+		var alertMessage = "";
+		var alertType = "error";
+		
+		if(Number(DATE_FR.split("-").join("")) > Number(DATE_TO.split("-").join(""))) {
+			isValidated = false;
+			alertMessage = "error.common.invalidBeginEndDate";
+		}
+		
+		if($erp.isEmpty(DATE_FR) || $erp.isEmpty(DATE_TO)){
+			isValidated = false;
+			alertMessage = "error.common.date.empty3";
+		}
+		
+		if(!isValidated){
+			$erp.alertMessage({
+				"alertMessage" : alertMessage
+				, "alertCode" : null
+				, "alertType" : alertType
+			});
+		} else {
+			searchHeaderGrid();
+		}
+	}
+	
+	function searchHeaderGrid(){
+		var dataObj = $erp.dataSerialize("tb_search");
+		var data = $erp.unionObjArray([dataObj,LUI]);
+		total_layout.progressOn();
+		$.ajax({
+			url : "/sis/report/PurchaseManagement/getpurchaseByCompanyHeaderList.do"
+			,data : data
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				total_layout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					$erp.clearDhtmlXGrid(erpHeaderGrid);
+					init_detail_grid();
+					init_detail_grid_toExcel();
+					Dbcheck_d = 0;
+					var gridDataList = data.gridDataList;
+					if($erp.isEmpty(gridDataList)){
+						Dbcheck_h = -1;
+						$erp.addDhtmlXGridNoDataPrintRow(
+							erpHeaderGrid
+							, '<spring:message code="grid.noSearchData" />'
+						);
+					} else {
+						Dbcheck_h = 1;
+						erpHeaderGrid.parse(gridDataList, 'js');
+					}
+				}
+				$erp.setDhtmlXGridFooterRowCount(erpHeaderGrid);
+				$erp.setDhtmlXGridFooterSummary(erpHeaderGrid
+						, ["PUR_TAXA_AMT","PUR_FREE_AMT","PAY_SUM_AMT","CONF_AMT","CLSE_TOT_AMT"]
+						,"H"
+						,"합계");
+			}, error : function(jqXHR, textStatus, errorThrown){
+				total_layout.progressOff();
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
+	function searchErpDetailGrid(paramGridData){
+		console.log(paramGridData)
+		total_layout.progressOn();
+		$.ajax({
+			url : "/sis/report/PurchaseManagement/getpurchaseByCompanyDetailList.do"
+			,data : paramGridData
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				total_layout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					$erp.clearDhtmlXGrid(erpDetailGrid);
+					$erp.clearDhtmlXGrid(erpDetailGridtoExcel);
+					var gridDataList = data.gridDataList;
+					if($erp.isEmpty(gridDataList)){
+						Dbcheck_d = -1;
+						$erp.addDhtmlXGridNoDataPrintRow(
+							erpDetailGrid
+							, '<spring:message code="grid.noSearchData" />'
+						);
+					} else {
+							erpDetailGrid.parse(gridDataList, 'js');
+							erpDetailGridtoExcel.parse(gridDataList, 'js');
+							gridGroupBy();
+						}
+					}
+				$erp.setDhtmlXGridFooterRowCount(erpDetailGrid);	//현재 행 수 계산
+				$erp.setDhtmlXGridFooterSummary(erpDetailGrid
+												,["PUR_TAXA_AMT","PUR_FREE_AMT","PAY_SUM_AMT","CONF_AMT","CLSE_TOT_AMT"]
+												,"D"
+												,"합계");
+			}, error : function(jqXHR, textStatus, errorThrown){
+				total_layout.progressOff();
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
+	function openSearchCustmrGridPopup() {
+		var searchText = document.getElementById("txtCUSTMR_NM").value
+		var pur_sale_type = "1"; //협력사(매입처) == "1" 고객사(매출처) == "2"
+		var onRowSelect = function(id, ind) {
+			CUSTMR_CD = this.cells(id, this.getColIndexById("CUSTMR_CD")).getValue();
+			document.getElementById("txtCUSTMR_CD").value = CUSTMR_CD;
+			document.getElementById("txtCUSTMR_NM").value = this.cells(id, this.getColIndexById("CUSTMR_NM")).getValue();
+			$erp.closePopup2("autoBindSearchCustmrPopup");
+		}
+		
+		var searchParams = {};
+		searchParams.SEARCH_URL = "/common/popup/getCustmrList.do";
+		searchParams.SEARCH_AUTO = "Y";
+		searchParams.KEY_WORD = searchText;
+		searchParams.PUR_SALE_TYPE = pur_sale_type;
+		searchParams.SEARCH_TYPE = "custmr";
+		searchParams.USE_YN = "Y";
+		
+		var fnParamMap = new Map();
+		fnParamMap.set("erpPopupCustmrOnRowSelect",onRowSelect);
+		
+		total_layout.progressOn();
+		$.ajax({
+			url : searchParams.SEARCH_URL
+			,data : searchParams
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				total_layout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					var CustmrList = data.CustmrList;
+					if(CustmrList.length == 1){
+						document.getElementById("txtCUSTMR_CD").value = CustmrList[0].CUSTMR_CD;
+						document.getElementById("txtCUSTMR_NM").value = CustmrList[0].CUSTMR_NM;
+					}else{
+						$erp.autoBindSearchCustmrPopup(searchParams, fnParamMap);
+					}
+				}
+			}, error : function(jqXHR, textStatus, errorThrown){
+				total_layout.progressOff();
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
+	function gridGroupBy(){
+		erpDetailGrid.groupBy(erpDetailGrid.getColIndexById("GROUPBYKEY"),["#title","#cspan","#cspan","#stat_total","#stat_total","#stat_total","","#stat_total","","","#stat_total","",""]);
+		erpDetailGrid.collapseAllGroups();//접힌 채 그리드
+	}
+	
+	function enterSearchToGrid(kcode){
+		if(kcode == 13){
+			document.getElementById("txtDATE_FR").blur();
+			document.getElementById("txtDATE_TO").blur();
+			searchHeaderGrid();
+		}
+	}
+	
+	function enterSearchToCustmr(kcode){
+		if(kcode == 13){
+			openSearchCustmrGridPopup();
+		}else{
+			document.getElementById("txtCUSTMR_CD").value = "";
+		}
+	}
+</script>
+</head>
+<body>
+	<div id="div_top_layout" class="samyang_div" style="display:none">
+		<div id="div_top_layout_search" class="samyang_div">
+			<table id="tb_search" class="table">
+				<colgroup>
+					<col width="115px"/>
+					<col width="115px"/>
+					<col width="115px"/>
+					<col width="115px"/>
+					<col width="115px"/>
+					
+					<col width="115px"/>
+					<col width="115px"/>
+					<col width="115px"/>
+					<col width="115px"/>
+					<col width="*"/>
+				</colgroup>
+				<tr>
+					<th colspan="1">법인구분</th>
+					<td colspan="2">
+						<div id="cmbORGN_DIV_CD"></div>
+					</td>
+					<th colspan="1">조직명</th>
+					<td colspan="2">
+						<div id="cmbORGN_CD"></div>
+					</td>
+					<th colspan="1">정산유형</th>
+					<td colspan="3">
+						<div id="cmbPAY_STD"></div>
+					</td>
+				</tr>
+				<tr>
+					<th colspan="1">기간</th>
+					<td colspan="2">
+						<input type="text" id="txtDATE_FR" class="input_calendar default_date" data-position="(1)" value="">
+						<span style="float: left; margin-left: 4px;">~</span>
+						<input type="text" id="txtDATE_TO" class="input_calendar default_date" data-position="" value="" style="float: left; margin-left: 6px;">
+					</td>
+					<th colspan="1">협력사</th>
+					<td colspan="2">
+						<input type="text" id="txtCUSTMR_CD" class="input_common input_readonly" value="" style="width:85px;" readonly/>
+						<input type="text" id="txtCUSTMR_NM" class="input_common" value="" style="width:85px;" autocomplete="off" maxlength="50" onkeydown="enterSearchToCustmr(event.keyCode);"/>
+						<input type="button" id="" class="input_common_button" value="검색" onClick="openSearchCustmrGridPopup();"/>
+					</td>
+					
+					<th colspan="1">정산지급일</th>
+					<td colspan="3">
+						<div id="cmbPAY_DATE_TYPE"></div>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+	
+	<div id="div_bot_header_layout" class="div_layout_full_size div_sub_layout" style="display:none"></div>
+	<div id="div_bot_header_ribbon" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_bot_header_grid" class="div_grid_full_size" style="display:none"></div>
+	
+	<div id="div_bot_detail_layout" class="div_layout_full_size div_sub_layout" style="display:none"></div>
+	<div id="div_bot_detail_ribbon" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_bot_detail_grid" class="div_grid_full_size" style="display:none"></div>
+	<div id = "div_bot_detail_grid_toExcel"></div>
+</body>
+</html>

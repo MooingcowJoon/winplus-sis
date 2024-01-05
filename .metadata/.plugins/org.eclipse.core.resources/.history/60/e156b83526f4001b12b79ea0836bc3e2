@@ -1,0 +1,796 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.stock.dao.StockManagementDao">
+
+	<select id="getstockInspList" resultType="java.util.Map" parameterType="java.util.Map">
+		/*getstockInspList*/
+		SELECT 
+			CONCAT(PT.ORGN_DIV_CD,'_',PT.ORGN_CD,'_',#{SEARCH_FROM_DATE},'_',PT.STORE_AREA,'_',SUM(GOODS_QTY),'_',MAX(CUSER)) AS UNI_KEY
+			,PT.ORGN_DIV_CD
+			,PT.ORGN_CD
+			,PT.STORE_AREA
+			,CASE
+				WHEN COUNT(PT.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PT.BCD_CD)),' 외 ',(COUNT(PT.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PT.BCD_CD))
+				END AS TOT_GOODS_NM
+			,SUM(GOODS_QTY) AS TOT_CNT
+			,MAX(CUSER) AS RESP_USER
+			,MAX(REPLACE(CONVERT(NVARCHAR(10), PT.CDATE, 120 ),'-','')) AS CDATE
+		FROM [WINPLUS_SIS].[DBO].[T_PDA_TEMP] PT
+		WHERE PT.DATA_TYPE = '1'			-- 재고실사
+			<if test ='ORGN_CD != "200000"'>
+			AND PT.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test ='ORGN_CD == "200000"'>
+			AND PT.ORGN_CD IS NOT NULL
+			</if>
+			AND REPLACE(CONVERT(NVARCHAR(10),PT.CDATE,120),'-','') = #{SEARCH_FROM_DATE}
+		GROUP BY PT.ORGN_DIV_CD,PT.ORGN_CD,PT.STORE_AREA
+	</select>
+	
+	<insert id = "saveStockInspList" parameterType="java.util.Map">
+		/* saveStockInspList */
+		DECLARE @PARAM_YYYYMMDD NVARCHAR(8)
+				,@PARAM_ORGN_CD NVARCHAR(10)
+				,@PARAM_UNIKEYS NVARCHAR(MAX)
+				,@PARAM_RESP_USER NVARCHAR(10)
+	
+		SET @PARAM_YYYYMMDD = #{SEARCH_FROM_DATE}
+		SET @PARAM_ORGN_CD = #{ORGN_CD}
+		SET @PARAM_UNIKEYS = #{UNI_KEY}
+		SET @PARAM_RESP_USER = #{CUSER}
+	
+		EXEC SP_STOCK_INSP_C @PARAM_YYYYMMDD,@PARAM_ORGN_CD,@PARAM_UNIKEYS,@PARAM_RESP_USER
+	</insert>
+	
+	<select id="getstockInspSubList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getstockInspSubList */
+		DECLARE @PARAM_YYYYMMDD NVARCHAR(8)
+				,@PARAM_ORGN_CD NVARCHAR(10)
+		
+		SET @PARAM_YYYYMMDD = #{SEARCH_FROM_DATE}
+		SET @PARAM_ORGN_CD = #{ORGN_CD}
+		
+		EXEC SP_STOCK_INSP_R @PARAM_YYYYMMDD,@PARAM_ORGN_CD
+	</select>
+	
+	<insert id = "savePartStockInspList" parameterType="java.util.Map">
+		/* savePartStockInspList */
+		DECLARE @PARAM_YYYYMMDD NVARCHAR(8)
+				,@PARAM_ORGN_CD NVARCHAR(10)
+				,@PARAM_RESP_USER NVARCHAR(10)
+				,@PARAM_FLAG NVARCHAR(1)
+		
+		SET @PARAM_YYYYMMDD = #{SEARCH_FROM_DATE}
+		SET @PARAM_ORGN_CD =#{ORGN_CD}
+		SET @PARAM_RESP_USER = #{CUSER}
+		SET @PARAM_FLAG = '1' -- 1 부분적용 2 전체적용
+		
+		EXEC SP_STOCK_INSP_A @PARAM_YYYYMMDD,@PARAM_ORGN_CD,@PARAM_RESP_USER,@PARAM_FLAG
+	</insert>
+	
+	<insert id = "saveFullStockInspList" parameterType="java.util.Map">
+		/* saveFullStockInspList */
+		DECLARE @PARAM_YYYYMMDD NVARCHAR(8)
+				,@PARAM_ORGN_CD NVARCHAR(10)
+				,@PARAM_RESP_USER NVARCHAR(10)
+				,@PARAM_FLAG NVARCHAR(1)
+		
+		SET @PARAM_YYYYMMDD = #{SEARCH_FROM_DATE}
+		SET @PARAM_ORGN_CD =#{ORGN_CD}
+		SET @PARAM_RESP_USER = #{CUSER}
+		SET @PARAM_FLAG = '2' -- 1 부분적용 2 전체적용
+		
+		EXEC SP_STOCK_INSP_A @PARAM_YYYYMMDD,@PARAM_ORGN_CD,@PARAM_RESP_USER,@PARAM_FLAG
+	</insert>
+	
+	<update id = "saveAddStockInspSubList" parameterType="java.util.Map">
+		/* saveAddStockInspSubList */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+		
+		IF EXISTS(
+			SELECT
+				GOODS_BCD
+			FROM T_STOCK_INSP
+			WHERE ORGN_CD = #{ORGN_CD}
+			AND INSP_DATE = #{MODI_DATE}
+			AND GOODS_BCD= #{GOODS_BCD}
+		)
+			BEGIN
+				UPDATE T_STOCK_INSP
+				SET INSP_QTY = #{INSP_QTY}
+					,INSP_CONV_QTY = (
+										SELECT
+											#{INSP_QTY} * ISNULL(CONV_QTY,1)
+										FROM T_STD_MAST_BCD
+										WHERE BCD_CD = #{GOODS_BCD}
+										AND USE_YN = 'Y'
+									)
+					,MDATE = NOW()
+					,MPROGRM = #{CPROGRM}
+					,MUSER = #{CUSER}
+				WHERE ORGN_CD = #{ORGN_CD}
+				AND INSP_DATE = #{MODI_DATE}
+				AND GOODS_BCD= #{GOODS_BCD}
+			END
+		ELSE
+			BEGIN
+				INSERT INTO T_STOCK_INSP (
+					ORGN_DIV_CD
+					,ORGN_CD
+					,INSP_DATE
+					,GOODS_BCD
+					,INSP_QTY
+					,GOODS_M_BCD
+					,INSP_CONV_QTY
+					,GOODS_NO
+					,RESP_USER
+					,CPROGRM
+					,CUSER
+					,CDATE
+				) VALUES (
+					@ORGN_DIV_CD
+					,#{ORGN_CD}
+					,#{MODI_DATE}
+					,#{GOODS_BCD}
+					,#{INSP_QTY}
+					,(
+						SELECT
+							BCD_M_CD
+						FROM T_STD_MAST_BCD
+						WHERE BCD_CD = #{GOODS_BCD}
+						AND USE_YN = 'Y'
+					)
+					,(
+						SELECT
+							#{INSP_QTY} * ISNULL(CONV_QTY,1)
+						FROM T_STD_MAST_BCD
+						WHERE BCD_CD = #{GOODS_BCD}
+						AND USE_YN = 'Y'
+					)
+					,(
+						SELECT
+							GOODS_NO
+						FROM T_STD_MAST_BCD
+						WHERE BCD_CD = #{GOODS_BCD}
+						AND USE_YN = 'Y'
+					)
+					,#{CUSER}
+					,#{CPROGRM}
+					,#{CUSER}
+					,NOW()
+				)
+			END
+	</update>
+	
+	<delete id = "deleteStockInspSubList" parameterType="java.util.Map">
+		/* deleteStockInspSubList */
+		DELETE FROM T_STOCK_INSP
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND INSP_DATE = #{MODI_DATE}
+		AND GOODS_BCD= #{GOODS_BCD}
+	</delete>
+
+	<select id="nowStockByCategoryList" resultType="java.util.Map" parameterType="java.util.Map">
+		/*nowStockByCategoryList*/
+		SELECT TSGG.GRUP_NM
+				, SUM(B.GOODS_NUM) AS GOODS_NUM
+				, SUM(B.PAY_SUM_AMT) AS PAY_SUM_AMT
+				, SUM(B.SALE_AMT) AS SALE_AMT
+				--, SUM(B.GRNT_AMT) AS GRNT_AMT
+				, SUM(B.FREE_PUR_AMT) AS FREE_PUR_AMT
+				, SUM(B.TAX_PUR_AMT) AS TAX_PUR_AMT
+				, SUM(B.COM_AMT) AS COM_AMT
+				, SUM(B.VAT) AS VAT
+				, TSGG.GRUP_CD
+		FROM (
+				SELECT A.GRUP_NM
+						, A.GRUP_CD
+						, A.GRUP_TOP_CD
+						, A.GRUP_MID_CD
+						, A.GRUP_BOT_CD
+						, A.GOODS_STATE
+						, COUNT(DISTINCT A.GOODS_NO) AS GOODS_NUM/*상품종수*/
+						, SUM(A.PUR_PRICE * A.STOCK_QTY) AS PAY_SUM_AMT/*매입가액*/
+						, SUM(A.SALE_PRICE * A.STOCK_QTY) AS SALE_AMT/*판매가액*/
+						--, SUM(A.GRNT_AMT) AS GRNT_AMT /*보증금*/
+						, SUM(A.FREE_PUR_AMT) AS FREE_PUR_AMT/*면세재고*/
+						, SUM(A.TAX_PUR_AMT) AS TAX_PUR_AMT  /*과세재고*/
+						, SUM(A.TAX_PUR_AMT) * 0.9 AS COM_AMT /*물품가액*/
+						, SUM(A.TAX_PUR_AMT * 0.1) AS VAT/*부가세*/
+				FROM (
+					SELECT TS.STOCK_QTY,
+							TSG.GRUP_NM,
+							TSG.GRUP_CD,
+							TSG.GRUP_TOP_CD,
+							TSG.GRUP_MID_CD,
+							TSG.GRUP_BOT_CD,
+							TSMG.GOODS_STATE,
+							TSMG.GOODS_NO,
+							TSP.SALE_PRICE,
+							TS.ORGN_CD,
+							TPP.PUR_PRICE,
+							TPP.CUSTMR_CD,
+							ISNULL(CASE
+								WHEN TSMG.TAX_TYPE = 'Y' THEN TS.STOCK_QTY
+								END,0) AS FREE_PUR_AMT, /*면세상품일때*/
+							ISNULL(CASE
+								WHEN TSMG.TAX_TYPE = 'N' THEN TS.STOCK_QTY
+								END,0) AS TAX_PUR_AMT /*과세상품일때*/
+					FROM T_STOCK_STAT AS TS
+					INNER JOIN T_STD_MAST_GOODS AS TSMG
+					ON TS.GOODS_NO = TSMG.GOODS_NO
+					INNER JOIN T_STD_GOODSGRUP AS TSG
+					ON TSMG.GRUP_TOP_CD = TSG.GRUP_TOP_CD
+					AND TSMG.GRUP_MID_CD = TSG.GRUP_MID_CD
+					AND TSMG.GRUP_BOT_CD = TSG.GRUP_BOT_CD
+					INNER JOIN T_STD_MAST_SALE_PRICE AS TSP
+					ON TSP.GOODS_NO = TS.GOODS_NO
+					AND TSP.ORGN_CD = TS.ORGN_CD
+					INNER JOIN T_STD_MAST_PUR_PRICE AS TPP
+					ON TSP.GOODS_NO = TPP.GOODS_NO
+					WHERE 1=1
+					<if test = 'ORGN_CD != "" and ORGN_CD != null'>
+					AND TS.ORGN_CD = #{ORGN_CD}
+					</if>
+					GROUP BY TPP.PUR_PRICE,
+							TS.STOCK_QTY,
+							TSMG.TAX_TYPE,
+							TSG.GRUP_CD,
+							TSG.GRUP_NM,
+							TSG.GRUP_TOP_CD,
+							TSG.GRUP_MID_CD,
+							TSG.GRUP_BOT_CD,
+							TSMG.GOODS_STATE,
+							TSMG.GOODS_NO,
+							TSP.SALE_PRICE,
+							TS.ORGN_CD,
+							TPP.CUSTMR_CD
+					) AS A
+			WHERE 1=1
+			<if test ='ORGN_CD == ""'>
+				AND A.ORGN_CD IS NOT NULL
+				</if>
+				<if test='ORGN_CD != "" and ORGN_CD != null'>
+				AND A.ORGN_CD = #{ORGN_CD}
+				</if>
+				<if test ='SURP_CD != ""'>
+				AND A.CUSTMR_CD = #{SURP_CD}
+				</if>
+			GROUP BY A.GRUP_NM, A.GRUP_CD, A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD, A.GOODS_STATE
+			) AS B
+			INNER JOIN T_STD_GOODSGRUP AS TSGG 
+			ON <if test = 'searchCheck == "ribbon"'>/*리본으로 조회할때*/
+			<choose>
+				<when test='GRUP_CD == "ALL"'>
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+					AND TSGG.GRUP_MID_CD = '0'
+					AND TSGG.GRUP_BOT_CD = '0' /*전체분류조회눌렀을때*/
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+					AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+					AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+					AND TSGG.GRUP_BOT_CD = '0' /*대분류눌렀을때*/
+					</when>
+					<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+						TSGG.GRUP_TOP_CD =  B.GRUP_TOP_CD
+						AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+						AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+						AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+						AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD /*중분류눌렀을때*/  
+					</when>
+					<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+						TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+						AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+						AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+						AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+						AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD /*소분류눌렀을때*/
+					</when>
+				</choose>
+			</if> 
+			<if test = 'searchCheck == "Dbclick"'> /*더블클릭으로 조회할때*/
+				<choose>
+					<when test ='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'> /*대분류더블클릭했을때*/
+						 TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+						 AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+						 AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+						 AND TSGG.GRUP_BOT_CD = '0'
+					</when> 
+					<when test = 'GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'> /*중분류더블클릭했을때*/
+						TSGG.GRUP_TOP_CD =  B.GRUP_TOP_CD
+						AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+						AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+						AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+						AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD
+					</when>
+					<when test = 'GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'> /*소분류더블클릭했을때*/
+						TSGG.GRUP_TOP_CD =  B.GRUP_TOP_CD
+						AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+						AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+						AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+						AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD
+					</when>
+				</choose>
+			</if>
+			<if test = 'Invalid_Goods == "0" '>	<!-- 무효상품 조건 --> 
+				AND B.GOODS_STATE = 'Y'
+			</if>
+			<if test = 'Invalid_Goods == "1" '>
+				AND B.GOODS_STATE IS NOT NULL
+			</if>
+			GROUP BY TSGG.GRUP_NM , TSGG.GRUP_CD
+	</select>
+	
+	<select id="nowStockByCategoryTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/*nowStockByCategoryTMB*/
+		SELECT TSG.GRUP_TOP_CD /*대뷴류*/
+			,TSG.GRUP_MID_CD /*중분류*/
+			,TSG.GRUP_BOT_CD /*소분류*/
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE TSG.GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="nowStockBySingleList" resultType="java.util.Map" parameterType="java.util.Map">
+		/*nowStockBysingleList*/
+			SELECT TS.ORGN_CD
+					,MAST.BCD_NM
+					,MAST.DIMEN_NM
+					,TS.GOODS_M_BCD
+					,MAST.SALE_PRICE
+					,MAST.PUR_PRICE
+					,TS.STOCK_QTY
+					,MAX(MAST.SALE_PRICE) AS PR_SALE_PRICE --현매입가액
+					,MAX(MAST.PUR_PRICE) AS PR_PUR_PRICE --현판매가액
+					,MAX(TS.STD_DATE) AS STD_DATE
+					,MAST.GOODS_NO
+			FROM T_STOCK_STAT AS TS
+			LEFT OUTER JOIN (
+							SELECT TSP.ORGN_CD
+									, TSP.ORGN_DIV_CD
+									, TB.GOODS_NO
+									, TB.BCD_CD
+									, TB.BCD_NM
+									, TB.BCD_M_CD
+									, TB.DIMEN_NM
+									, PUR_PRICE
+									, SALE_PRICE
+									, TSMG.GRUP_TOP_CD
+									, TSMG.GRUP_MID_CD
+									, TSMG.GRUP_BOT_CD
+									, TSMG.GOODS_STATE
+							FROM T_STD_MAST_BCD TB
+							INNER JOIN (
+								SELECT PUR_PRICE, BCD_CD, RM
+								FROM (
+									SELECT BCD_CD
+											,MIN(PUR_PRICE) AS PUR_PRICE 
+											,ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY PUR_PRICE ) RM
+									FROM T_STD_MAST_PUR_PRICE WITH(NOLOCK) 
+									GROUP BY BCD_CD, PUR_PRICE
+									) MSP
+								WHERE RM = 1
+							) TPP 
+							ON TB.BCD_CD = TPP.BCD_CD
+							INNER JOIN T_STD_MAST_SALE_PRICE TSP
+							ON TB.BCD_CD = TSP.BCD_CD
+							INNER JOIN T_STD_MAST_GOODS AS TSMG
+							ON TB.GOODS_NO = TSMG.GOODS_NO
+					) MAST
+			ON TS.ORGN_CD = MAST.ORGN_CD AND TS.GOODS_M_BCD = MAST.BCD_M_CD
+			LEFT OUTER JOIN T_STD_GOODSGRUP_U_DETL AS TU
+			ON MAST.BCD_CD = TU.OBJ_CD 
+			AND TU.OBJ_CD = TS.GOODS_M_BCD
+			AND TU.ORGN_CD = TS.ORGN_CD
+			WHERE 1=1
+			<if test ='ORGN_CD == ""'>
+			AND TS.ORGN_CD IS NOT NULL
+			</if>
+			<if test='ORGN_CD != "" and ORGN_CD != null'>
+			AND TS.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test='ORGN_DIV_CD != "" and ORGN_DIV_CD != null'>
+			AND TS.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test= 'Goods_Name != "" and Goods_Name != null'>
+			AND TU.GRUP_CD = #{Goods_Name}
+			</if>
+			<if test ='SURP_CD != ""'>
+			AND MAST.CUSTMR_CD = #{SURP_CD}
+			</if>
+			<if test = 'KEY_WORD != ""'>
+			AND MAST.BCD_NM LIKE '%'+#{KEY_WORD}+'%'
+			</if>
+			<if test = 'cmbSTOCK == "00"'>
+			AND <![CDATA[TS.STOCK_QTY IS NOT NULL]]>
+			</if>
+			<if test = 'cmbSTOCK == "01"'>
+			AND <![CDATA[TS.STOCK_QTY > 0]]>
+			</if>
+			<if test = 'cmbSTOCK == "02"'>
+			AND <![CDATA[TS.STOCK_QTY < 0]]>
+			</if>
+			<if test = 'cmbSTOCK == "03"'>
+			AND <![CDATA[TS.STOCK_QTY = 0]]>
+			</if>
+			<if test = 'cmbSTOCK == "04"'>
+			AND <![CDATA[TS.STOCK_QTY != 0]]>
+			</if>
+			<choose>
+				<when test='GRUP_CD == "ALL"'>
+				AND TS.GOODS_NO IS NOT NULL /*전체분류조회눌렀을때*/
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+				AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD != '0' AND MAST.GRUP_BOT_CD != '0' /*대분류눌렀을때*/ 
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+				AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD != 0  /*중분류눌렀을때*/  
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+				AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD = #{GRUP_BOT_CD} /*소분류눌렀을때*/
+				</when>
+			</choose>
+			<if test = 'Invalid_Goods == "0" '> 	<!-- 무효상품 조건 --> 
+			AND MAST.GOODS_STATE = 'Y'
+			</if>
+			<if test = 'Invalid_Goods == "1" '>
+			AND MAST.GOODS_STATE IS NOT NULL
+			</if>
+<!-- 			<if test = 'Goods_Name != ""'>		상품집합 조건 -->
+<!-- 			AND TU.GRUP_CD LIKE '%'+#{Goods_Name}+'%' -->
+<!-- 			</if> -->
+			GROUP BY TS.ORGN_CD
+					,MAST.BCD_NM
+					,MAST.DIMEN_NM
+					,TS.GOODS_M_BCD
+					,MAST.SALE_PRICE
+					,MAST.PUR_PRICE
+					,TS.STOCK_QTY
+					,TS.STD_DATE
+					,MAST.GOODS_NO
+	</select>
+	
+	<select id="nowStockBySingleTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* nowStockBySingleTMB */
+			SELECT TSG.GRUP_TOP_CD
+				,TSG.GRUP_MID_CD
+				,TSG.GRUP_BOT_CD
+			FROM T_STD_GOODSGRUP AS TSG
+			WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="stockChangeHistoryList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* stockChangeHistoryList */
+			SELECT CONVERT(NVARCHAR(10), TSIS.APPLY_DATE, 23) AS APPLY_DATE --실사적용일
+					,TSIG.GOODS_BCD --바코드
+					,TSMG.GOODS_NM --상품명
+					,TSIG.INSP_QTY --실사량
+					,TSIG.STOCK_BEFR --실사전
+					,(TSIG.INSP_QTY - TSIG.STOCK_BEFR) AS LOSS_QTY --로스량
+					,TSIG.PUR_PRICE --매입단가
+					,TSIG.SALE_PRICE  --판매단가
+					,(TSIG.PUR_PRICE * TSIG.INSP_QTY) AS INSP_PAY_SUM_AMT --실사매입가액
+					,(TSIG.SALE_PRICE * TSIG.INSP_QTY) AS INSP_SALE_AMT --실사판매가액
+					,(TSIG.PUR_PRICE * (TSIG.INSP_QTY - TSIG.STOCK_BEFR)) AS LOSS_PAY_SUM_AMT --로스매입가액
+					,(TSIG.SALE_PRICE * (TSIG.INSP_QTY - TSIG.STOCK_BEFR)) AS LOSS_SALE_AMT --로스판매가액
+					,(TSIS.SLIP_YYMMDD + TSIS.SLIP_HHMMSS) AS SLIP_DATE --실사등록일
+					,TSIS.INSP_TYPE--비고
+			FROM T_STOCK_INSP_GOODS AS TSIG
+			INNER JOIN T_STOCK_INSP_SLIP AS TSIS
+				ON TSIG.ORGN_DIV_CD = TSIS.ORGN_DIV_CD
+				AND TSIG.ORGN_CD = TSIS.ORGN_CD
+				AND TSIG.INSP_CD = TSIS.INSP_CD
+			INNER JOIN T_STOCK_INSP AS TI
+				ON TSIG.ORGN_DIV_CD = TI.ORGN_DIV_CD
+				AND TSIG.ORGN_CD = TI.ORGN_CD
+				AND TSIG.GOODS_BCD = TI.GOODS_BCD
+			INNER JOIN T_STD_MAST_GOODS AS TSMG
+				ON TSIG.GOODS_CD = TSMG.GOODS_NO
+			INNER JOIN T_STD_MAST_BCD AS TSMB
+				ON  TSMG.GOODS_NO = TSMB.GOODS_NO
+			<!-- INNER JOIN T_STD_GOODSGRUP_U_DETL AS TU
+				ON  TSMB.BCD_CD = TU.OBJ_CD -->
+			INNER JOIN T_STD_CUSTMR_GOODS AS TSCG
+				ON  TSIG.GOODS_BCD = TSCG.BCD_CD
+				AND TSMG.GOODS_NO = TSCG.GOODS_NO
+			WHERE TSIS.APPLY_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1,#{SEARCH_DATE_TO}))
+			<if test = 'ORGN_DIV_CD != ""'>
+				AND TSIG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test = 'ORGN_CD != "" and ORGN_CD != null'>
+				AND TSIG.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test ='SURP_CD != ""'>		<!-- 협력사 조건 -->
+				AND TSCG.CUSTMR_CD =#{SURP_CD}
+			</if>
+			<if test ='Goods_Name != ""'>		<!-- 지정삼품 조건 -->
+				AND TSMG.GOODS_NM LIKE '%' + #{Goods_Name} + '%'
+			</if>
+			<if test = 'Set_Goods != ""'>		<!-- 상품집합 조건 -->
+				AND TU.GRUP_CD LIKE '%'+#{Set_Goods}+'%'
+			</if>
+			<choose>
+				<when test='GRUP_CD == "ALL"'>
+				AND TSMG.GOODS_NO != 0 /*전체분류조회눌렀을때*/
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+				AND TSMG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TSMG.GRUP_MID_CD != '0' AND TSMG.GRUP_BOT_CD != '0' /*대분류눌렀을때*/
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+				AND TSMG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TSMG.GRUP_MID_CD = #{GRUP_MID_CD} AND TSMG.GRUP_BOT_CD != '0' /*중분류눌렀을때*/
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+				AND TSMG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TSMG.GRUP_MID_CD = #{GRUP_MID_CD} AND TSMG.GRUP_BOT_CD = #{GRUP_BOT_CD} /*소분류눌렀을때*/
+				</when>
+			</choose>
+			<choose>
+				<when test = 'lossSTOCK == "00"'>		<!-- 로스유형 조건 -->
+				AND <![CDATA[(TSIG.INSP_QTY - TSIG.STOCK_BEFR) IS NOT NULL]]>
+				</when>
+				<when test = 'lossSTOCK == "01"'>
+				AND <![CDATA[(TSIG.INSP_QTY - TSIG.STOCK_BEFR) = 0]]>
+				</when>
+				<when test = 'lossSTOCK == "02"'>
+				AND <![CDATA[(TSIG.INSP_QTY - TSIG.STOCK_BEFR) < 0]]>
+				</when>
+				<when test = 'lossSTOCK == "03"'>
+				AND <![CDATA[(TSIG.INSP_QTY - TSIG.STOCK_BEFR) > 0]]>
+				</when> 
+				<when test = 'lossSTOCK == "04"'>
+				AND <![CDATA[(TSIG.INSP_QTY - TSIG.STOCK_BEFR) IS NOT NULL]]>
+				</when> 
+			</choose>
+			<choose>
+				<when test = 'changeSTOCK == "1"'>		<!-- 실사재고상태 조건 -->
+				AND TI.INSP_STOCK_STATE = '1'
+				</when>
+				<when test = 'changeSTOCK == "2"'>
+				AND TI.INSP_STOCK_STATE = '2'
+				</when>
+				<when test = 'changeSTOCK == "3"'>
+				AND TI.INSP_STOCK_STATE = '3'
+				</when>
+			</choose>
+	</select>
+	
+	<select id="stockChangeHistoryTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* stockChangeHistoryTMB */
+		SELECT TSG.GRUP_TOP_CD
+				,TSG.GRUP_MID_CD
+				,TSG.GRUP_BOT_CD
+			FROM T_STD_GOODSGRUP AS TSG
+			WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="monStockByCategoryList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* monStockByCategoryList */
+		SELECT TSGG.GRUP_NM
+				, SUM(B.GOODS_NUM) AS GOODS_NUM
+				, SUM(B.PAY_SUM_AMT) AS PAY_SUM_AMT
+				, SUM(B.SALE_AMT) AS SALE_AMT
+				, SUM(B.GRNT_AMT) AS GRNT_AMT
+				, SUM(B.TAX_PUR_AMT) AS TAX_PUR_AMT
+				, SUM(B.COM_AMT) AS COM_AMT
+				, SUM(B.VAT) AS VAT
+				, TSGG.GRUP_CD
+		FROM (
+			SELECT A.GRUP_NM
+				, A.GRUP_CD
+				, A.GRUP_TOP_CD
+				, A.GRUP_MID_CD
+				, A.GRUP_BOT_CD
+				, COUNT(DISTINCT A.GOODS_CD) AS GOODS_NUM
+				, (SUM(A.FREE_PUR_AMT) + SUM(A.TAX_PUR_AMT)) AS PAY_SUM_AMT/*매입가액*/
+				, SUM(A.SALE_PRICE * A.STOCK_QTY) AS SALE_AMT/*판매가액*/
+				, SUM(A.GRNT_AMT) AS GRNT_AMT /*보증금*/
+				, SUM(A.FREE_PUR_AMT) AS FREE_PUR_AMT/*면세재고*/
+				, SUM(A.TAX_PUR_AMT) AS TAX_PUR_AMT  /*과세재고*/
+				, SUM(A.TAX_PUR_AMT) * 0.9 AS COM_AMT /*물품가액*/
+				, SUM(A.TAX_PUR_AMT * 0.1) AS VAT/*부가세*/
+			FROM (
+				SELECT TSC.SALE_PRICE,
+						TSC.STOCK_QTY,
+						TSC.GOODS_CD,
+						TSC.GRNT_AMT,
+						TSG.GRUP_NM,
+						TSG.GRUP_CD,
+						TSG.GRUP_TOP_CD,
+						TSG.GRUP_MID_CD,
+						TSG.GRUP_BOT_CD,
+						TSMG.GOODS_STATE,
+						(TSC.STOCK_YY + '-' + TSC.STOCK_MM) AS STOCK_YM,
+						ISNULL(CASE
+							WHEN TSC.TAX_TYPE = '0' THEN TSC.PUR_PRICE * TSC.STOCK_QTY
+							END,0) AS FREE_PUR_AMT, /*면세상품일때*/
+						ISNULL(CASE
+							WHEN TSC.TAX_TYPE = '1' THEN TSC.PUR_PRICE * TSC.STOCK_QTY
+							END,0) AS TAX_PUR_AMT /*과세상품일때*/
+				FROM T_STOCK_CLSE AS TSC
+				INNER JOIN T_STD_MAST_GOODS AS TSMG
+				ON TSC.GOODS_CD = TSMG.GOODS_NO
+				INNER JOIN T_STD_GOODSGRUP AS TSG
+				ON TSMG.GRUP_TOP_CD = TSG.GRUP_TOP_CD
+				AND TSMG.GRUP_MID_CD = TSG.GRUP_MID_CD
+				AND TSMG.GRUP_BOT_CD = TSG.GRUP_BOT_CD
+				GROUP BY TSC.GOODS_CD,
+						TSC.SALE_PRICE,
+						TSC.STOCK_QTY,
+						TSC.GRNT_AMT,
+						TSC.TAX_TYPE,
+						TSC.PUR_PRICE,
+						TSC.STOCK_YY,
+						TSC.STOCK_MM,
+						TSG.GRUP_CD,
+						TSG.GRUP_NM,
+						TSG.GRUP_TOP_CD,
+						TSG.GRUP_MID_CD,
+						TSG.GRUP_BOT_CD,
+						TSMG.GOODS_STATE
+				) AS A
+			WHERE A.STOCK_YM = #{SEARCH_DATE_FROM}
+			<if test = 'SURP_CD != ""'>
+				AND A.CUSTMR_CD =  #{SURP_CD}
+			</if>
+			<if test = 'Invalid_Goods == "0" '>
+				AND A.GOODS_STATE = 'Y'
+			</if>
+			<if test = 'Invalid_Goods == "1" '>
+				AND A.GOODS_STATE IS NOT NULL
+			</if>
+			GROUP BY A.GRUP_NM, A.GRUP_CD, A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD
+			) AS B
+		INNER JOIN T_STD_GOODSGRUP AS TSGG
+		ON
+		<if test = 'searchCheck == "ribbon"'> /*리본으로 조회할때*/
+			<choose>
+				<when test='GRUP_CD == "ALL"'>
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+					AND TSGG.GRUP_MID_CD = '0'
+					AND TSGG.GRUP_BOT_CD = '0'
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD 
+					AND B.GRUP_TOP_CD = #{GRUP_TOP_CD} 
+					AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD 
+					AND TSGG.GRUP_BOT_CD = '0'
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+					TSGG.GRUP_TOP_CD =  B.GRUP_TOP_CD
+					AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+					AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+					AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+					AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+					AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+					AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+					AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+					AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD
+				</when>
+			</choose>
+		</if>
+		<if test = 'searchCheck == "Dbclick"'> /*더블클릭으로 조회할때*/
+			<choose>
+				<when test ='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'> /*대분류더블클릭했을때*/
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+					AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+					AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+					AND TSGG.GRUP_BOT_CD = '0'
+				</when> 
+				<when test = 'GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'> /*중분류더블클릭했을때*/
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+					AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+					AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+					AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+					AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD
+				</when>
+				<when test = 'GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'> /*소분류더블클릭했을때*/
+					TSGG.GRUP_TOP_CD = B.GRUP_TOP_CD
+					AND B.GRUP_TOP_CD = #{GRUP_TOP_CD}
+					AND TSGG.GRUP_MID_CD = B.GRUP_MID_CD
+					AND B.GRUP_MID_CD = #{GRUP_MID_CD}
+					AND TSGG.GRUP_BOT_CD = B.GRUP_BOT_CD
+				</when>
+			</choose>
+		</if>
+		GROUP BY TSGG.GRUP_NM, TSGG.GRUP_CD
+	</select>
+	
+	<select id="monStockByCategoryTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* monStockByCategoryTMB */
+		SELECT TSG.GRUP_TOP_CD
+			,TSG.GRUP_MID_CD
+			,TSG.GRUP_BOT_CD
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>	
+	
+	<select id="monStockBySingleList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* monStockBySingleList */
+		SELECT A.GOODS_NM
+				,A.DIMEN_NM
+				,A.BCD_CD
+				,A.STOCK_QTY
+				,A.PUR_PRICE
+				,A.SALE_PRICE
+				,(A.PUR_PRICE * A.STOCK_QTY) AS PAY_SUM_AMT /*매입가액*/
+				,(A.SALE_PRICE * A.STOCK_QTY) AS SALE_AMT /*판매가액*/
+				,A.GRNT_AMT
+				,A.TAX_PUR_AMT
+				,A.TAX_PUR_AMT * 0.9 AS COM_AMT /*물품가액*/
+				,A.TAX_PUR_AMT * 0.1 AS VAT /*부가세*/
+				,CONVERT(VARCHAR ,A.END_DATE, 120) AS END_DATE
+		FROM (SELECT TSC.*
+					,TSMG.GOODS_NM
+					,TSMG.GRUP_TOP_CD
+					,TSMG.GRUP_MID_CD
+					,TSMG.GRUP_BOT_CD
+					,TSMG.GOODS_STATE
+					,TSMB.DIMEN_NM
+					,TSMB.BCD_CD
+					,TU.GRUP_CD
+					,(TSC.STOCK_YY + '-' + TSC.STOCK_MM) AS STOCK_YM
+					,ISNULL(CASE
+						WHEN TSC.TAX_TYPE = '0' THEN TSC.PUR_PRICE * TSC.STOCK_QTY
+						END,0) AS FREE_PUR_AMT /*면세상품일때*/
+					,ISNULL(CASE
+						WHEN TSC.TAX_TYPE = '1' THEN TSC.PUR_PRICE * TSC.STOCK_QTY
+						END,0) AS TAX_PUR_AMT /*과세상품일때*/
+				FROM T_STOCK_CLSE AS TSC
+				INNER JOIN T_STD_MAST_BCD AS TSMB
+				ON TSC.GOODS_CD = TSMB.GOODS_NO
+				INNER JOIN T_STD_MAST_GOODS AS TSMG
+				ON TSMB.GOODS_NO = TSMG.GOODS_NO
+				INNER JOIN T_STD_GOODSGRUP_U_DETL AS TU
+				ON TSMB.BCD_CD = TU.OBJ_CD
+			) AS A
+		WHERE A.STOCK_YM = #{SEARCH_DATE_FROM}
+			<if test ='SURP_CD != ""'>
+			AND A.CUSTMR_CD = #{SURP_CD}
+			</if>
+			<if test ='KEY_WORD != ""'>
+			AND A.GOODS_NM LIKE '%'+#{KEY_WORD}+'%'
+			</if>
+			<if test = 'Invalid_Goods == "0"'>
+			AND A.GOODS_STATE = 'Y'
+			</if>
+			<if test = 'Invalid_Goods == "1"'>
+			AND A.GOODS_STATE IS NOT NULL
+			</if>	
+			<if test = 'Set_Goods != ""'>
+			AND A.GRUP_CD LIKE '%'+#{Set_Goods}+'%'
+			</if>
+			<choose>
+				<when test='GRUP_CD == "ALL"'>
+				AND A.GOODS_CD != 0
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+				AND A.GRUP_TOP_CD = #{GRUP_TOP_CD} AND A.GRUP_MID_CD != '0' AND A.GRUP_BOT_CD != '0'
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+				AND A.GRUP_TOP_CD = #{GRUP_TOP_CD} AND A.GRUP_MID_CD = #{GRUP_MID_CD} AND A.GRUP_BOT_CD != '0'
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+				AND A.GRUP_TOP_CD = #{GRUP_TOP_CD} AND A.GRUP_MID_CD = #{GRUP_MID_CD} AND A.GRUP_BOT_CD = #{GRUP_BOT_CD}
+				</when>
+			</choose>
+		GROUP BY A.GOODS_NM, A.DIMEN_NM, A.BCD_CD, A.STOCK_QTY, A.PUR_PRICE, A.SALE_PRICE, A.GRNT_AMT, A.TAX_PUR_AMT, A.TAX_TYPE , END_DATE, A.GOODS_STATE, A.GRUP_CD
+		ORDER BY A.BCD_CD
+	</select>
+	
+	<select id="monStockBySingleTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* monStockBySingleTMB */
+		SELECT TSG.GRUP_TOP_CD
+			,TSG.GRUP_MID_CD
+			,TSG.GRUP_BOT_CD
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+</mapper>

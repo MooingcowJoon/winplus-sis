@@ -1,0 +1,874 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+ <%@ include file="/WEB-INF/jsp/common/include/taglib.jspf" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_page_script_header.jsp"/>
+<script type="text/javascript" src="/resources/common/js/report.js?ver=23"></script>
+<script type="text/javascript">
+	<%--
+		※ 전역 변수 선언부 
+		□ 변수명 : Type / Description
+		■ erpLayout : Object / 페이지 Layout DhtmlXLayout
+		■ erpRibbon : Object / 리본형 버튼 목록 DhtmlXRibbon
+		■ erpGrid : Object / 표준분류코드 조회 DhtmlXGrid
+		■ erpGridColumns : Array / 표준분류코드 DhtmlXGrid Header
+		■ erpGridDataProcessor : Object / 데이터프로세서 DhtmlXDataProcessor; 
+		■ cmbORD_STATE : Object / 발주진행상태  DhtmlXCombo  (CODE : ORD_STATE ) 		 
+		■ Create Date : 2019-08-20
+		■ Modify Date :	 
+	--%>
+	//LUI : 로그인한 유저의 세션 정보에서 그리드 데이터 직렬화시 공통으로 추가 시키고 싶은 데이터를 넣는 객체
+	LUI = JSON.parse('${empSessionDto.lui}');
+	
+	var LOGIN_ORGN_DIV_CD    =   "";
+	var LOGIN_ORGN_DIV_NM    =   "";
+	var LOGIN_ORGN_DIV_TYP   =   "";
+	var LOGIN_ORGN_CD        =   "";
+	var LOGIN_ORGN_NM        =   "";
+	var LOGIN_EMP_NO         =   "";
+	var LOGIN_EMP_NM         =   "";	
+	var LOGIN_CUSTMR_CD      =   ""; /* 센터에서 로그인을 했으면  윈플러스 대표 */
+	
+	var Called_program_nm    =   "${screenDto.menu_cd}";
+	
+	var erpLayout;
+	var erpRibbon;	
+	var erpGrid;
+	var erpGridBack;
+	
+	var erpGridColumns;
+	var erpGridDataProcessor;	
+	var cmbORD_STATE;               /* 발주진행상태       */
+	var erpGridSelectedCustmr_cd;   /* 그리드 rowSelected */
+
+	var today = $erp.getToday("");
+	var thisYear = today.substring(0,4);
+	var thisMonth = today.substring(4,6);
+	var thisDay = today.substring(6,8);
+	var todayDate = thisYear + "-" + thisMonth + "-01";
+	today = thisYear + "-" + thisMonth + "-" + thisDay;
+
+	
+	$(document).ready(function(){		
+		initErpLayout();
+		getLoginOrgInfo();
+		//initErpRibbon();
+		initErpRibbon();
+		initErpGrid();
+		initErpGridBack();		
+		
+		console.log(" Called Menu => " + Called_program_nm);
+		 
+		document.getElementById("searchordStrDt").value=todayDate;
+		document.getElementById("searchordEndDt").value=today;
+				
+	});
+	
+	/****************************************************************************/
+    /* erpLayout 초기화                                                         */
+    /****************************************************************************/	
+	function initErpLayout(){
+		erpLayout = new dhtmlXLayoutObject({
+			parent: document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern: "3E"
+			, cells: [
+				{id: "a", text: "${menuDto.menu_nm}", header:true, height:65}
+				, {id: "b", text: "", header:false, fix_size:[true, true]}
+				, {id: "c", text: "", header:false}
+			]		
+		});
+		
+		erpLayout.cells("a").attachObject("div_erp_contents_search");
+		erpLayout.cells("b").attachObject("div_erp_ribbon");
+		erpLayout.cells("b").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		erpLayout.cells("c").attachObject("div_erp_grid");
+		//erpLayout.cells("d").attachObject("div_erp_grid_back");
+		
+		erpLayout.setSeparatorSize(1, 0);
+		
+		<%-- erpLayout 사이즈 변경 시 Event --%>	
+		$erp.setEventResizeDhtmlXLayout(erpLayout, function(names){
+			erpGrid.setSizes();
+		});
+	}
+
+	/***************************************************/
+	/* Login Id 조직 및 권한구하기 
+	/***************************************************/
+	function getLoginOrgInfo( ){
+		erpLayout.progressOn();
+		$.ajax({
+			url : "/sis/order/getLoginOrgInfo.do"
+			,data : { "LoginID"  : "" }
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				erpLayout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					LOGIN_ORGN_DIV_CD    =   data.gridDataList.ORGN_DIV_CD;
+					LOGIN_ORGN_DIV_NM    =   data.gridDataList.ORGN_DIV_CD_NM;
+					LOGIN_ORGN_DIV_TYP   =   data.gridDataList.ORGN_DIV_TYPE;
+			        LOGIN_ORGN_CD        =   data.gridDataList.DEPT_CD;
+			        LOGIN_ORGN_NM        =   data.gridDataList.ORGN_NM;
+			        LOGIN_EMP_NO         =   data.gridDataList.EMP_NO;
+			        LOGIN_EMP_NM         =   data.gridDataList.EMP_NM;
+			        
+			        LOGIN_CUSTMR_CD      =   data.gridDataList.WIN_CUSTMR_CD;
+			        
+					console.log("LOGIN_ORGN_DIV_CD=>"   + LOGIN_ORGN_DIV_CD);          
+					console.log("LOGIN_ORGN_DIV_NM=>"   + LOGIN_ORGN_DIV_NM);          
+					console.log("LOGIN_ORGN_DIV_TYP=>"  + LOGIN_ORGN_DIV_TYP);          
+					console.log("LOGIN_ORGN_CD=>"       + LOGIN_ORGN_CD);          
+					console.log("LOGIN_ORGN_NM=>"       + LOGIN_ORGN_NM);          
+					console.log("LOGIN_EMP_NO=>"        + LOGIN_EMP_NO);          
+					console.log("LOGIN_EMP_NM=>"        + LOGIN_EMP_NM);  
+					
+					/* 이메일 , 펙스 칼럼 숨김 처리 */
+			        if 	( Called_program_nm ==  "00456" ) {    // 주문서(고객사/직영점→센터)_조회
+			        	erpGrid.setColumnHidden(24,true); 
+			        	erpGrid.setColumnHidden(25,true);
+			        }
+			        
+					initDhtmlXCombo();
+
+				}
+			}, error : function(jqXHR, textStatus, errorThrown){
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}	
+	
+	
+	/****************************************************************************/
+    /* erpRibbon 초기화                                                         */
+    /****************************************************************************/	
+	function initErpRibbon(){
+
+		console.log("========initErpRibbon========");
+
+			erpRibbon = new dhtmlXRibbon({
+				parent : "div_erp_ribbon"
+				, skin : ERP_RIBBON_CURRENT_SKINS
+				, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+				, items : [
+					{type : "block", mode : 'rows', list : [
+							  {id : "search_erpGrid", type : "button", text:'<spring:message code="ribbon.search" />', isbig : false, img : "menu/search.gif", imgdis : "menu/search_dis.gif", disable : true}
+					//		, {id : "excel_erpGrid",  type : "button", text:'<spring:message code="ribbon.excel" />',  isbig : false, img : "menu/excel.gif",  imgdis : "menu/excel_dis.gif",  disable : true}
+					//		, {id : "excel_erpGri1",  type : "button", text:'email발송',                               isbig : false, img : "menu/add.gif",    imgdis : "menu/add_dis.gif",    disable : true}
+					//		, {id : "excel_erpGri2",  type : "button", text:'Fax발송',                                 isbig : false, img : "menu/add.gif",    imgdis : "menu/add_dis.gif",    disable : true}
+							, {id : "excel_erpGri3",  type : "button", text:'주문취소',                                isbig : false, img : "menu/add.gif",    imgdis : "menu/add_dis.gif",    disable : true}
+							, {id : "excel_erpGri5",  type : "button", text:'출고요청',                                isbig : false, img : "menu/add.gif",    imgdis : "menu/add_dis.gif",    disable : true}
+							, {id : "print_erpGrid",  type : "button", text:'발주서출력',                              isbig : false, img : "menu/print.gif",  imgdis : "menu/print_dis.gif",  disable : true}		
+					]}	
+				]
+			});
+		
+		
+		erpRibbon.attachEvent("onClick", function(itemId, bId){
+		    if(itemId == "search_erpGrid"){
+		    	searchErpGrid();
+		    } else if (itemId == "add_erpGrid"){
+		    	addErpGrid();
+		    } else if (itemId == "delete_erpGrid"){
+		    	//deleteErpGrid();
+		    } else if (itemId == "save_erpGrid"){
+		    	//saveErpGrid();
+		    } else if (itemId == "excel_erpGrid"){
+		    	
+		    } else if (itemId == "excel_erpGri1"){
+		    	
+		    } else if (itemId == "excel_erpGri2"){
+		    	
+		    } else if (itemId == "excel_erpGri3"){
+		    	ProcessConfirm("2");     /* 취소 */
+		    } else if (itemId == "excel_erpGri5"){
+		    	ProcessConfirm("4");     /* 접수 */
+		    } else if (itemId == "print_erpGrid"){
+		    	printOrderSheet();
+		    }
+		});
+	}
+
+	
+	/*********************************************************/
+	/* 상태변경전 Confirm
+	/*********************************************************/
+	function ProcessConfirm(change_ord_statge){
+		
+        /* 주문취소건은 WMS상태를 체크하여 WMS정송완료건은 취소 불가능하도록 한다 */		
+		var erpGridRowCount  = erpGrid.getRowsNum();
+		var select_cnt       = 0;
+
+		if ( change_ord_statge == "2") {
+			for(var i = 0; i < erpGridRowCount; i++){
+				var leftRid    = erpGrid.getRowId(i);
+				var check      = erpGrid.cells(leftRid, erpGrid.getColIndexById("CHECK")).getValue();
+				if(check == 1){
+					var WMS_STATE  = erpGrid.cells(leftRid, erpGrid.getColIndexById("WMS_STATE"  )).getValue();
+					if ( WMS_STATE == "03") {
+						select_cnt = select_cnt + 1;
+					}
+				}
+			}		
+			
+		    if ( select_cnt > 0 ) {
+				$erp.alertMessage({
+					"alertMessage" : "WMS 전송완료건은 취소불가능합니다.",
+					"alertCode" : null,
+					"alertType" : "alert",
+					"isAjax" : false
+				});
+				return false;
+		    }
+			
+		}
+		
+		
+		var alertMessage = '<spring:message code="alert.common.proceedData" />';
+		var alertCode = "";
+		var alertType = "alert";
+		var callbackFunction = function(){
+			var crud = "D";
+			save_mast_update(change_ord_statge); 
+		}
+		
+		$erp.confirmMessage({
+			"alertMessage" : alertMessage
+			, "alertCode" : alertCode
+			, "alertType" : alertType
+			, "alertCallbackFn" : callbackFunction
+		});
+		
+	}
+
+	/*********************************************************/
+	/* 발주 요청건 상태Update
+	/*********************************************************/
+	function save_mast_update(change_ord_statge){
+
+		var erpGridRowCount  = erpGrid.getRowsNum();
+		var select_cnt       = 0;
+		console.log("erpGridRowCount => " + erpGridRowCount);
+
+		$erp.clearDhtmlXGrid(erpGridBack);
+		
+		for(var i = 0; i < erpGridRowCount; i++){
+
+			var leftRid    = erpGrid.getRowId(i);
+			var check      = erpGrid.cells(leftRid, erpGrid.getColIndexById("CHECK")).getValue();
+
+			if(check == 1){
+				var ORGN_DIV_CD  = erpGrid.cells(leftRid, erpGrid.getColIndexById("ORGN_DIV_CD"  )).getValue();		
+				var ORGN_DIV_TYP = erpGrid.cells(leftRid, erpGrid.getColIndexById("ORGN_DIV_TYP" )).getValue();		
+				var ORGN_CD      = erpGrid.cells(leftRid, erpGrid.getColIndexById("ORGN_CD"      )).getValue();
+				var ORD_NO       = erpGrid.cells(leftRid, erpGrid.getColIndexById("ORD_NO"       )).getValue();	
+				var ORD_STATE    = erpGrid.cells(leftRid, erpGrid.getColIndexById("ORD_STATE"    )).getValue();	
+				var ORD_TYPE     = erpGrid.cells(leftRid, erpGrid.getColIndexById("ORD_TYPE"     )).getValue();	
+				var IN_WARE_CD   = erpGrid.cells(leftRid, erpGrid.getColIndexById("IN_WARE_CD"   )).getValue();	
+				
+				var SUPR_CD     = erpGrid.cells(leftRid, erpGrid.getColIndexById("SUPR_CD"      )).getValue();	
+				var TOT_AMT     = erpGrid.cells(leftRid, erpGrid.getColIndexById("TOT_AMT"      )).getValue();	
+                var Commit_flag = "";
+                
+				/* 주문서요청서 번호는 발주수 요청서 번호의 19자리를 취한다 */
+				/* EX 20191103_WP00000003_0000000182                        */
+				var par_ord_no  = ORD_NO.substring( 0, 19 );
+				
+				/*  발주마스터 취소는 요청서 상태를 저장으로 처리함 */
+				if  ( change_ord_statge == "2" ) {
+					Commit_flag = "1";
+				}   else {
+					Commit_flag = change_ord_statge;
+				}
+				
+                console.log("Commit_flag =>" + Commit_flag  + " SUPR_CD=>" + SUPR_CD + " ORD_STATE => " + ORD_STATE);
+				  
+				
+				if  ( change_ord_statge != ORD_STATE ) {
+				    select_cnt = select_cnt + 1;
+					erpGridBack.addRow(select_cnt);
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("ORGN_DIV_CD"  )).setValue(ORGN_DIV_CD);
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("ORGN_DIV_TYP" )).setValue(ORGN_DIV_TYP);
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("ORGN_CD"      )).setValue(ORGN_CD);
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("ORD_NO"       )).setValue(ORD_NO);
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("ORD_STATE"    )).setValue(change_ord_statge);
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("REG_ID"       )).setValue(LOGIN_EMP_NO);
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("IN_WARE_CD"   )).setValue(IN_WARE_CD);      /* 입고창고 취급점은 거래처코드 */
+					
+					/* 2019-11-03  T_REQ_GOODS_TMP 주문요청서 처리상태 Update용 */
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("FLAG"           )).setValue(Commit_flag);   /* 요청상태 */
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("PARAM_ORD_NO"   )).setValue(par_ord_no);    /* 주문번호 */
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("PARAM_CUST_NO"  )).setValue(SUPR_CD);       /* 공급사코드 */
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("PARAM_CURR_FLAG")).setValue(ORD_STATE);     /* 현재상태 */
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("TOT_AMT"        )).setValue(TOT_AMT);       /* 처리금액 */
+					erpGridBack.cells(select_cnt, erpGridBack.getColIndexById("PARAM_ORD_TYPE" )).setValue(ORD_TYPE);      /* 발주유형 */
+				}
+			}
+		}
+		
+		if  (select_cnt > 0 )
+		{
+			var BODY = $erp.dataSerializeOfGridByMode(erpGridBack,"all");   // all(전체)  state( CUD 변경부문만 처리) 
+			console.log(BODY);
+
+			var url       = "/sis/order/OrderStateUpdate.do";
+			var send_data = {"BODY":BODY};    /*  LIST MAP구조로 Controller로 넘긴다 */
+			
+			var if_success = function(data){
+				erpLayout.progressOff();
+				if($erp.isEmpty(data.result)){
+					$erp.alertMessage({
+						"alertMessage" : 'info.common.saveSuccess',
+						"alertType" : "alert",
+						"isAjax" : true,
+						"alertCallbackFn" : function(){
+							searchErpGrid();
+						},
+						"alertCallbackFnParam" : []
+					});
+				
+				}else{
+					$erp.alertMessage({
+						"alertMessage" : 'info.common.saveSuccess',
+						"alertType" : "alert",
+						"isAjax" : true,
+						"alertCallbackFn" : function(){
+							searchErpGrid();
+						},
+						"alertCallbackFnParam" : []
+					});
+				}
+			}
+			
+			var if_error = function(data){
+				$erp.ajaxErrorMessage(data);
+			}
+            erpLayout.progressOn();			
+			$erp.UseAjaxRequestInBody(url, send_data, if_success, if_error, erpLayout);
+		}
+	}	
+	
+	/****************************************************************************/
+    /* erpGrid 초기화                                                           */
+    /****************************************************************************/	
+	function initErpGrid(){
+		erpGridColumns = [
+			      {id : "NO"               , label:["NO"                , "#rspan"], type: "cntr", width: "30", sort : "int", align : "center", isHidden : false, isEssential : false}
+				, {id : "CHECK"            , label:["#master_checkbox"  , "#rspan"], type: "ch", width: "40", sort : "int", align : "center", isHidden : false, isEssential : false, isDataColumn : false}
+				, {id : "ORGN_DIV_CD"      , label:["조직영역코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORGN_DIV_TYP"     , label:["조직영역코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORGN_CD"          , label:["조직코드"          , "#text_filter"], type: "ro", width: "220", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORD_NO"           , label:["주문번호"          , "#select_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "OUT_WARE_CD"      , label:["출고창고코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "IN_WARE_CD"       , label:["입고창고코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "IN_WARE_NM"       , label:["고객사(입고창고)"  , "#select_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : false, isEssential : true}
+				, {id : "SUPR_CD"          , label:["협력사코드"        , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "SUPR_NM"          , label:["협력사명"          , "#select_filter"], type: "ro", width: "160", sort : "str", align : "left",   isHidden : false, isEssential : true}
+				//, {id : "PROJ_CD"          , label:["프로젝트코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				//, {id : "PROJ_NM"          , label:["프로젝트명"        , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : false, isEssential : true}
+				, {id : "SUPR_AMT"         , label:["공급가액"          , "#text_filter"], type: "ron", width: "90", sort : "str", align : "right",  isHidden : false, isEssential : true,  numberFormat : "0,000"}
+				, {id : "VAT_AMT"          , label:["부가세"            , "#text_filter"], type: "ron", width: "90", sort : "str", align : "right",  isHidden : false, isEssential : true,  numberFormat : "0,000"}
+				, {id : "TOT_AMT"          , label:["합계금액"          , "#text_filter"], type: "ron", width: "90", sort : "str", align : "right",  isHidden : false, isEssential : true,  numberFormat : "0,000"}
+				, {id : "GOODS_NM"         , label:["발주상품"          , "#text_filter"], type: "ro", width: "200", sort : "str", align : "left",   isHidden : false, isEssential : true}			
+				, {id : "RESV_DATE"        , label:["납기예정일"        , "#text_filter"], type: "ro", width: "80",  sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "REQ_DATE"         , label:["발주일자"          , "#text_filter"], type: "ro", width: "80",  sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "ORD_TYPE"         , label:["발주유형"          , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORD_TYPE_NM"      , label:["발주유형"          , "#select_filter"], type: "ro", width: "80" , sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "ORD_STATE"        , label:["발주상태"          , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORD_STATE_NM"     , label:["발주상태"          , "#text_filter"], type: "ro", width: "80",  sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "WMS_STATE"        , label:["WMS상태"           , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "WMS_STATE_NM"     , label:["WMS상태"           , "#text_filter"], type: "ro", width: "80",  sort : "str", align : "left",   isHidden : false, isEssential : true}
+				, {id : "RETN_YN"          , label:["반품여부"          , "#text_filter"], type: "ro", width: "80",  sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "SEND_FAX_STATE"   , label:["FAX발송"           , "#text_filter"], type: "ro", width: "80",  sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "SEND_EMAIL_STATE" , label:["Email발송"         , "#text_filter"], type: "ro", width: "80",  sort : "str", align : "center", isHidden : false, isEssential : true}
+				, {id : "RESP_USER"        , label:["담당자코드"        , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "EMP_NM"           , label:["담당자명"          , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : false, isEssential : true}
+				, {id : "ORGN_DIV_NM"      , label:["조직영역이름"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORGN_DIV_TYP"     , label:["조직영역유형"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORGN_NM"          , label:["조직명"            , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+		];
+		
+		erpGrid = new dhtmlXGridObject({
+			parent: "div_erp_grid"			
+			, skin : ERP_GRID_CURRENT_SKINS
+			, image_path : ERP_GRID_CURRENT_IMAGE_PATH			
+			, columns : erpGridColumns
+		});		
+		
+		erpGrid.enableDistributedParsing(true, 100, 50);
+		erpGridDataProcessor =$erp.initGrid(erpGrid);
+		$erp.initGridDataColumns(erpGrid);
+		
+		erpGrid.attachEvent("onRowDblClicked", function(rowId, columnIdx){
+			
+			var ORD_NO       = this.cells(rowId, this.getColIndexById("ORD_NO")).getValue();
+			var ORGN_DIV_CD  = this.cells(rowId, this.getColIndexById("ORGN_DIV_CD")).getValue();
+			var ORGN_DIV_NM  = this.cells(rowId, this.getColIndexById("ORGN_DIV_NM")).getValue();
+			var ORGN_DIV_TYP = this.cells(rowId, this.getColIndexById("ORGN_DIV_TYP")).getValue();
+			var ORGN_CD      = this.cells(rowId, this.getColIndexById("ORGN_CD")).getValue();
+			var ORGN_NM      = this.cells(rowId, this.getColIndexById("ORGN_NM")).getValue();
+			var IN_WARE_CD   = this.cells(rowId, this.getColIndexById("IN_WARE_CD")).getValue();
+			var IN_WARE_NM   = this.cells(rowId, this.getColIndexById("IN_WARE_NM")).getValue();
+			
+			openCustomerinputPopup(ORD_NO, ORGN_DIV_CD, ORGN_DIV_NM, ORGN_DIV_TYP, ORGN_CD, ORGN_NM, IN_WARE_CD,IN_WARE_NM);
+		});
+		
+	}
+
+	function initErpGridBack(){
+		erpGridColumns = [
+				  {id : "ORGN_DIV_CD"      , label:["조직영역코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORGN_DIV_TYP"     , label:["조직영역코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORGN_CD"          , label:["조직코드"          , "#text_filter"], type: "ro", width: "220", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				, {id : "ORD_NO"           , label:["주문번호"          , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "ORD_STATE"        , label:["진행상태"          , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "REG_ID"           , label:["처리자"            , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "PARAM_PROGRM"     , label:["프로그램"          , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "IN_WARE_CD"       , label:["입고창고코드"      , "#text_filter"], type: "ro", width: "100", sort : "str", align : "left",   isHidden : true , isEssential : true}
+				
+				/**  20191103  T_REQ_GOODS_TMP  주문요청서 처리상태 UPDATE 위해 */
+				, {id : "FLAG"             , label:["요청상태"          , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "PARAM_ORD_NO"     , label:["주문번호"          , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "PARAM_CUST_NO"    , label:["공급사코드"        , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "PARAM_CURR_FLAG"  , label:["현재상태"          , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "PARAM_ORD_TYPE"   , label:["발주유형"          , "#text_filter"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true , isEssential : true}
+				, {id : "TOT_AMT"          , label:["합계금액"          , "#text_filter"], type: "ron", width: "90", sort : "str", align : "right",  isHidden : true, isEssential : true,  numberFormat : "0,000"}
+				
+		];
+		
+		erpGridBack = new dhtmlXGridObject({
+			parent: "div_erp_grid_back"			
+			, skin : ERP_GRID_CURRENT_SKINS
+			, image_path : ERP_GRID_CURRENT_IMAGE_PATH			
+			, columns : erpGridColumns
+		});		
+	}
+
+	
+	/****************************************************************************/
+    /* 더블클릭시 발주서(입력/수정) 팝업화면 호출                               */
+    /****************************************************************************/	
+	function openCustomerinputPopup(ORD_NO, ORGN_DIV_CD, ORGN_DIV_NM, ORGN_DIV_TYP, ORGN_CD, ORGN_NM, IN_WARE_CD,IN_WARE_NM){
+        var call_popup_windowName = "";
+        
+		if ( ORGN_DIV_TYP == "Z") {
+			call_popup_windowName = "orderPortalGridPopup";
+		} else {
+			call_popup_windowName = "orderInputGridPopup";
+		}
+		
+		var onComplete = function(){
+			
+			var openPopupWindow = erpPopupWindows.window( call_popup_windowName );
+			
+			
+			if(openPopupWindow){
+				openPopupWindow.close();
+			}        
+		}
+		
+		var onConfirm = function(){
+			
+		}
+
+		var url    = "";
+		var params = {    "SELECT_ORGN_DIV_CD"  : ORGN_DIV_CD
+		                , "SELECT_ORGN_DIV_NM"  : ORGN_DIV_NM
+		                , "SELECT_ORGN_DIV_TYP" : ORGN_DIV_TYP
+				        , "SELECT_ORGN_CD"      : ORGN_CD
+				        , "LOGIN_ORGN_NM"       : ORGN_NM
+				        , "LOGIN_ORD_NO"        : ORD_NO 
+				        , "LOGIN_ORGN_DIV_CD"   : LOGIN_ORGN_DIV_CD
+		                , "LOGIN_ORGN_CD"       : LOGIN_ORGN_CD
+		                , "LOGIN_ORGN_DIV_TYP"  : LOGIN_ORGN_DIV_TYP
+				        , "LOGIN_CUSTMR_CD"     : IN_WARE_CD      /* 고객사 : 거래처포털에서만 사용 */
+				        , "LOGIN_CUSTMR_NM"     : IN_WARE_NM      /* 고객명 : 거래처포털에서만 사용 */
+		              }
+
+		var option =  "";
+		if ( ORGN_DIV_TYP == "Z") {
+			console.log("orderPortalGridPopup.sis");
+			var option =  {
+					"win_id" : "orderPortalGridPopup",
+					"width"  : 1400,
+					"height" : 800
+				   }
+			url = "/sis/order/orderPortalGridPopup.sis";  /* 거래처 포털 발주 */
+		}
+		else
+		{
+			console.log("orderInputGridPopup.sis");
+			var option =  {
+					"win_id" : "orderInputGridPopup",
+					"width"  : 1400,
+					"height" : 800
+				   }
+			url    = "/sis/order/orderInputGridPopup.sis";   /* 직영점 발주 */
+		}
+			
+		var parentWindow = parent;
+		var onContentLoaded = function(){
+			var popWin = this.getAttachedObject().contentWindow;
+			if(parentWindow && typeof parentWindow === 'object'){
+				while(popWin.thisParentWindow == undefined){
+					popWin.thisParentWindow = parentWindow;
+				}
+			}
+			if(onConfirm && typeof onConfirm === 'function'){
+				while(popWin.thisOnConfirm == undefined){
+					popWin.thisOnConfirm = onConfirm;    		
+				}
+			}
+			if(onComplete && typeof onComplete === 'function'){
+				while(popWin.thisOnComplete == undefined){
+					popWin.thisOnComplete = onComplete;    
+				}
+			}
+			this.progressOff();
+		}	
+		
+		$erp.openPopup(url, params, onContentLoaded, option); 
+	}
+	
+	
+	/****************************************************************************/
+    /* 협력사명 선택 팝업호출                                                   */
+    /****************************************************************************/	
+	function openSearchCustmrGridPopup() { // this는 클릭시 열리는 팝업창이다.
+		var pur_sale_type = "1"; //협력사(매입처) == "1" 고객사(매출처) == "2"
+		var onRowSelect = function(id, ind) {
+			document.getElementById("hidSurp_CD").value  = this.cells(id, this.getColIndexById("CUSTMR_CD")).getValue();
+			document.getElementById("Custmr_Name").value = this.cells(id, this.getColIndexById("CUSTMR_NM")).getValue();
+			
+			$erp.closePopup2("openSearchCustmrGridPopup");
+		}
+		$erp.searchCustmrPopup(onRowSelect, pur_sale_type);
+	}
+	
+	/****************************************************************************/
+    /* 담당자 선택 팝업호출                                                   */
+    /****************************************************************************/	
+	function openSearchComEmpNoGridPopup() { // this는 클릭시 열리는 팝업창이다.
+		var onRowSelect = function(id, ind) {
+			document.getElementById("").value = this.cells(id, this.getColIndexById("EMP_NO")).getValue();
+			document.getElementById("RESP_USER_NAME").value = this.cells(id, this.getColIndexById("EMP_NM")).getValue();
+			
+			$erp.closePopup();
+		}
+		$erp.searchComEmpNoPopup(onRowSelect);
+		
+	}
+	
+	/****************************************************************************/
+    /* 그리드 row더블클릭시 발주서 조회한다  Function                           */
+    /****************************************************************************/	
+	function searchErpDetailGrid(){
+		if(!isSearchDetailValidate()){
+			return;
+		}
+		erpLayout.progressOn();
+		
+		$.ajax({
+			  url : "/sis/basic/getCustomer.do"
+			,data : {
+				     "CUSTMR_CD" : erpGridSelectedCustmr_cd
+			}
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				erpLayout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					$erp.clearDhtmlXGrid(erpDetailGrid);
+					var gridDataList = data.gridDataList;
+					if($erp.isEmpty(gridDataList)){
+						$erp.addDhtmlXGridNoDataPrintRow(
+							erpDetailGrid
+							, '<spring:message code="grid.noSearchData" />'
+						);
+					} else {
+						erpDetailGrid.parse(gridDataList, 'js');
+						erpDetailGrid.expandAll();	
+					}
+				}
+				$erp.setDhtmlXGridFooterRowCount(erpDetailGrid);
+			}, error : function(jqXHR, textStatus, errorThrown){
+				erpLayout.progressOff();
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+
+	
+	function isSearchDetailValidate(){
+		var isValidated = true;
+		var alertMessage = "";
+		var alertCode = "";
+		var alertType = "error";
+		
+		if($erp.isEmpty(erpGridSelectedCustmr_cd)){
+			isValidated = false;
+			alertMessage = "error.common.noSelectedData";
+			alertCode = "-1";
+		}
+		
+		if(!isValidated){
+			$erp.alertMessage({
+				"alertMessage" : alertMessage
+				, "alertCode" : alertCode
+				, "alertType" : alertType
+			});
+		}
+		
+		return isValidated;
+	}	
+	
+	/***************************************************/
+	/* 그리드 조회
+	/***************************************************/
+	function searchErpGrid(){
+
+		erpLayout.progressOn();
+		
+		var scrin_searchordStrDt  = document.getElementById("searchordStrDt").value;
+		var scrin_searchordEndDt  = document.getElementById("searchordEndDt").value;
+		
+		scrin_searchordStrDt      = scrin_searchordStrDt.replace (/-/g, "")
+		scrin_searchordEndDt      = scrin_searchordEndDt.replace (/-/g, "")
+		
+		//alert(" scrin_searchordStrDt===>=" + scrin_searchordStrDt + " scrin_searchordEndDt===>=" + scrin_searchordEndDt);
+		var scrin_ORD_NO          = document.getElementById("txtORD_NO").value;
+		var scrin_Surp_CD         = document.getElementById("hidSurp_CD").value;
+		var scrin_searchdelStrDt  = "";
+		var scrin_searchdelEndDt  = "";
+		var scrin_RESP_USER_CD    = "";
+		var scrn_ORGN_DIV_CD      = "";
+		var scrn_ORGN_CD          = "";
+		var scrn_MENU             = "";
+
+    	scrn_ORGN_DIV_CD = LOGIN_ORGN_DIV_CD;
+    	scrn_ORGN_CD     = LOGIN_ORGN_CD;
+
+
+        if 	( Called_program_nm ==  "00456" ) {  // 주문서(고객사/직영점→센터)_조회
+        	scrn_MENU  = "CT";
+        } else {
+        	/* 발주서 조회는 센터, 직영점 orderSheetSearch.jsp 같이 사용함  */
+        	if ( LOGIN_ORGN_DIV_TYP == "C") {
+            	scrn_MENU  = "MK";   /* 직영점에서 센터or 외부협력사로 발주한 주문서조회 */
+        	} else {
+            	scrn_MENU  = "CTM";  /* 센터에서 외부협력사로 발주한 주문서조회 */
+        	}
+        }
+
+        $.ajax({
+			url : "/sis/order/getSearchOrderList.do"
+			,data : {
+						  "PARAM_ORGN_DIV_CD"      : scrn_ORGN_DIV_CD
+						, "PARAM_ORGN_CD"          : scrn_ORGN_CD      /*  LOGIN_CUSTMR_CD*/
+						, "PARAM_ORD_STR_YYYYMMDD" : scrin_searchordStrDt
+						, "PARAM_ORD_END_YYYYMMDD" : scrin_searchordEndDt
+						, "PARAM_ORD_NO"           : scrin_ORD_NO
+						, "PARAM_DEL_STR_YYYYMMDD" : scrin_searchdelStrDt
+						, "PARAM_DEL_END_YYYYMMDD" : scrin_searchdelEndDt
+						, "PARAM_PROJ_CD"          : ""
+						, "PARAM_IN_WARE_CD"       : ""
+						, "PARAM_OUT_WARE_CD"      : ""
+						, "PARAM_SUPR_CD"          : scrin_Surp_CD
+						, "PARAM_RESP_USER"        : scrin_RESP_USER_CD
+						, "PARAM_ORD_TYPE"         : ""          /*  2019-11-03 null처리  1: 물류발주, 2:직납발주, 3:신선발주, 4.착지변경   */
+						, "LOGIN_CHANNEL"          : "S"         /*  S: SIS,  P:PORTAL */
+					    , "LOGIN_MENU"             : scrn_MENU   /*  호출메뉴  CT: 주문서센터,  MK:주문서매장 CTM:센터전용메뉴  */
+					}
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				erpLayout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					$erp.clearDhtmlXGrid(erpGrid);
+					var gridDataList = data.gridDataList;
+					if($erp.isEmpty(gridDataList)){
+						$erp.addDhtmlXGridNoDataPrintRow(
+							erpGrid
+							, '<spring:message code="grid.noSearchData" />'
+						);
+					} else {
+						erpGrid.parse(gridDataList, 'js');	
+						erpGrid.selectRowById(1);   
+					}
+				}
+				$erp.setDhtmlXGridFooterRowCount(erpGrid);
+			}, error : function(jqXHR, textStatus, errorThrown){
+				erpLayout.progressOff();
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
+	/*****************************************/
+	/*  발주서 등록                         */
+	/*****************************************/
+	function addErpGrid(){
+  	    openCustomerinputPopup(null, LOGIN_ORGN_DIV_CD, LOGIN_ORGN_DIV_NM, LOGIN_ORGN_DIV_TYP, LOGIN_ORGN_CD, LOGIN_ORGN_NM);
+	}
+		
+	/***************************************************/
+	/* 그리드 삭제 
+	/***************************************************/
+	function deleteErpGrid(){
+		var gridRowCount = erpGrid.getRowsNum();
+		var isChecked = false;
+		
+		var deleteRowIdArray = [];
+		for(var i = 0; i < gridRowCount; i++){
+			var rId = erpGrid.getRowId(i);
+			var check = erpGrid.cells(rId, erpGrid.getColIndexById("CHECK")).getValue();
+			if(check == "1"){
+				deleteRowIdArray.push(rId);
+			}
+		}
+		
+		if(deleteRowIdArray.length == 0){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noSelectedRow"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return;
+		}
+		
+		for(var i = 0; i < deleteRowIdArray.length; i++){
+			erpGrid.deleteRow(deleteRowIdArray[i]);
+		}
+		
+		$erp.setDhtmlXGridFooterRowCount(erpGrid);
+	}
+	
+	/***************************************************/
+	/* COMBO박스처리 
+	/***************************************************/
+	function initDhtmlXCombo(){
+		//cmbUSE_YN  = $erp.getDhtmlXCombo('cmbUSE_YN', 'USE_YN', 'YN_CD', 120, true);
+
+        /* LOGIN조직 유형이  직영점이면 로그인한 조직코드 자체가 입고창고 
+        if ( LOGIN_ORGN_DIV_TYP == "C") {
+        	cmbIN_WARE_CD = $erp.getDhtmlXComboCommonCode('cmbIN_WARE_CD',     'cmbIN_WARE_CD',  ["ORGN_CD","","","",LOGIN_ORGN_CD],   135,  "",  false, LOGIN_ORGN_CD);
+        	$erp.objReadonly("cmbIN_WARE_CD");   Combo박스 손을 못되게 한다 
+        }else  if ( LOGIN_ORGN_DIV_TYP == "B") {
+        	cmbIN_WARE_CD = $erp.getDhtmlXComboCommonCode('cmbIN_WARE_CD',     'cmbIN_WARE_CD',  ["ORGN_CD","","","",LOGIN_ORGN_CD],   135,  "",  false, LOGIN_ORGN_CD);
+        	//$erp.objReadonly("cmbIN_WARE_CD");   Combo박스 손을 못되게 한다 
+        }
+        else  LOGIN조직 유형이 직영점이 아니면  직영점 선택된 COMBO박스의 조직코드가 입고창고 
+        {
+    		cmbIN_WARE_CD = $erp.getDhtmlXComboCommonCode('cmbIN_WARE_CD',     'cmbIN_WARE_CD',  ["ORGN_CD","","","","","MK"],  135,  "모두조회",  false, cmbIN_WARE_CD);
+        	$erp.objNotReadonly("cmbIN_WARE_CD");
+        }
+		*/
+		
+		/* 발주진행상태 */
+		//cmbORD_STATE   = $erp.getDhtmlXComboCommonCode('cmbORD_STATE',   'cmbORD_STATE',  'ORD_STATE',   177,  "모두조회",  true);
+		
+		/*
+		cmbORGN_DIV_CD = $erp.getDhtmlXComboTableCode("cmbORGN_DIV_CD", "ORGN_DIV_CD", "/sis/code/getSearchableOrgnDivCdList.do", LUI, 210, null, true, null, function(){
+		   cmbORGN_CD = $erp.getDhtmlXComboTableCode("cmbORGN_CD", "ORGN_CD", "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : cmbORGN_DIV_CD.getSelectedValue()}]), 135, "AllOrOne", false, null);
+		   cmbORGN_DIV_CD.attachEvent("onChange", function(value, text){
+		      cmbORGN_CD.unSelectOption();
+		      cmbORGN_CD.clearAll();
+		      $erp.setDhtmlXComboTableCodeUseAjax(cmbORGN_CD, "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : value}]), "AllOrOne", false, null);
+		   }); 
+		});
+		*/
+	}
+	<%-- ■ dhtmlXCombo 관련 Function 끝 --%>
+	
+	function printOrderSheet() {
+		var order_no_list = "";
+		var selected_orgn_div_cd = "";
+		var selected_orgn_cd = "";
+		var check_rows = erpGrid.getCheckedRows(erpGrid.getColIndexById("CHECK"));
+		var check_list = check_rows.split(",");
+		
+		for(var i = 0 ; i < check_list.length ; i++){
+			if(i == 0){
+				order_no_list += erpGrid.cells(check_list[i], erpGrid.getColIndexById("ORD_NO")).getValue();
+				selected_orgn_div_cd += erpGrid.cells(check_list[i], erpGrid.getColIndexById("ORGN_DIV_CD")).getValue();
+				selected_orgn_cd += erpGrid.cells(check_list[i], erpGrid.getColIndexById("ORGN_CD")).getValue();
+			} else {
+				order_no_list += "," + erpGrid.cells(check_list[i], erpGrid.getColIndexById("ORD_NO")).getValue();
+				selected_orgn_div_cd += "," + erpGrid.cells(check_list[i], erpGrid.getColIndexById("ORGN_DIV_CD")).getValue();
+				selected_orgn_cd += "," + erpGrid.cells(check_list[i], erpGrid.getColIndexById("ORGN_CD")).getValue();
+			}
+		}
+		
+		var paramInfo = {
+				"ORD_NO_LIST" : order_no_list
+				, "mrdPath" : "order_sheet_mrd"
+				, "mrdFileName" : "order_sheet.mrd"
+				, "ORGN_DIV_CD" : selected_orgn_div_cd
+				, "ORGN_CD" : selected_orgn_cd
+		};
+		
+		var approvalURL = $CROWNIX_REPORT.openOrderSheet("", paramInfo, "발주서출력", "");
+		var popObj = window.open(approvalURL, "order_sheet_popup", "width=900,height=1000");
+		
+		var frm = document.PrintOrderform;
+		frm.action = approvalURL;
+		frm.target = "order_sheet_popup";
+		frm.submit();
+	}
+	
+</script>
+</head>
+<body>
+	<form name="PrintOrderform" action="" method="post"></form>			
+	<div id="div_erp_contents_search" class="div_erp_contents_search" style="display:none">
+		<table class="table_search" id="aaa">
+			<colgroup>
+				<col width="100px">
+				<col width="120px">
+				<col width="120px">
+				
+				<col width="170px">	
+				<col width="240px">
+
+				<col width="240px">
+				<col width="230px">	
+				<col width="*">				
+			</colgroup>
+			<tr>
+				<th>주문기간</th>
+				<td colspan="2">
+					<input type="text" id="searchordStrDt" name="searchordStrDt" class="input_common input_calendar" > ~
+					<input type="text" id="searchordEndDt" name="searchordEndDt" class="input_common input_calendar">
+				</td>
+				
+				<th>주문번호</th>
+				<td><input type="text" id="txtORD_NO" name="ORD_NO" class="input_common" maxlength="20" ></td>
+				
+				<th>협력사명</th>
+				<td>
+					<input type="hidden" id="hidSurp_CD">
+					<input type="text" id="Custmr_Name" name="Custmr_Name" readonly="readonly" disabled="disabled"/>
+					<input type="button" id="Custmr_Search" value="검 색" class="input_common_button" onclick="openSearchCustmrGridPopup();"/>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div id="div_erp_ribbon" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_erp_grid"   class="div_grid_full_size"   style="display:none"></div>
+	<div id="div_erp_grid_back"   class="div_grid_full_size"   style="display:none"></div>
+	
+</body>
+
+	
+</html>

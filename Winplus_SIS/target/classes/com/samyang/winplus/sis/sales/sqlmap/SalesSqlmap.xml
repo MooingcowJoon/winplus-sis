@@ -1,0 +1,803 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.sales.dao.SalesDao">
+	<select id="getPresetList" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT prs_code
+			 , (CASE prs_type WHEN 0 THEN '상품' WHEN 9 THEN '그룹' ELSE '무효' END) AS prs_type
+			 , prs_bcode
+			 , prs_title
+			 , prs_status
+			 , IFNULL(goods_name, IFNULL(prs_title, '')) AS goods_name
+			 , IFNULL(goods.goods_sspec, '') AS goods_sspec
+			 , IFNULL(goods.goods_bcode , '') AS goods_bcode
+			 , IFNULL(goods.goods_sprice, '') AS goods_sprice
+			 ,IFNULL(bargaingoods.bgg_sprice, '') AS bgg_sprice
+		FROM preset
+		LEFT OUTER JOIN goods on goods_bcode = prs_bcode
+		LEFT OUTER JOIN bargaingoods on goods_code = bgg_goods
+		WHERE prs_status=1 AND prs_code >= #{presetMinNum}  AND prs_code <![CDATA[<]]> #{presetMaxNum} ORDER BY prs_code
+	</select>
+	
+	<insert id="AddPresetMaster"  parameterType="java.util.Map">
+		INSERT INTO TB_PRESET_MASTER 
+			(PRS_MKCODE, PRS_CODE, PRS_TITLE, PRS_NO, PRS_YN, PRS_REMP, PRS_RDATE, PRS_EEMP,PRS_EDATE, PRS_BCODE) 
+		VALUES (#{prs_mkcode}, #{prs_code}, #{prs_title}, #{prs_no}, #{prs_yn}, #{prs_remp}, NOW(), #{prs_eemp}, NOW(), #{prs_bcode} )
+	</insert>
+	
+	<delete id="deletePresetMaster" parameterType="java.util.Map">
+		DELETE FROM TB_PRESET_MASTER WHERE PRS_CODE = #{prs_code}
+	</delete>
+	
+	<update id="updatePresetMaster" parameterType="java.util.Map">
+		UPDATE TB_PRESET_MASTER 
+		SET  PRS_TITLE = #{prs_title}
+		  , PRS_YN = #{prs_yn}
+		  , PRS_EEMP = #{prs_eemp}
+		  , PRS_EDATE = NOW()
+		 WHERE PRS_CODE = #{prs_code}
+	</update>
+	
+	<select id="SearchGoods" parameterType="java.util.Map">
+		SELECT goods_status
+			,RTRIM(goods_name) AS goods_name
+			,RTRIM(goods_sspec) AS goods_sspec
+			,goods_bcode
+			,goods_sup
+			,goods_stprice,goods_bprice
+			,goods_sprice
+			,goods_stock
+			,gbook.gb_name
+			,supplier.sup_bzname
+			,goods_code 
+		FROM goods
+		LEFT JOIN gbook ON gb_top=goods_bktop AND gb_mid=goods_bkmid AND gb_bot=goods_bkbot
+		LEFT JOIN supplier ON sup_code = goods_sup
+		WHERE 
+		(goods_name LIKE '%고추장%' OR goods_keyword LIKE '%고추장%') 
+		AND goods_status != 0 
+		ORDER BY goods_name 	 
+	</select>
+	
+	<insert id="AddPresetDetailGoods" parameterType="java.util.Map">
+		INSERT INTO TB_PRESET_DETAIL
+			(PRSD_MKCODE, PRSD_CODE, PRSD_GOODS, PRSD_NO, PRSD_YN, PRSD_REMP, PRSD_RDATE, PRSD_EEMP,PRSD_EDATE) 
+		VALUES (#{prsd_mkcode}, #{prsd_code}, #{prsd_goods}, #{prsd_no}, #{prsd_yn}, #{prsd_remp}, NOW(), #{prsd_eemp}, NOW())
+	</insert>
+	
+	<delete id="deletePresetDetailGoods" parameterType="java.util.Map">
+		DELETE FROM TB_PRESET_DETAIL WHERE PRSD_GOODS = #{prsd_goods}
+	</delete>
+	
+	<update id="updatePresetDetailGoods" parameterType="java.util.Map">
+		UPDATE TB_PRESET_DETAIL 
+		SET PRSD_YN = #{prsd_yn}
+		  , PRSD_GOODS = #{prsd_goods}
+		  , PRSD_EEMP = #{prsd_eemp}
+		  , PRSD_EDATE = NOW()
+		 WHERE PRSD_CODE = #{prsd_code}
+	</update>
+	
+	<select id="getSalesByRealtimeList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSalesByRealtimeList */
+			SELECT
+				TSM.ORGN_DIV_CD
+				,TSM.ORGN_CD													--조직코드
+				,ORD_DATE														-- 판매일자
+				,CONVERT(NVARCHAR(16),ORD_DATE,8)	ORD_DATE_TIME				--판매시간
+				,BILL_NO														--영수증번호
+				,SALE_TYPE														--판매유형
+				,REG_TYPE														--판매상세
+				,POS_NO															--포스번호
+				,CASE WHEN REG_TYPE = 'S02'
+					THEN -SALE_AMT
+					ELSE SALE_AMT
+				END SALE_AMT													--판매금액
+				,ORD_CD 														--거래코드
+				,IFNULL(TSM.MEM_NO,'')				MEM_NO
+				,IFNULL(TSMM.MEM_NM,'')				MEM_NM
+				,IFNULL(TSMM.UNION_CORP_MEM,'')		UNION_CORP_MEM
+			FROM T_SALE_MAST TSM
+			LEFT JOIN (
+				SELECT
+						ORGN_DIV_CD
+						,ORGN_CD
+						,MEM_NO
+						,MEM_NM
+						,CONCAT(CORP_NM,'[',MEM_NM,']') AS UNION_CORP_MEM
+				FROM T_STD_MAST_MEM
+			) TSMM
+			ON TSMM.ORGN_DIV_CD = TSM.ORGN_DIV_CD
+				AND TSMM.ORGN_CD = TSM.ORGN_CD
+				AND TSMM.MEM_NO = TSM.MEM_NO
+			WHERE LEFT(ORD_DATE,10) = #{ORD_DATE}
+			<if test ='ORGN_DIV_CD != ""'>
+				AND TSM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test ='ORGN_CD != ""'>
+				AND TSM.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test ='ORGN_CD == ""'>
+				AND TSM.ORGN_CD IS NOT NULL
+			</if>
+			<if test ='POS_NO != ""'>
+				AND POS_NO = #{POS_NO}
+			</if>
+			ORDER BY TSM.ORGN_CD, POS_NO, BILL_NO /* 시간이 정상적으로 들어올때 BILL_NO 대신 ORD_DATE_TIME 변경필요 */
+	</select>
+	
+	<select id="getSalesByRealtimeDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSalesByRealtimeDetailList */
+			SELECT
+				TB.BCD_NM						--상품명
+				,CASE
+					WHEN TS.REG_TYPE = 'S02'
+						THEN -TSD.SALE_PRICE
+					ELSE TSD.SALE_PRICE
+				END SALE_PRICE					--기준단가
+				,CASE
+					WHEN TS.REG_TYPE = 'S02'
+						THEN -TSD.SALE_QTY
+					ELSE TSD.SALE_QTY
+				END SALE_QTY					--수량
+				,CASE
+					WHEN TS.REG_TYPE = 'S02'
+						THEN -TSD.SALE_QTY
+					ELSE TSD.SALE_QTY
+				END SALE_QTY					--수량
+				,CASE
+					WHEN TS.REG_TYPE = 'S02'
+						THEN -TSD.SALE_AMT
+					ELSE TSD.SALE_AMT
+				END SALE_AMT					--금액
+				,TS.ORD_CD						--거래코드
+				,CASE
+					WHEN TS.REG_TYPE = 'S02'
+						THEN -TSD.DC_AMT
+					ELSE TSD.DC_AMT
+				END DC_AMT						--할인
+			FROM T_SALE_MAST_DETL AS TSD
+			INNER JOIN T_SALE_MAST AS TS
+			ON TSD.ORD_CD = TS.ORD_CD
+			INNER JOIN T_STD_MAST_BCD AS TB
+			ON TSD.BCD_CD = TB.BCD_CD
+			WHERE TSD.ORD_CD = #{ORD_CD}
+			<if test ='ORGN_CD != ""'>
+				AND TSD.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test ='ORGN_CD == ""'>
+				AND TSD.ORGN_CD IS NOT NULL
+			</if>
+	</select>
+	
+	<select id="getSalesByMemList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSalesByMemList */
+		<if test ='DEAL_TYPE == "0"'>
+				
+		SELECT * FROM (
+			SELECT
+					ORD_CD
+					, REG_TYPE
+					, CONVERT(NVARCHAR, ORD_DATE ,120)	AS ORD_DATE
+					,CASE WHEN TS.REG_TYPE ='S01' THEN SALE_TOT_AMT
+						WHEN TS.REG_TYPE ='S02'THEN -SALE_TOT_AMT END AS SALE_TOT_AMT		-- 판매전체 금액
+					,CASE WHEN TS.REG_TYPE ='S01' THEN CONVERT(NVARCHAR, PAY_CASH+PAY_CARD+PAY_POINT+PAY_GIFT)
+						WHEN TS.REG_TYPE ='S02'THEN CONVERT(NVARCHAR, -(PAY_CASH+PAY_CARD+PAY_POINT+PAY_GIFT)) END AS SUM_AMT		-- 결제전체 금액
+					,CASE WHEN TS.REG_TYPE ='S01' THEN PAY_TRUST
+						WHEN TS.REG_TYPE ='S02'THEN -PAY_TRUST END AS PAY_TRUST			-- 외상 금액
+					,CASE WHEN TS.REG_TYPE ='S01' THEN IFNULL(DISC_AMT, 0)+CUTO_AMT
+						WHEN TS.REG_TYPE ='S02'THEN IFNULL(-DISC_AMT, 0)+(-CUTO_AMT) END AS DISC_AMT
+					, 0								AS LOSS_AMT
+					, CASE WHEN TS.REG_TYPE ='S01' THEN -PAY_TRUST
+						WHEN TS.REG_TYPE ='S02'THEN PAY_TRUST END AS OUT_AMT
+					, ''								AS MEMO 
+					, ORGN_CD
+					, ORD_DATE							AS CDATE
+					, NULL								AS CASH_AMT
+					, NULL								AS CARD_AMT
+					, NULL								AS ACNT_AMT
+					, ''								AS PAY_DATE
+					, ''								AS PAY_HOUR
+					, ''								AS PAY_MINUTE
+					, ''								AS OBJ_CD
+					, ''								AS LOAN_CD
+					, ''								AS TRUST_SEQ
+					, ''								AS LOAN_SEQ
+			FROM T_SALE_MAST TS
+			WHERE TS.REG_TYPE IN ('S01','S02')
+			AND TS.MEM_NO = #{MEM_NO}
+			AND TS.ORGN_CD = #{ORGN_CD}
+			AND LEFT(ORD_CD,8) BETWEEN DATEADD(DD,0,#{SEARCH_FROM_DATE}) AND DATEADD(SS,-1,DATEADD(DD,1,#{SEARCH_TO_DATE}))
+			
+			UNION
+			
+			SELECT
+					'외상결제'									AS ORD_CD
+					, '외상결제'								AS REG_TYPE
+					, CONVERT(NVARCHAR, MC.CDATE, 120)		AS ORD_DATE
+					, '0'									AS SALE_TOT_AMT
+					, STI.SUM_AMT							AS SUM_AMT
+					, '0'									AS PAY_TRUST
+					, IFNULL(STI.DC_AMT,0)					AS DISC_AMT
+					, STI.LOSS_AMT
+					, STI.SUM_AMT							AS OUT_AMT
+					, CASE
+						WHEN IFNULL(STI.LOAN_CD, '') != '' THEN CONCAT(STI.MEMO,' ',LEFT(STI.PAY_DATE,4),'-',SUBSTRING(STI.PAY_DATE,5,2),'-',RIGHT(STI.PAY_DATE,2),' ',STI.PAY_HOUR,':',STI.PAY_MINUTE,':00 결제')
+						ELSE '' END							AS MEMO
+					, LEFT(STI.OBJ_CD,6)					AS ORGN_CD
+					, STI.CDATE								AS CDATE
+					, STI.CASH_AMT
+					, STI.CARD_AMT
+					, STI.ACNT_AMT
+					, STI.PAY_DATE
+					, STI.PAY_HOUR
+					, STI.PAY_MINUTE
+					, MCD.OBJ_CD
+					, MCD.LOAN_CD
+					, STI.TRUST_SEQ
+					, MC.LOAN_SEQ
+			FROM T_STD_MAST_CREDITLOAN MC
+			INNER JOIN T_STD_MAST_CREDITLOAN_DETL MCD
+			ON MC.LOAN_CD = MCD.LOAN_CD
+			INNER JOIN T_SALE_TRUST_INS STI
+			ON STI.DEL_FLAG = 'N' AND MC.LOAN_CD = STI.LOAN_CD 
+			AND CONVERT(NVARCHAR, MC.CDATE, 120) = CONVERT(NVARCHAR, STI.CDATE, 120)
+			WHERE 1=1
+			AND (MC.USE_YN = 'Y' AND MCD.USE_YN = 'Y')
+			AND MCD.OBJ_CD = CONCAT(#{ORGN_CD},'_',#{MEM_NO})
+			AND CONVERT(NVARCHAR, MC.CDATE, 23) BETWEEN DATEADD(DD,0,#{SEARCH_FROM_DATE}) AND  DATEADD(SS,-1,DATEADD(DD,1,#{SEARCH_TO_DATE}))
+		) A
+		ORDER BY CDATE
+		</if>
+		<if test ='DEAL_TYPE == "1"'>
+		SELECT
+				'외상결제'									AS ORD_CD
+				, '외상결제'								AS REG_TYPE
+				, CONVERT(NVARCHAR, MC.CDATE, 120)		AS ORD_DATE
+				, '0'									AS SALE_TOT_AMT
+				, STI.SUM_AMT							AS SUM_AMT
+				, '0'									AS PAY_TRUST
+				, STI.DC_AMT							AS DISC_AMT
+				, STI.LOSS_AMT
+				, STI.SUM_AMT							AS OUT_AMT
+				, CASE
+					WHEN IFNULL(STI.LOAN_CD, '') != '' THEN CONCAT(STI.MEMO,' ',LEFT(STI.PAY_DATE,4),'-',SUBSTRING(STI.PAY_DATE,5,2),'-',RIGHT(STI.PAY_DATE,2),' ',STI.PAY_HOUR,':',STI.PAY_MINUTE,':00 결제')
+					ELSE '' END							AS MEMO
+				, LEFT(STI.OBJ_CD,6)					AS ORGN_CD
+				, STI.CDATE								AS CDATE
+				, STI.CASH_AMT
+				, STI.CARD_AMT
+				, STI.ACNT_AMT
+				, STI.PAY_DATE
+				, STI.PAY_HOUR
+				, STI.PAY_MINUTE
+				, MCD.OBJ_CD
+				, MCD.LOAN_CD
+				, STI.TRUST_SEQ
+				, MC.LOAN_SEQ
+		FROM T_STD_MAST_CREDITLOAN MC
+		INNER JOIN T_STD_MAST_CREDITLOAN_DETL MCD
+		ON MC.LOAN_CD = MCD.LOAN_CD
+		INNER JOIN T_SALE_TRUST_INS STI
+		ON STI.DEL_FLAG = 'N' AND MC.LOAN_CD = STI.LOAN_CD 
+		AND CONVERT(NVARCHAR, MC.CDATE, 120) = CONVERT(NVARCHAR, STI.CDATE, 120)
+		WHERE 1=1
+		AND (MC.USE_YN = 'Y' AND MCD.USE_YN = 'Y')
+		AND MCD.OBJ_CD = CONCAT(#{ORGN_CD},'_',#{MEM_NO})
+		AND CONVERT(NVARCHAR, MC.CDATE, 23) BETWEEN DATEADD(DD,0,#{SEARCH_FROM_DATE}) AND  DATEADD(SS,-1,DATEADD(DD,1,#{SEARCH_TO_DATE}))
+		</if>
+	</select>
+	
+	<select id="getSalesByMemSubList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSalesByMemSubList */
+		SELECT TB.BCD_NM
+				,TMD.BCD_CD
+				,TMD.SALE_PRICE
+				,TMD.SALE_QTY
+				,TMD.DC_AMT
+				,(TMD.SALE_PRICE * TMD.SALE_QTY) AS SALE_SUM_PRICE
+				,TM.POS_NO
+				,TM.RESP_USER
+		FROM T_SALE_MAST_DETL AS TMD
+		INNER JOIN T_SALE_MAST AS TM
+		ON TMD.ORGN_CD = TM.ORGN_CD
+		AND TMD.ORD_CD = TM.ORD_CD
+		AND TMD.ORGN_DIV_CD = TM.ORGN_DIV_CD
+		INNER JOIN T_STD_MAST_BCD AS TB
+		ON TMD.BCD_CD = TB.BCD_CD
+		WHERE TMD.ORD_CD = #{ORD_CD}
+		AND TMD.ORGN_CD = #{ORGN_CD}
+		GROUP BY TB.BCD_NM
+				,TMD.BCD_CD
+				,TMD.SALE_PRICE
+				,TMD.SALE_QTY
+				,TMD.DC_AMT
+				,TM.POS_NO
+				,TM.RESP_USER
+	</select>
+	
+	<insert id="saveAddTrustSales" parameterType="java.util.Map">
+		/* saveAddTrustSales */
+		DECLARE @NEW_LOAN_SEQ BIGINT
+				, @LOAN_SEQ BIGINT
+				, @TRUST_SEQ BIGINT
+				, @TRUST_CNT INT					/* 외상횟수 */
+				, @TRUST_LIMIT INT					/* 외상횟수제한 */
+				, @BAL_AMT DECIMAL(19, 6)			/* 여신잔액 */
+				, @CREDIT_AMT DECIMAL(19, 6)		/* 신용보증 */
+				, @CASH_AMT DECIMAL(19, 6)			/* 현금보증 */
+				, @GRNT_AMT DECIMAL(19, 6)			/* 보증증권 */
+				, @INDE_AMT DECIMAL(19, 6)			/* 증감금액 */
+				, @EVI_FILE_NM NVARCHAR(300)
+				, @LOCK_FLAG NVARCHAR(1)
+				, @LOAN_AMT DECIMAL(19, 6)
+				, @TRUST_CASH_AMT DECIMAL(19, 6)
+				, @TRUST_CARD_AMT DECIMAL(19, 6)
+				, @TRUST_ACNT_AMT DECIMAL(19, 6)
+				, @TRUST_LOSS_AMT DECIMAL(19, 6)
+				
+		SET @TRUST_CASH_AMT = (SELECT CASE WHEN #{CASH_AMT} = '' THEN NULL
+								ELSE CONVERT(DECIMAL(19,6),#{CASH_AMT}) END)
+		
+		SET @TRUST_CARD_AMT = (SELECT CASE WHEN #{CARD_AMT} = '' THEN NULL
+								ELSE CONVERT(DECIMAL(19,6),#{CARD_AMT}) END)
+		
+		SET @TRUST_ACNT_AMT = (SELECT CASE WHEN #{ACNT_AMT} = '' THEN NULL
+								ELSE CONVERT(DECIMAL(19,6),#{ACNT_AMT}) END)
+		
+		SET @TRUST_LOSS_AMT = (SELECT CASE WHEN #{ACNT_AMT} = '' THEN NULL
+								ELSE CONVERT(DECIMAL(19,6),#{ACNT_AMT}) END)
+				
+		SET @NEW_LOAN_SEQ = (/* 새로운 여신순번 */
+								SELECT MAX(LOAN_SEQ)+1 AS LOAN_SEQ
+								FROM T_STD_MAST_CREDITLOAN
+								WHERE LOAN_CD = #{LOAN_CD} 
+								GROUP BY LOAN_CD
+							)
+
+		SET @LOAN_SEQ = (/* 마지막 여신순번 */
+							SELECT MAX(LOAN_SEQ) AS LOAN_SEQ
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_CD = #{LOAN_CD} 
+							GROUP BY LOAN_CD
+						)
+		
+		SET @BAL_AMT = (	SELECT BAL_AMT
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_SEQ = @LOAN_SEQ
+							AND LOAN_CD =#{LOAN_CD}
+						)
+		
+		SET @TRUST_CNT = (	SELECT TRUST_CNT
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_SEQ = @LOAN_SEQ
+							AND LOAN_CD = #{LOAN_CD}
+						)
+						
+		SET @TRUST_LIMIT = (	SELECT TRUST_LIMIT
+								FROM T_STD_MAST_CREDITLOAN
+								WHERE LOAN_SEQ = @LOAN_SEQ
+								AND LOAN_CD = #{LOAN_CD} 
+						)
+		
+		SET @CREDIT_AMT = (		SELECT CREDIT_AMT
+								FROM T_STD_MAST_CREDITLOAN
+								WHERE LOAN_SEQ = @LOAN_SEQ
+								AND LOAN_CD = #{LOAN_CD}
+						)
+		
+		SET @CASH_AMT = (	SELECT CASH_AMT
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_SEQ = @LOAN_SEQ
+							AND LOAN_CD = #{LOAN_CD}
+						)
+		
+		SET @GRNT_AMT = (	SELECT GRNT_AMT
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_SEQ = @LOAN_SEQ
+							AND LOAN_CD = #{LOAN_CD}
+						)
+		
+		SET @EVI_FILE_NM = (	SELECT EVI_FILE_NM
+								FROM T_STD_MAST_CREDITLOAN
+								WHERE LOAN_SEQ = @LOAN_SEQ
+								AND LOAN_CD = #{LOAN_CD}
+						)
+		
+		SET @LOCK_FLAG = (	SELECT LOCK_FLAG
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_SEQ = @LOAN_SEQ
+							AND LOAN_CD = #{LOAN_CD}
+						)
+						
+		SET @LOAN_AMT = (	SELECT LOAN_AMT
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_SEQ = @LOAN_SEQ
+							AND LOAN_CD = #{LOAN_CD}
+						)
+						
+		SET @TRUST_SEQ = (	SELECT IFNULL(MAX(TRUST_SEQ)+1,1) AS TRUST_SEQ
+							FROM T_SALE_TRUST_INS
+							WHERE OBJ_CD = #{OBJ_CD}
+						)
+		
+		INSERT INTO T_SALE_TRUST_INS (
+			LOAN_CD, OBJ_CD, TRUST_SEQ, PAY_DATE, PAY_HOUR, PAY_MINUTE, CASH_AMT, CARD_AMT, ACNT_AMT
+			, LOSS_AMT, ETC_AMT, GIFT_AMT, SUM_AMT, DC_AMT, ETC_DC_AMT, DC_SUM_AMT, MEMO, DEL_FLAG, CPROGRM, CUSER, CDATE
+		) VALUES (
+			#{LOAN_CD}, #{OBJ_CD}, @TRUST_SEQ, #{PAY_DATE}, #{PAY_HOUR}, #{PAY_MINUTE}, @TRUST_CASH_AMT, @TRUST_CARD_AMT, @TRUST_ACNT_AMT
+			, @TRUST_LOSS_AMT, #{ETC_AMT}, #{GIFT_AMT}, #{SUM_AMT}, #{DC_AMT}, #{ETC_DC_AMT}, #{DC_SUM_AMT}, #{MEMO}, 'N', #{CPROGRM}, #{CUSER}, NOW()
+		)
+		
+<!-- 		INSERT INTO T_STD_MAST_CREDITLOAN( -->
+<!-- 			[LOAN_CD], [LOAN_SEQ], [LOAN_APPLY_TYPE], [INDE_AMT], [BAL_AMT], [LOAN_AMT], [TRUST_CNT], [TRUST_LIMIT] -->
+<!-- 			, [CREDIT_AMT], [CASH_AMT], [GRNT_AMT], [IO_TYPE], [EVI_FILE_NM], [USE_YN], [LOCK_FLAG], [CPROGRM], [CUSER], [CDATE] -->
+<!-- 		) VALUES ( -->
+<!-- 			#{LOAN_CD}, @NEW_LOAN_SEQ, 'M', #{SUM_AMT}, @BAL_AMT + #{SUM_AMT}, @LOAN_AMT, @TRUST_CNT, @TRUST_LIMIT -->
+<!-- 			, @CREDIT_AMT, @CASH_AMT, @GRNT_AMT, 'I02', @EVI_FILE_NM, 'Y', @LOCK_FLAG, 'saveLoanInfoList', #{CUSER}, NOW() -->
+<!-- 		) -->
+	</insert>
+	
+	<update id="saveUpdateTrustSales" parameterType="java.util.Map">
+		/* saveUpdateTrustSales */
+		UPDATE T_SALE_TRUST_INS
+		SET CASH_AMT = #{CASH_AMT}
+			,CARD_AMT = #{CARD_AMT}
+			,ACNT_AMT = #{ACNT_AMT}
+			,PAY_DATE = #{PAY_DATE}
+			,PAY_HOUR = #{PAY_HOUR}
+			,PAY_MINUTE = #{PAY_MINUTE}
+			,LOSS_AMT = #{LOSS_AMT}
+			,SUM_AMT = #{SUM_AMT}
+			,MEMO = #{MEMO}
+		WHERE LOAN_CD = #{LOAN_CD}
+		AND TRUST_SEQ = #{TRUST_SEQ}
+		AND OBJ_CD = #{OBJ_CD}
+		
+<!-- 		UPDATE T_STD_MAST_CREDITLOAN -->
+<!-- 		SET INDE_AMT = #{SUM_AMT} -->
+<!-- 		WHERE LOAN_CD = #{LOAN_CD} -->
+<!-- 		AND LOAN_SEQ = #{LOAN_SEQ} -->
+	</update>
+	
+	<update id="saveDeleteTrustSales" parameterType="java.util.Map">
+		/* saveUpdateTrustSales */
+		DECLARE @INDE_AMT DECIMAL(19, 6)	/* 증감금액 */
+		
+		SET @INDE_AMT = (
+							SELECT INDE_AMT
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_SEQ = #{LOAN_SEQ}
+							AND LOAN_CD = #{LOAN_CD}
+						)
+		
+		UPDATE T_SALE_TRUST_INS
+		SET DEL_FLAG ='Y' 
+		WHERE LOAN_CD = #{LOAN_CD}
+		AND TRUST_SEQ = #{TRUST_SEQ}
+		AND OBJ_CD = #{OBJ_CD}
+		
+<!-- 		UPDATE T_STD_MAST_CREDITLOAN -->
+<!-- 		SET USE_YN = 'N' -->
+<!-- 			, BAL_AMT = BAL_AMT - @INDE_AMT -->
+<!-- 		WHERE LOAN_CD = #{LOAN_CD} -->
+<!-- 		AND LOAN_SEQ = #{LOAN_SEQ} -->
+	</update>
+	
+	<select id = "saveProAddTrustSales" parameterType="java.util.Map" resultType="int">
+		/* saveProAddTrustSales */
+		DECLARE @TRUST_SEQ BIGINT
+				, @V_RETURN INT
+				
+		SET @V_RETURN = 0
+		SET @TRUST_SEQ = (	SELECT IFNULL(MAX(LOAN_SEQ),1) AS TRUST_SEQ
+							FROM T_STD_MAST_CREDITLOAN
+							WHERE LOAN_CD = #{LOAN_CD}
+						)
+						
+		EXEC [dbo].[SP_TRUST_MEM_IN_MONEY]
+			#{LOAN_CD}
+			, #{OBJ_CD}
+			, @TRUST_SEQ
+			, @V_RETURN output
+
+		SELECT @V_RETURN
+	</select>
+	
+	<select id="getsalesByStoreHeaderList" resultType="CMap" parameterType="java.util.Map">
+		/* getsalesByStoreHeaderList 판매현황조회 */
+		SELECT 
+				TSM.ORGN_DIV_CD		ORGN_DIV_CD					--법입구분
+				, TSM.ORGN_CD		ORGN_CD						--조직명
+				,CONVERT(NVARCHAR(10),TSM.ORD_DATE) AS ORD_DATE
+				,CASE
+					WHEN COUNT(TSD.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(TSD.BCD_CD)),' 외 ',(COUNT(TSD.BCD_CD)-1),'건')
+					ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(TSD.BCD_CD))
+				END					AS	TOT_BCD_NM
+				,SUM_SALE_TOT_AMT	SUM_SALE_TOT_AMT
+				,SUM_SALE_AMT		SUM_SALE_AMT
+				,SUM_PAY_CASH		SUM_PAY_CASH				--지불(현금)
+				,SUM_PAY_CARD		SUM_PAY_CARD				--지불(카드)
+				,SUM_PAY_GIFT		SUM_PAY_GIFT				--지불(상품권)
+				,SUM_PAY_POINT		SUM_PAY_POINT				--지불(포인트)
+				,SUM_PAY_TRUST		SUM_PAY_TRUST				--지불(외상)
+				,SUM_DISC_AMT		SUM_DISC_AMT				--금액(할인)
+				<if test='SALE_TYPE != ""'>
+				,SALE_TYPE
+				</if>
+				<if test='REG_TYPE != ""'>
+				,REG_TYPE
+				</if>
+				<if test='ORD_TYPE != ""'>
+				,ORD_TYPE
+				</if>
+		FROM (
+			SELECT
+					SM.ORGN_DIV_CD
+					,SM.ORGN_CD
+					,SM.ORD_DATE
+					,SUM(SM.SALE_TOT_AMT)	AS	SUM_SALE_TOT_AMT
+					,SUM(SM.SALE_AMT)		AS	SUM_SALE_AMT
+					,SUM(SM.PAY_CASH)		AS	SUM_PAY_CASH
+					,SUM(SM.PAY_CARD)		AS	SUM_PAY_CARD
+					,SUM(SM.PAY_GIFT)		AS	SUM_PAY_GIFT
+					,SUM(SM.PAY_POINT)		AS	SUM_PAY_POINT
+					,SUM(SM.PAY_TRUST)		AS	SUM_PAY_TRUST
+					,SUM(SM.CUTO_AMT)		AS	SUM_CUTO_AMT
+					,SUM(SM.DISC_AMT)		AS	SUM_DISC_AMT
+					<if test='SALE_TYPE != ""'>
+					,SM.SALE_TYPE
+					</if>
+					<if test='REG_TYPE != ""'>
+					,SM.REG_TYPE
+					</if>
+					<if test='ORD_TYPE != ""'>
+					,SM.ORD_TYPE
+					</if>
+			FROM (
+				SELECT
+						A.ORGN_DIV_CD
+						,A.ORGN_CD
+						,LEFT(ORD_DATE,10) AS ORD_DATE
+						,CASE
+							WHEN REG_TYPE = 'S02'		--반품일 때	 마이너스 처리
+								THEN -A.SALE_TOT_AMT
+							ELSE A.SALE_TOT_AMT
+						END SALE_TOT_AMT
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -A.SALE_AMT
+							ELSE A.SALE_AMT
+						END SALE_AMT
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -PAY_CASH
+							ELSE PAY_CASH
+						END PAY_CASH
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -PAY_CARD
+							ELSE PAY_CARD
+						END PAY_CARD
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -PAY_GIFT
+							ELSE PAY_GIFT
+						END PAY_GIFT
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -PAY_POINT
+							ELSE PAY_POINT
+						END PAY_POINT
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -PAY_TRUST
+							ELSE PAY_TRUST
+						END PAY_TRUST
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -CUTO_AMT
+							ELSE CUTO_AMT
+						END CUTO_AMT
+						,CASE
+							WHEN REG_TYPE = 'S02'
+								THEN -DISC_AMT
+							ELSE DISC_AMT
+						END DISC_AMT
+						<if test='SALE_TYPE != ""'>
+						,SALE_TYPE
+						</if>
+						<if test='REG_TYPE != ""'>
+						,REG_TYPE
+						</if>
+						<if test='ORD_TYPE != ""'>
+						,ORD_TYPE
+						</if>
+				FROM T_SALE_MAST	A
+				INNER JOIN (SELECT DISTINCT ORD_CD FROM T_SALE_MAST_DETL) B ON A.ORD_CD = B.ORD_CD 
+			) SM
+			WHERE 1=1
+			<if test='ORGN_DIV_CD != ""'>
+				AND SM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='ORGN_CD != ""'>
+				AND SM.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test='SALE_TYPE != ""'>
+				AND SM.SALE_TYPE = #{SALE_TYPE}
+			</if>
+			<if test='REG_TYPE != ""'>
+				AND SM.REG_TYPE = #{REG_TYPE}
+			</if>
+			<if test='ORD_TYPE != ""'>
+				AND SM.ORD_TYPE = #{ORD_TYPE}
+			</if>
+				AND SM.ORD_DATE BETWEEN #{DATE_FR} AND #{DATE_TO}
+			GROUP BY
+				SM.ORGN_DIV_CD
+				,SM.ORGN_CD
+				,SM.ORD_DATE
+				<if test='SALE_TYPE != ""'>
+				,SM.SALE_TYPE
+				</if>
+				<if test='REG_TYPE != ""'>
+				,SM.REG_TYPE
+				</if>
+				<if test='ORD_TYPE != ""'>
+				,SM.ORD_TYPE
+				</if>
+		) TSM
+		INNER JOIN (SELECT
+						A.BCD_CD
+						,A.ORGN_DIV_CD
+						,A.ORGN_CD
+						,A.ORD_CD
+						,B.ORD_DATE
+					FROM T_SALE_MAST_DETL A
+					INNER JOIN (
+							SELECT
+								ORGN_DIV_CD
+								,ORGN_CD,ORD_CD
+								,LEFT(ORD_DATE,10) AS ORD_DATE
+							FROM T_SALE_MAST
+					) B
+					ON A.ORGN_DIV_CD = B.ORGN_DIV_CD
+						AND A.ORGN_CD = B.ORGN_CD
+						AND A.ORD_CD = B.ORD_CD
+					WHERE A.ORD_CD IN
+						(SELECT
+							ORD_CD
+						FROM T_SALE_MAST SM
+						WHERE 1=1
+						<if test='ORGN_DIV_CD != ""'>
+							AND B.ORGN_DIV_CD = #{ORGN_DIV_CD}
+						</if>
+						<if test='ORGN_CD != ""'>
+							AND B.ORGN_CD = #{ORGN_CD}
+						</if>
+						<if test='SALE_TYPE != ""'>
+							AND SM.SALE_TYPE = #{SALE_TYPE}
+						</if>
+						<if test='REG_TYPE != ""'>
+							AND SM.REG_TYPE = #{REG_TYPE}
+						</if>
+						<if test='ORD_TYPE != ""'>
+							AND SM.ORD_TYPE = #{ORD_TYPE}
+						</if>
+							AND B.ORD_DATE BETWEEN #{DATE_FR} AND #{DATE_TO})
+					) TSD
+					ON TSM.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+						AND TSM.ORGN_CD = TSD.ORGN_CD
+						AND TSM.ORD_DATE = TSD.ORD_DATE
+		INNER JOIN (SELECT BCD_CD, BCD_NM FROM T_STD_MAST_BCD) TSMB
+						ON TSD.BCD_CD = TSMB.BCD_CD
+		
+		GROUP BY 
+				TSM.ORGN_DIV_CD
+				, TSM.ORGN_CD
+				, TSM.ORD_DATE
+				,SUM_SALE_TOT_AMT
+				,SUM_SALE_AMT
+				,SUM_PAY_CASH
+				,SUM_PAY_CARD
+				,SUM_PAY_GIFT
+				,SUM_PAY_POINT
+				,SUM_PAY_TRUST
+				,SUM_DISC_AMT
+				<if test='SALE_TYPE != ""'>
+				,SALE_TYPE
+				</if>
+				<if test='REG_TYPE != ""'>
+				,REG_TYPE
+				</if>
+				<if test='ORD_TYPE != ""'>
+				,ORD_TYPE
+				</if>
+		ORDER BY TSM.ORD_DATE DESC
+	</select>
+	<select id="getsalesByStoreDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getsalesByStoreDetailList 판매현황조회*/
+		SELECT 
+				CONVERT(NVARCHAR(10),TSM.ORD_DATE) AS ORD_DATE
+				,TSM.ORGN_CD
+				,TB.BCD_NM
+				,TSM.BILL_NO
+				,TSM.ORD_TYPE
+				,TSM.SALE_TYPE
+				,TSM.POS_NO
+				,IFNULL(TSM.REG_TYPE,'없음') AS REG_TYPE
+				,TSM.ORD_CD
+				,CASE
+					WHEN TSM.REG_TYPE = 'S02'
+						THEN -TSD.SALE_PRICE
+					WHEN TSM.REG_TYPE = 'S03'
+						THEN -TSD.SALE_PRICE
+					ELSE TSD.SALE_PRICE
+				END SALE_PRICE
+				,CASE
+					WHEN TSM.REG_TYPE = 'S02'
+						THEN -TSD.SALE_QTY
+					WHEN TSM.REG_TYPE = 'S03'
+						THEN -TSD.SALE_QTY
+					ELSE TSD.SALE_QTY
+				END SALE_QTY
+				,CASE
+					WHEN TSM.REG_TYPE = 'S02'
+						THEN -TSD.SALE_AMT
+					WHEN TSM.REG_TYPE = 'S03'
+						THEN -TSD.SALE_AMT
+					ELSE TSD.SALE_AMT
+				END SALE_AMT
+				,CASE
+					WHEN TSM.REG_TYPE = 'S02'
+						THEN -TSD.SALE_VAT_AMT
+					WHEN TSM.REG_TYPE = 'S03'
+						THEN -TSD.SALE_VAT_AMT
+					ELSE TSD.SALE_VAT_AMT
+				END SALE_VAT_AMT
+				,CASE
+					WHEN TSM.REG_TYPE = 'S02'
+						THEN -TSD.SALE_TOT_AMT
+					WHEN TSM.REG_TYPE = 'S03'
+						THEN -TSD.SALE_TOT_AMT
+					ELSE TSD.SALE_TOT_AMT
+				END SALE_TOT_AMT
+				,TSD.DC_AMT
+		FROM T_SALE_MAST_DETL TSD
+			INNER JOIN (SELECT
+							LEFT(ORD_DATE,10) ORD_DATE
+							,ORGN_DIV_CD
+							,ORGN_CD
+							,BILL_NO
+							,ORD_TYPE
+							,SALE_TYPE
+							,POS_NO
+							,REG_TYPE
+							,ORD_CD
+						FROM T_SALE_MAST
+			) TSM
+			ON TSD.ORD_CD = TSM.ORD_CD
+				AND TSM.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+				AND TSM.ORGN_CD = TSD.ORGN_CD
+			INNER JOIN T_STD_MAST_BCD AS TB
+						ON TSD.BCD_CD = TB.BCD_CD
+		WHERE TSD.ORD_CD IN
+			(SELECT
+					ORD_CD
+			FROM T_SALE_MAST SM
+			WHERE 1=1
+				AND TSM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+				AND TSM.ORGN_CD = #{ORGN_CD}
+				<if test='SALE_TYPE != ""'>
+				AND SM.SALE_TYPE = #{SALE_TYPE}
+				</if>
+				<if test='REG_TYPE != ""'>
+				AND SM.REG_TYPE = #{REG_TYPE}
+				</if>
+				<if test='ORD_TYPE != ""'>
+				AND SM.ORD_TYPE = #{ORD_TYPE}
+				</if>
+				AND TSM.ORD_DATE = #{ORD_DATE}
+			)
+		ORDER BY BILL_NO ASC
+	</select>
+</mapper>

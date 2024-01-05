@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.system.login.dao.LoginDao">
+
+	<select id="getLoginDto" resultType="LoginDto" parameterType="LoginDto">
+		/* getLoginDto 로그인시도 */
+		SELECT CASE WHEN COUNT(1) =  1  THEN '0'
+		            ELSE '-1002'
+			   END  RESULT_CD
+			 , #{login_id} LOGIN_ID
+			 , EMP_NO
+			 , SITE_DIV_CD
+	 	  FROM COM_EMP_ACNT A
+		 WHERE A.ID  =  #{login_id}
+		   AND A.PASSWORD = #{password}
+    	<!-- 20210803원본  EXEC SP_COM_LOGIN_HRIS #{login_id}, #{password}, #{site_div_cd}  -->
+	</select>
+	<!-- WHERE A.EMP_NO = #{emp_no} OR ID=#{emp_no} -->
+		
+	<select id="getEmpSessionDto" resultType="EmpSessionDto" parameterType="LoginDto">
+		/* getEmpSessionDto */
+		SELECT
+			<choose>
+				<when test='site_div_cd == "SIS"'>
+					  A.EMP_NO														emp_no
+					, A.EMP_NM														emp_nm
+					, IFNULL(C.ORGN_DELEGATE_CD,'000000')							orgn_delegate_cd
+					, (SELECT ORGN_NM FROM COM_ORGN_INFO WHERE ORGN_CD = IFNULL(C.ORGN_DELEGATE_CD,'000000'))	orgn_delegate_nm
+					, IFNULL(C.ORGN_CD,'000000')									orgn_cd
+					, IFNULL(C.ORGN_NM,'') 											orgn_nm
+					, A.SEARCHABLE_AUTH_CD 											searchable_auth_cd
+					, CASE
+						WHEN CA.AUTHOR_CD = '99999' THEN 'true'
+						ELSE 'false'
+					  END AS 														is_manager
+					, CASE
+						WHEN 
+							C.ORGN_DELEGATE_CD IN (
+							SELECT ORGN_CD
+								FROM COM_ORGN_INFO COI
+								INNER JOIN (SELECT * FROM COM_CMMN_CODE_DETAIL WHERE CMMN_CD = 'ORGN_CD' AND DIV1 = 'MK') TEMP
+								ON COI.ORGN_CD = TEMP.CMMN_DETAIL_CD
+							) THEN 'MK'
+						ELSE 'WINPLUS'
+					  END AS 														board_publish_scope_part
+					, C.ORGN_DELEGATE_CD											board_publish_scope_cd
+					, IFNULL(C.ORGN_DIV_CD,'')										orgn_div_cd
+					, FN_GET_CMMN_CD_NM('ORGN_DIV_CD', C.ORGN_DIV_CD) 			orgn_div_nm
+					, A.DLV_DUTY_CD													dlv_duty_cd
+					, A.DLV_BSN_CD													dlv_bsn_cd
+					, A.MBTLNUM AS 													mbtlnum
+					, CASE 
+						WHEN A.EMAIL IS NULL OR A.EMAIL = '' THEN NULL
+						ELSE A.EMAIL
+					  END AS 														email
+					, A.ADDR AS 													addr
+					, C.ZIP_NO AS 													orgn_zip_no
+					, C.ADDR AS 													orgn_addr
+					, C.ADDR2 AS 													orgn_addr2
+					, C.TEL_NO AS 													orgn_tel_num
+					, CASE
+						WHEN CA.AUTHOR_CD IN (
+							SELECT CMMN_DETAIL_CD OPER_TEAM FROM COM_CMMN_CODE CM
+							INNER JOIN COM_CMMN_CODE_DETAIL CMD
+							ON CM.CMMN_CD = CMD.CMMN_CD
+							WHERE CM.CMMN_CD = 'OPER_TEAM'
+						) THEN 'true'
+						  ELSE 'false'
+					  END AS 														is_oper_team
+					
+					, A.MEMBER_CD 													member_cd
+				</when>
+				<when test='site_div_cd == "PS"'>
+				  	  A.EMP_NO														emp_no
+					, A.EMP_NM														emp_nm
+					, IFNULL(C.ORGN_CD,'800000') 									orgn_cd
+					, IFNULL(C.ORGN_NM,'협력사') 										orgn_nm
+					, A.SEARCHABLE_AUTH_CD 											searchable_auth_cd
+					, 'P'															board_publish_scope_part
+					, TSMC.CUSTMR_GRUP												board_publish_scope_cd
+					, TSMC.CUSTMR_CD												custmr_cd
+					, TSMC.CUSTMR_NM												custmr_nm
+					, TSMC.CUSTMR_CEONM												custmr_ceonm
+					, CASE 
+						WHEN A.EMAIL IS NULL OR A.EMAIL = '' THEN NULL
+						ELSE A.EMAIL
+					  END AS 														email
+					, A.MBTLNUM AS 													mbtlnum
+				</when>
+				<when test='site_div_cd == "CS"'>
+				  	  A.EMP_NO														emp_no
+					, A.EMP_NM														emp_nm
+					, IFNULL(C.ORGN_CD,'900000') 									orgn_cd
+					, IFNULL(C.ORGN_NM,'고객사') 										orgn_nm
+					, A.SEARCHABLE_AUTH_CD 											searchable_auth_cd
+					, 'S'															board_publish_scope_part
+					, TSMC.CUSTMR_GRUP												board_publish_scope_cd
+					, TSMC.CUSTMR_CD												custmr_cd
+					, TSMC.CUSTMR_NM												custmr_nm
+					, TSMC.CUSTMR_CEONM												custmr_ceonm
+					, CASE 
+						WHEN A.EMAIL IS NULL OR A.EMAIL = '' THEN NULL
+						ELSE A.EMAIL
+					  END AS 														email
+					, A.MBTLNUM AS 													mbtlnum
+				</when>
+				<otherwise>
+				</otherwise>
+			</choose>
+		FROM
+			<choose>
+				<when test='site_div_cd == "SIS"'>
+					COM_EMP_INFO A	
+					LEFT JOIN COM_ORGN_INFO C 
+						ON A.DEPT_CD=C.ORGN_CD
+					LEFT JOIN COM_AUTHOR_BY_USER CA 
+						ON A.EMP_NO = CA.USER_CD
+					WHERE A.EMP_NO=#{emp_no}
+				</when>
+				<otherwise>
+					COM_EMP_INFO A	
+					LEFT JOIN COM_ORGN_INFO C 
+						ON A.DEPT_CD=C.ORGN_CD
+					LEFT JOIN COM_AUTHOR_BY_USER CA 
+						ON A.EMP_NO = CA.USER_CD
+					INNER JOIN T_STD_MAST_CUSTMR TSMC
+						ON A.EMP_NO = TSMC.CUSTMR_CD
+					WHERE TSMC.CUSTMR_CD=#{emp_no}
+				</otherwise>
+			</choose>
+	</select>
+	
+<!-- 	<select id="addCounselerSession" resultType="EmpSessionDto" parameterType="EmpSessionDto"> -->
+<!-- 		/* addCounselerSession */ -->
+<!-- 		DECLARE @send_date VARCHAR(10) -->
+<!--     	SET @send_date = LEFT(CONVERT(VARCHAR(10),NOW(),121),7)	  	 -->
+<!-- 		EXEC COM_COUNSELER_SESSION #{member_cd},#{counseler},@send_date -->
+<!-- 	</select> -->
+		
+<!-- 		<select id="getAddEmpSessionDto" resultType="EmpSessionDto" parameterType="EmpSessionDto">
+		/* getAddEmpSessionDto */
+		SELECT A.MEMBER_NAME as member_nm
+				, A.MEMBER_TEAM as team_cd
+				, B.Member_TName as team_snm
+				, A.Member_WArea as warea_cd
+				, A.Member_Area as warea_nm
+		FROM MEMBER_INF A 
+		JOIN MEMBER_TEAM B ON A.MEMBER_TEAM = B.Member_TCode
+		WHERE A.MEMBER_CODE = #{member_cd}
+	</select> -->
+	
+	<insert id="insertLoginTryLog" parameterType="LoginDto">
+		/* insertLoginTryLog 로그인 시도 로그 등록 */
+		INSERT INTO COM_LOGIN_ATPT_DTLS (
+			EMP_NO
+			, LOGIN_ID
+			, LOGIN_ATPT_DT
+			, LOGIN_ATPT_IP
+			, IN_OUT
+			, SUCCES_YN
+			, RETURN_CD
+			, REG_PROGRM
+			, REG_DT
+			, REG_ID
+		) VALUES (
+			#{emp_no}
+			,#{login_id}
+			,NOW()
+			,#{login_atpt_ip}
+			,#{inOut}
+			<if test='result_cd.equals("0")'>
+			, 'Y'
+			</if>
+			<if test='!result_cd.equals("0")'>
+			, 'N'
+			</if>
+			, #{result_cd}
+			, 'insertLoginAtptLog'
+			, NOW()
+			, 'SYSTEM'
+		)			
+	</insert>
+	
+	<update id="updateLoginPasswordErrorTime" parameterType="LoginDto">
+		/* updateLoginPasswordErrorTime 패스워드 오류 횟수 업데이트 */
+		UPDATE COM_EMP_ACNT SET 
+			PASSWORD_ERROR_TIME=#{password_error_time}
+			, UPD_PROGRM='updateLoginPasswordErrorTime'
+			, UPD_ID=#{emp_no}
+			, UPD_DT=NOW()
+		WHERE EMP_NO=#{emp_no}			
+	</update>
+	
+	<update id="updatePassword" parameterType="java.util.Map">
+		/* updatePassword 비밀번호 변경 */
+		UPDATE COM_EMP_ACNT SET 
+			PASSWORD=#{CHANGE_PASSWORD}
+			, PASSWORD_CHANGE_DT=NOW()
+			, PASSWORD_ERROR_TIME=0		
+			<if test='INITL_YN != null and INITL_YN == "Y"'>
+				, INITL_YN='Y'
+				, INITL_DT=NOW()
+			</if>
+			<if test='INITL_YN == null or INITL_YN != "Y"'>
+				, INITL_YN='N'
+			</if>
+			, BEFORE_PASSWORD=PASSWORD
+			, UPD_PROGRM='updatePassword'
+			, UPD_ID=#{REG_ID}
+			, UPD_DT=NOW()
+		WHERE EMP_NO=#{EMP_NO}
+	</update>
+	
+	<select id="getMenuCdCnt" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getMenuCdCnt 로그인 사용자가 볼수 있는 메뉴 개수 카운트 */
+		SELECT 
+			COUNT(E.MENU_CD)
+		FROM COM_EMP_INFO A
+		JOIN COM_AUTHOR_BY_USER B
+			ON A.EMP_NO=B.USER_CD
+			AND B.USE_YN='Y'
+			AND CONVERT(VARCHAR(8),NOW(), 112) BETWEEN B.BEGIN_DATE AND B.END_DATE
+		JOIN COM_AUTHOR C
+			ON B.AUTHOR_CD=C.AUTHOR_CD
+			AND C.USE_YN='Y'
+			AND CONVERT(VARCHAR(8),NOW(), 112) BETWEEN C.BEGIN_DATE AND B.END_DATE
+		JOIN COM_AUTHOR_BY_MENU D
+			ON B.AUTHOR_CD=D.AUTHOR_CD
+			AND D.USE_YN='Y'
+		JOIN COM_MENU E
+			ON D.MENU_CD=E.MENU_CD
+			AND E.USE_YN='Y'
+		WHERE A.EMP_NO=#{EMP_NO}
+			AND E.MENU_CD = #{MENU_CD}
+	</select>
+	
+	<select id="getEmpNo" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getEmpNo */
+		SELECT 
+			EA.EMP_NO
+			,EA.ID 
+		FROM COM_EMP_ACNT EA
+		LEFT JOIN COM_EMP_INFO EI
+			ON EA.EMP_NO = EI.EMP_NO
+		WHERE EA.EMP_NO = #{EMP_NO} 
+			AND EI.EMP_NO = #{EMP_NO}
+	</select>
+	
+	<select id="getLoginChangeCheckCnt" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getLoginChangeCheckCnt */
+		SELECT 
+			SUM(CNT) 
+		FROM (
+			SELECT 
+				COUNT(E.MENU_CD) CNT
+			FROM COM_EMP_INFO A
+			JOIN COM_AUTHOR_BY_USER B
+				ON A.EMP_NO=B.USER_CD 
+				AND B.USE_YN='Y' 
+				AND CONVERT(VARCHAR(8),NOW(), 112) BETWEEN B.BEGIN_DATE AND B.END_DATE
+			JOIN COM_AUTHOR C
+				ON B.AUTHOR_CD=C.AUTHOR_CD 
+				AND C.USE_YN='Y' 
+				AND CONVERT(VARCHAR(8),NOW(), 112) BETWEEN C.BEGIN_DATE AND B.END_DATE
+			JOIN COM_AUTHOR_BY_MENU D
+				ON B.AUTHOR_CD=D.AUTHOR_CD 
+				AND D.USE_YN='Y'
+			JOIN COM_MENU E
+				ON D.MENU_CD=E.MENU_CD AND E.USE_YN='Y'
+			WHERE A.EMP_NO=#{EMP_NO_REAL}
+				AND E.MENU_CD = '00023'
+				
+			UNION ALL
+			
+			SELECT 
+				COUNT(EMP_NO_LOGIN_ADD) CNT 
+			FROM COM_EMP_LOGIN_ADD
+			WHERE EMP_NO=#{EMP_NO_REAL} OR EMP_NO_LOGIN_ADD = #{EMP_NO}
+		) A
+	</select>
+	
+	<select id="getLoginChangeCheckAuth" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getLoginChangeCheckAuth */
+		SELECT 
+			COUNT(*) 
+		FROM COM_EMP_LOGIN_ADD
+		WHERE EMP_NO = #{EMP_NO} 
+			AND EMP_NO_LOGIN_ADD = #{EMP_NO_LOGIN_ADD}
+	</select>
+	
+	<select id="getNewUserList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getNewUserList */
+		SELECT 
+			EMP_NO
+			, EMP_NM
+			//, (SELECT TOP 1 CHAR_EMAIL FROM COM_INFO) CHAR_EMAIL
+			, CONVERT(VARCHAR,INST_DT, 120) INST_DT 
+		FROM COM_EMP_INFO
+		WHERE DEPT_CD IS NULL OR DEPT_CD = ''
+		ORDER BY INST_DT DESC
+	</select>
+	
+	<select id="getMemberInPhone" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMemberInPhone */
+		SELECT 
+			TOP 1
+			MI.Member_InPhone as member_InPhone
+			, NVL(AU.AUTHOR_CD, '') as authorCd
+		FROM COM_EMP_INFO A	
+		LEFT JOIN MEMBER_INF MI 
+			ON A.MEMBER_CD = MI.MEMBER_CODE
+		LEFT JOIN COM_AUTHOR_BY_USER AU 
+			ON A.EMP_NO = AU.USER_CD
+		WHERE A.EMP_NO=#{emp_no}
+		ORDER BY authorCd DESC
+	</select>
+	
+	<update id="updateMemberInPhone" parameterType="java.util.Map">
+		/* updateMemberInPhone */
+		UPDATE MEMBER_INF SET 
+			Member_InPhone = #{member_InPhone}
+		WHERE Member_Code = #{member_cd}
+	</update>
+
+</mapper>

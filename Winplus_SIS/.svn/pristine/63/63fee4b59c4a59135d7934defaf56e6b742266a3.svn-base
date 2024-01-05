@@ -1,0 +1,19 @@
+version: 0.0
+os: linux
+files:
+  - source: ROOT.war
+    destination: /var/lib/tomcat8/webapps/
+permissions:
+  - object: /var/lib/tomcat8/webapps/ROOT.war
+    owner: tomcat
+    group: tomcat
+    mode: 600
+hooks:
+  BeforeInstall:
+    - location: before_install.sh
+  ApplicationStop:
+    - location: deregister_from_elb.sh
+    - location: stop_service.sh
+  ApplicationStart:
+    - location: start_service.sh
+    - location: register_with_elb.sh

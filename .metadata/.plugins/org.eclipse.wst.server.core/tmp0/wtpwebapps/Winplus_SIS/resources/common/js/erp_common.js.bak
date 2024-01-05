@@ -1,0 +1,1657 @@
+/** 
+ * Description 
+ * @Resource ERP Common Script
+ * @since 2016.10.24
+ * @author 김종훈
+ *
+ *********************************************
+ * 코드 수정 히스토리
+ * 날짜 / 작업자 / 상세
+ * 2016.10.24 / 김종훈 / 신규 생성
+ *********************************************
+ */
+
+var $erp = function(){
+	
+}
+
+/** 
+ * Description 
+ * @function gf_ajaxErrorMessage
+ * @function_Description Ajax를 통한 메시지 출력
+ * @param data (Object) / gf_makeMessageParam Function 참조
+ * @author 김종훈
+ */
+function gf_ajaxErrorMessage(data){
+	var errMessage = data.errMessage;
+	var errCode = data.errCode;
+	var errMessageParam = data.errMessageParam;
+	var errMessageType = data.errMessageType;
+	var errMessageOk = data.errMessageOk;
+	var errMessageCancel = data.errMessageCancel;
+	var nonAjaxParam = {"alertMessageType" : errMessageType, "alertMessageOk" : errMessageOk, "alertMessageCancel" : errMessageCancel};
+	
+	var callbackFn = null;
+	var callbackFnParam = null;
+	var param = gf_makeMessageParam(errMessage, errCode, "error", false, errMessageParam, callbackFn, callbackFnParam, nonAjaxParam);
+	gf_alertMessage(param);
+}
+
+/** 
+ * Description 
+ * @function gf_ajaxErrorHandler
+ * @function_Description Ajax Error 호출 시 처리
+ * @param jqXHR (Object) / JQuery Ajax API 참조
+ * @param textStatus (Object) / JQuery Ajax API 참조
+ * @param errorThrown (Object) / JQueryAjax API 참조
+ * @author 김종훈
+ */
+function gf_ajaxErrorHandler(jqXHR, textStatus, errorThrown){
+	var status = jqXHR.status;
+	var data = jqXHR.responseJSON
+	if(data != undefined && data != null && data.isError){
+		var errMessage = data.errMessage;
+		var errCode = data.errCode;
+		var errMessageParam = null;
+		var callbackFnParam = null; 
+		var callbackFn = null;
+		var errMessageType = data.errMessageType;
+		var errMessageOk = data.errMessageOk;
+		var errMessageCancel = data.errMessageCancel;
+		var nonAjaxParam = {"alertMessageType" : errMessageType, "alertMessageOk" : errMessageOk, "alertMessageCancel" : errMessageCancel};
+		
+		if(errCode =='noSession'){
+			callbackFnParam = new Array();		
+			callbackFnParam[0] = data.pageName;
+			callbackFn = function(param){
+				if(param[0]){
+					if(parent.isIndex){
+						parent.location.href=param[0];
+					} else {
+						location.href=param[0];
+					}
+				}				
+			}	
+		}				
+		var param = gf_makeMessageParam(errMessage, errCode, "error", false, errMessageParam, callbackFn, callbackFnParam, nonAjaxParam);
+		gf_alertMessage(param);
+	} else {
+		var errMessage = textStatus;
+		if(jqXHR && jqXHR.status){
+			errMessage = errMessage + "(" + jqXHR.status + ")";
+		}		
+		gf_alertMessage(errMessage);
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_makeMessageParam
+ * @function_Description Message Parameter 생성
+ * @param message (String) / 일반메시지 or MessageSource 호출에 필요한 Code
+ * @param code (String) / 메시지코드
+ * @param type (String) / 메시지타입 (error, info , notice, alert)
+ * @param isAjax (boolean) / 메시지 서버 참조 여부
+ * @param messageParam (Array) / 메시지 출력에 사용할 Parameter
+ * @param callbackFn (Function)	/ 메시지 확인 후 실행할 Function 
+ * @param callbackFnParam (Object) / 메시지 확인 후 실행할 Function의 Parameter [{Key : Value}] 사용 요망
+ * @param nonAjaxParam (Object) / Ajax 모드가 아닐 때 사용할 Parameter
+ * @author 김종훈
+ */
+function gf_makeMessageParam(message, code, type, isAjax, messageParam, callbackFn, callbackFnParam, nonAjaxParam){
+	if(message == undefined || message == null){
+		message = "";
+	} 
+	if(code == undefined){
+		code = null;
+	}
+	if(type == undefined){
+		type = "error";
+	}
+	if(callbackFn == undefined){
+		callbackFn = null;
+	}
+	if(callbackFnParam == undefined){
+		callbackFnParam = null;
+	}	
+	if(isAjax != true){
+		isAjax = false;
+	}
+	if(nonAjaxParam == undefined){
+		nonAjaxParam == null;
+	}
+	var messageParamArray = [];
+	if(messageParam == undefined){
+		messageParam == null;
+	} else if(typeof messageParam === 'string'){
+		messageParamArray.push(messageParam);
+	} else if(typeof messageParam === 'object'){
+		if(gf_isArray(messageParam)){
+			messageParamArray=messageParam;
+		} else {
+			for(var i in messageParam){
+				messageParamArray.push(messageParam[i]);
+			}
+		}
+	}
+	var param = {
+			'alertMessage' : message
+			, 'alertCode' : code
+			, 'alertType' : type				
+			, 'isAjax' : isAjax
+			, 'alertMessageParam' : messageParamArray
+			, 'alertCallbackFn' : callbackFn		
+			, 'alertCallbackFnParam' : callbackFnParam
+			, 'alertNonAjaxParam' : nonAjaxParam
+	};
+	return param;
+}
+
+/** 
+ * Description 
+ * @function gf_alertMessage
+ * @function_Description 메시지 팝업 출력
+ * @param param (Object) / 메시지 출력에 사용할 Parameter, gf_makeMessageParam Function 참조
+ * @author 김종훈
+ */
+function gf_alertMessage(param){
+	var alertTypeObject = ["error", "notice", "alert", "info"];
+	var alertMessage=null;
+	var alertCode=null;
+	var alertMessageParam=null;
+	var alertType=null;
+	var alertCallbackFn=null;
+	var alertCallbackFnParam=null;
+	var isAjax = null;
+	var	 alertNonAjaxParam=null;
+	
+	if(typeof param === 'object' && !gf_isArray(param)){
+		alertMessage = param['alertMessage'];
+		alertCode = param['alertCode'];
+		alertType = param['alertType'];		
+		isAjax = param['isAjax'];
+		alertMessageParam = param['alertMessageParam'];
+		alertCallbackFn = param['alertCallbackFn'];
+		alertCallbackFnParam = param['alertCallbackFnParam'];
+		alertNonAjaxParam = param['alertNonAjaxParam'];
+	} else if(typeof param === 'object' && gf_isArray(param)){
+		alertMessage = param[0];
+		alertCode = param[1];
+		alertType = param[2];		
+		isAjax = param[3];
+		alertMessageParam = param[4];
+		alertCallbackFn = param[5];
+		alertCallbackFnParam = param[6];
+		alertNonAjaxParam = param[7];
+	} else if(typeof param === 'string'){
+		alertMessage = param;
+	} else {
+		alert(param);
+		return;
+	}
+	var isRightAlertType = false; 
+	for(var i in alertTypeObject){
+		if(alertType == null){
+			continue;
+		}
+		if(alertType.toLowerCase() == alertTypeObject[i]){
+			isRightAlertType = true;
+			alertType = alertTypeObject[i];
+		}
+	}
+	if(!isRightAlertType){
+		alertType = "error";
+	}
+	if(isAjax){
+		$.ajax({
+			url : "/common/getCommonMessage.do"
+			,data : {
+				'alertMessage' : alertMessage
+				,'alertCode' : alertCode
+				,'alertType' : alertType
+				,'alertMessageParam' : alertMessageParam
+			}
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				if(data.isError){
+					gf_ajaxErrorMessage(data);
+				} else {
+					var alertFinalMessage = data.resultMessage;
+					var alertFinalMessageType = data.resultMessageType;
+					var alertFinalMessageOk = data.resultMessageOk;
+					var alertFinalMessageCancel = data.resultMessageCancel;
+					
+					if(alertCallbackFn != undefined && alertCallbackFn != null
+							&& typeof alertCallbackFn === 'function'){	
+						dhtmlx.message({
+					    title: alertFinalMessageType,
+					    type: "alert",
+					    text: alertFinalMessage,
+					    ok: alertFinalMessageOk,
+					    cancel: alertFinalMessageCancel,
+					    callback: (function(alertCallbackFnParam) {
+							  return function() {
+								  if(alertCallbackFnParam != null){
+										alertCallbackFn(alertCallbackFnParam);
+									} else {
+										alertCallbackFn();
+									}
+								  };
+								})(alertCallbackFnParam)
+						});
+					} else {
+						dhtmlx.message({
+							title: alertFinalMessageType,
+						    type: "alert",
+						    text: alertFinalMessage						   
+						});
+					}
+				}
+			}, error : function(jqXHR, textStatus, errorThrown){
+				gf_ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	} else {
+		var alertFinalMessage = alertMessage;
+		var alertFinalMessageType = undefined;
+	    var alertFinalMessageOk= undefined;
+	    var alertFinalMessageCancel =undefined;
+	    
+	    if(alertNonAjaxParam != undefined && alertNonAjaxParam != null){
+	    	if(typeof param === 'object' && !gf_isArray(alertNonAjaxParam)){
+	    		alertFinalMessageType=alertNonAjaxParam['alertMessageType'];
+	    		alertFinalMessageOk=alertNonAjaxParam['alertMessageOk'];
+	    		alertFinalMessageCancel=alertNonAjaxParam['alertMessageCancel'];
+	    	} else if(typeof param === 'object' && gf_isArray(alertNonAjaxParam)){
+	    		alertFinalMessageType=alertNonAjaxParam[0];
+	    		alertFinalMessageOk=alertNonAjaxParam[1];
+	    		alertFinalMessageCancel=alertNonAjaxParam[2];
+	    	} else if(typeof param === 'string'){
+	    		alertFinalMessageType=alertNonAjaxParam;
+	    	}
+	    }
+		
+		if(alertMessageParam != null){
+			if(typeof alertMessageParam === 'object' && !gf_isArray(alertMessageParam)){
+				for(var i in alertMessageParam){
+					alertFinalMessage=alertFinalMessage.replace("{" + i + "}", alertMessageParam[i]);
+				}
+			} else if(typeof alertMessageParam === 'object' && gf_isArray(alertMessageParam)){
+				var i = 0;
+				for(var key in alertMessageParam){					
+					alertFinalMessage=alertFinalMessage.replace("{" + i + "}", alertMessageParam[key]);
+					i++;
+				}
+			} else if(typeof alertMessageParam === 'string'){
+				alertFinalMessage=alertFinalMessage.replace("{0}", alertMessageParam);
+			}
+		}		
+		if(alertCode != null){
+			alertFinalMessage += "<br/>";	
+			alertFinalMessage += "[" + alertCode + "]";		
+		}
+		
+		if(alertCallbackFn != undefined && alertCallbackFn != null
+				&& typeof alertCallbackFn === 'function'){	
+			dhtmlx.message({
+			title: alertFinalMessageType,
+		    type: "alert",
+		    text: alertFinalMessage,
+		    ok: alertFinalMessageOk,
+		    cancel: alertFinalMessageCancel,		    
+		    callback: (function(alertCallbackFnParam) {
+				  return function() {
+					  if(alertCallbackFnParam != null){
+							alertCallbackFn(alertCallbackFnParam);
+						} else {
+							alertCallbackFn();
+						}
+					  };
+					})(alertCallbackFnParam)
+			});
+		} else {
+			dhtmlx.message({
+				title: alertFinalMessageType,
+			    type: "alert",
+			    text: alertFinalMessage,
+			    ok: alertFinalMessageOk,
+			    cancel: alertFinalMessageCancel	    
+			});
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_confirmMessage
+ * @function_Description 예/아니오 메시지 팝업 출력
+ * @param param (Object) / 메시지 출력에 사용할 Parameter, gf_makeMessageParam Function 참조
+ * @author 김종훈
+ */
+function gf_confirmMessage(param){
+	var alertTypeObject = ["error", "notice", "alert", "info"];
+	var alertMessage=null;
+	var alertCode=null;
+	var alertMessageParam=null;
+	var alertType=null;
+	var alertCallbackFn=null;
+	var alertCallbackFnParam=null;
+	var isAjax = null;
+	var	 alertNonAjaxParam=null;
+	
+	if(typeof param === 'object' && !gf_isArray(param)){
+		alertMessage = param['alertMessage'];
+		alertCode = param['alertCode'];
+		alertType = param['alertType'];		
+		isAjax = param['isAjax'];
+		alertMessageParam = param['alertMessageParam'];
+		alertCallbackFn = param['alertCallbackFn'];
+		alertCallbackFnParam = param['alertCallbackFnParam'];
+		alertNonAjaxParam = param['alertNonAjaxParam'];
+	} else if(typeof param === 'object' && gf_isArray(param)){
+		alertMessage = param[0];
+		alertCode = param[1];
+		alertType = param[2];		
+		isAjax = param[3];
+		alertMessageParam = param[4];
+		alertCallbackFn = param[5];
+		alertCallbackFnParam = param[6];
+		alertNonAjaxParam = param[7];
+	} else if(typeof param === 'string'){
+		alertMessage = param;
+	} else {
+		alert(param);
+		return;
+	}
+	var isRightAlertType = false; 
+	for(var i in alertTypeObject){
+		if(alertType == null){
+			continue;
+		}
+		if(alertType.toLowerCase() == alertTypeObject[i]){
+			isRightAlertType = true;
+			alertType = alertTypeObject[i];
+		}
+	}
+	if(!isRightAlertType){
+		alertType = "error";
+	}
+	if(isAjax){
+		$.ajax({
+			url : "/common/getCommonMessage.do"
+			,data : {
+				'alertMessage' : alertMessage
+				,'alertCode' : alertCode
+				,'alertType' : alertType
+				,'alertMessageParam' : alertMessageParam
+			}
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				if(data.isError){
+					gf_ajaxErrorMessage(data);
+				} else {
+					var alertFinalMessage = data.resultMessage;
+					var alertFinalMessageType = data.resultMessageType;
+					var alertFinalMessageOk = data.resultMessageOk;
+					var alertFinalMessageCancel = data.resultMessageCancel;
+					
+					if(alertCallbackFn != undefined && alertCallbackFn != null
+							&& typeof alertCallbackFn === 'function'){	
+						dhtmlx.message({
+					    title: alertFinalMessageType,
+					    type: "confirm",
+					    text: alertFinalMessage,
+					    ok: alertFinalMessageOk,
+					    cancel: alertFinalMessageCancel,
+					    callback: (function(alertCallbackFnParam) {
+							  return function(result) {
+									  if(result == true){
+											if(alertCallbackFnParam != null){
+												alertCallbackFn(alertCallbackFnParam);
+											} else {
+												alertCallbackFn();
+											}
+									  }
+								  };
+								})(alertCallbackFnParam)
+						});
+					} else {
+						dhtmlx.message({
+							title: alertFinalMessageType,
+						    type: "alert",
+						    text: alertFinalMessage						   
+						});
+					}
+				}
+			}, error : function(jqXHR, textStatus, errorThrown){
+				gf_ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	} else {
+		var alertFinalMessage = alertMessage;
+		var alertFinalMessageType = undefined;
+	    var alertFinalMessageOk= undefined;
+	    var alertFinalMessageCancel =undefined;
+	    
+	    if(alertNonAjaxParam != undefined && alertNonAjaxParam != null){
+	    	if(typeof param === 'object' && !gf_isArray(alertNonAjaxParam)){
+	    		alertFinalMessageType=alertNonAjaxParam['alertMessageType'];
+	    		alertFinalMessageOk=alertNonAjaxParam['alertMessageOk'];
+	    		alertFinalMessageCancel=alertNonAjaxParam['alertMessageCancel'];
+	    	} else if(typeof param === 'object' && gf_isArray(alertNonAjaxParam)){
+	    		alertFinalMessageType=alertNonAjaxParam[0];
+	    		alertFinalMessageOk=alertNonAjaxParam[1];
+	    		alertFinalMessageCancel=alertNonAjaxParam[2];
+	    	} else if(typeof param === 'string'){
+	    		alertFinalMessageType=alertNonAjaxParam;
+	    	}
+	    }
+		
+		if(alertMessageParam != null){
+			if(typeof alertMessageParam === 'object' && !gf_isArray(alertMessageParam)){
+				for(var i in alertMessageParam){
+					alertFinalMessage=alertFinalMessage.replace("{" + i + "}", alertMessageParam[i]);
+				}
+			} else if(typeof alertMessageParam === 'object' && gf_isArray(alertMessageParam)){
+				var i = 0;
+				for(var key in alertMessageParam){					
+					alertFinalMessage=alertFinalMessage.replace("{" + i + "}", alertMessageParam[key]);
+					i++;
+				}
+			} else if(typeof alertMessageParam === 'string'){
+				alertFinalMessage=alertFinalMessage.replace("{0}", alertMessageParam);
+			}
+		}		
+		if(alertCode != null){
+			alertFinalMessage += "<br/>";	
+			alertFinalMessage += "[" + alertCode + "]";		
+		}
+		
+		if(alertCallbackFn != undefined && alertCallbackFn != null
+				&& typeof alertCallbackFn === 'function'){	
+			dhtmlx.message({
+			title: alertFinalMessageType,
+		    type: "confirm",
+		    text: alertFinalMessage,
+		    ok: alertFinalMessageOk,
+		    cancel: alertFinalMessageCancel,	
+		    callback: (function(alertCallbackFnParam) {
+				  return function(result) {
+						  if(result == true){
+								if(alertCallbackFnParam != null){
+									alertCallbackFn(alertCallbackFnParam);
+								} else {
+									alertCallbackFn();
+								}
+						  }
+					  };
+					})(alertCallbackFnParam)
+			});
+		} else {
+			dhtmlx.message({
+				title: alertFinalMessageType,
+			    type: "alert",
+			    text: alertFinalMessage,
+			    ok: alertFinalMessageOk,
+			    cancel: alertFinalMessageCancel	    
+			});
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_isLengthOver
+ * @function_Description String Length 초과 여부 확인
+ * @param str (String) / 확인에 사용할 String 값
+ * @param limitLength (Number) / 초과 기준이 되는 값
+ * @author 김종훈
+ */
+function gf_isLengthOver(str, limitLength){
+	if(str == undefined || str == null){
+		str = "";
+	}
+	if(str.length){
+		var length = str.length;
+		if(length > limitLength){
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_isLengthOver
+ * @function_Description String Byte Size 초과 여부 확인
+ * @param str (String) / 확인에 사용할 String 값
+ * @param limitByteSize (Number) / 초과 기준이 되는 값
+ * @author 김종훈
+ */
+function gf_isByteSizeOver(str, limitByteSize){
+	if(str == undefined || str == null){
+		str = "";
+	}
+	var byteSize = gf_getByteLength(str);
+	if(byteSize > limitByteSize){
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_getByteLength
+ * @function_Description String Byte Size 확인
+ * @param s (String) / 확인할 String 값
+ * @param b / 미사용, 내부 계산용 변수
+ * @param i / 미사용, 내부 계산용 변수
+ * @param c / 미사용, 내부 계산용 변수
+ * @author 김종훈, Google 인용
+ */
+function gf_getByteLength(s,b,i,c){
+    /* for(b=i=0;c=s.charCodeAt(i++);b+=c>>11?3:c>>7?2:1); */
+	/* UTF-8의 경우 한글 3byte지만 DB가 한글 2byte이므로 강제 2byte로 계산되게 처리 */
+	for(b=i=0;c=s.charCodeAt(i++);b+=c>>11?2:c>>7?2:1);
+    return b;
+}
+
+
+/** 
+ * Description 
+ * @function gf_getDhtmlxComboFromSelect
+ * @function_Description DhtmlxCombo 생성을 Select Dom 객체에서 -> Ajax 미사용
+ * @param domElementId (String) / Dom Element Object ID
+ * @param paramName (String) / Form Parameter 전송 시 사용할 Name
+ * @param paramWidth (Number) / Object 가로 넓이
+ * @param defaultOption (String) / 초기화 될 기본 값 (Value) 기준
+ * @author 김종훈
+ */
+function gf_getDhtmlxComboFromSelect(domElementId, paramName, paramWidth, defaultOption){
+	var defaultWidth = 200;
+	var width = defaultWidth;
+	if(paramWidth && !isNaN(paramWidth)){
+		width = paramWidth;
+	}
+	if(defaultOption == null || defaultOption == ''){
+		defaultOption = undefined
+	}
+	var dhtmlxComboObject = null;
+	
+	var domElementObj = document.getElementById(domElementId);
+	if(!gf_isEmpty(domElementObj)){
+		domElementObj.setAttribute("name", paramName);
+		dhtmlxComboObject = dhtmlXComboFromSelect(domElementId, width);
+		dhtmlxComboObject.setSkin(ERP_COMBO_CURRENT_SKINS);
+		dhtmlxComboObject.setImagePath(ERP_COMBO_CURRENT_IMAGE_PATH);
+		dhtmlxComboObject.setDefaultImage(ERP_COMBO_CURRENT_IMAGE_PATH);
+		if(gf_isEmpty(defaultOption)){
+			dhtmlxComboObject.selectOption(0);
+		} else {
+			dhtmlxComboObject.setComboValue(defaultOption);
+		}
+		
+		dhtmlxComboObject.readonly(true);
+	}
+	return dhtmlxComboObject;
+}
+
+/** 
+ * Description 
+ * @function gf_getDhtmlxCombo
+ * @function_Description DhtmlxCombo 생성
+ * @param domElementId (String) / Dom Element Object ID
+ * @param paramName (String) / Form Parameter 전송 시 사용할 Name
+ * @param catcode (String) / System 공통코드
+ * @param paramWidth (Number) / Object 가로 넓이
+ * @param blankText (String) / 값=빈칸, 텍스트=blankText 사용여부 (기본 = 전체)
+ * @param defaultOption (String) / 초기화 될 기본 값 (Value) 기준
+ * @param date (String) / 조회 시 필요한 날짜 조건
+ * @param cond (String) / 조회 시 필요한 추가 조건
+ * @param column (String) / 조회 시 추가할 컬럼
+ * @author 김종훈
+ */
+function gf_getDhtmlxCombo(domElementId, paramName, catcode, paramWidth, blankText, defaultOption, date, cond, column){
+	var defaultWidth = 200;
+	var width = defaultWidth;
+	if(paramWidth && !isNaN(paramWidth)){
+		width = paramWidth;
+	}
+	if(blankText == null){
+		blankText = undefined;
+	}
+	if(defaultOption == null || defaultOption == ''){
+		defaultOption = undefined
+	}
+	if(date == null || date == ''){
+		date = undefined;
+	}
+	if(cond == null || cond == ''){
+		cond = undefined;
+	}
+	if(column == null || column == ''){
+		column = undefined;
+	}	
+	var dhtmlxComboObject = null;
+	if(domElementId != undefined && catcode != undefined){
+		/* new dhtmlXCombo(id, name, width); */	
+		dhtmlxComboObject = new dhtmlXCombo(domElementId, paramName, width);
+		dhtmlxComboObject.setSkin(ERP_COMBO_CURRENT_SKINS);
+		dhtmlxComboObject.setImagePath(ERP_COMBO_CURRENT_IMAGE_PATH);
+		dhtmlxComboObject.setDefaultImage(ERP_COMBO_CURRENT_IMAGE_PATH);
+		dhtmlxComboObject.readonly(true);		
+		gf_getDhtmlxComboDataAjax(dhtmlxComboObject, catcode, blankText, defaultOption, date, cond, column);
+	}
+	return dhtmlxComboObject;
+}
+
+/** 
+ * Description 
+ * @function gf_getDhtmlxComboDataAjax
+ * @function_Description Ajax를 통한 DhtmlxCombo Data 생성
+ * @param dhtmlxComboObject (Object) / 생성한 DhtmlxComboObject gf_getDhtmlxCombo Function 활용
+ * @param catcode (String) / System 공통코드
+ * @param blankText (String) / 값=빈칸, 텍스트=blankText 사용여부 (기본 = 전체)
+ * @param defaultOption (String) / 초기화 될 기본 값 (Value) 기준
+ * @param date (String) / 조회 시 필요한 날짜 조건
+ * @param cond (String) / 조회 시 필요한 추가 조건
+ * @param column (String) / 조회 시 추가할 컬럼
+ * @author 김종훈
+ */
+function gf_getDhtmlxComboDataAjax(dhtmlxComboObject, catcode, blankText, defaultOption, date, cond, column){	
+	$.ajax({
+		url : "/common/getSystemCodeList.do"
+		,data : {
+			'catcode' : catcode
+			, 'cond' : cond
+			, 'column' : column
+			, 'date' : date
+		}
+		,method : "POST"
+		,dataType : "JSON"
+		,success : function(data){
+			if(data.isError){
+				gf_ajaxErrorMessage(data);
+			} else {							
+				var systemCodeList = data.systemCodeList;
+				var optionArray = [];		
+				if(blankText != undefined && blankText != null && blankText !== false){
+					/* blankText가 true인 경우 전체로 Text 변경 */
+					if(blankText === true){
+						blankText = "전체";
+					}
+					optionArray.push({ value : "", text : blankText});
+				}				
+				for(var i in systemCodeList){
+					var systemCodeObj = systemCodeList[i];						
+					var option = { value : null, text : null};
+					for(var key in systemCodeObj){
+						var value =  systemCodeObj[key];
+						if(key == 'CODE'){	/* CODE로 올 경우 value로 변경 - dhtmlXCombo 규칙 때문에 필요 */
+							option.value = value;
+						} else if(key == 'NAME'){ /* NAME로 올 경우 text로 변경 - dhtmlXCombo 규칙 때문에 필요 */
+							option.text = value;
+						} else {
+							option[key] = value;
+						}
+					}		
+					optionArray.push(option);						
+				}
+				dhtmlxComboObject.addOption(optionArray);
+				if(typeof dhtmlxComboObject.getParent() === 'string'){
+					if(dhtmlxComboObject.getOptionsCount() > 0){
+						dhtmlxComboObject.selectOption(0);
+					}
+					if(defaultOption != undefined && defaultOption != null){
+						dhtmlxComboObject.setComboValue(defaultOption);
+					}
+				}				
+			}
+		}, error : function(jqXHR, textStatus, errorThrown){
+			gf_ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+		}
+	});
+}
+
+/** 
+ * Description 
+ * @function gf_initGridComboCell
+ * @function_Description DhtmlxGrid Combo Column 데이터 생성
+ * @param dhtmlxGridObj (Object) / DhtmlxGrid Object
+ * @author 김종훈
+ */
+function gf_initGridComboCell(dhtmlxGridObj){
+	var dhtmlxGridColumnArray = dhtmlxGridObj.columnsMapArray;
+	if(dhtmlxGridColumnArray == undefined || dhtmlxGridColumnArray == null || dhtmlxGridColumnArray.length == 0){
+		return false;
+	}	
+	for(var i in dhtmlxGridColumnArray){
+		var dhtmlxGridColumn = dhtmlxGridColumnArray[i];
+		var type = dhtmlxGridColumn["type"];
+		var catcode = dhtmlxGridColumn["catcode"];
+		var isDisabled = dhtmlxGridColumn["isDisabled"];
+		if(type == "combo" && (catcode != undefined && catcode != null && catcode.length > 0)){
+			var dhtmlxComboObject = dhtmlxGridObj.getColumnCombo(i);
+			dhtmlxComboObject.readonly(true);
+			gf_getDhtmlxComboDataAjax(dhtmlxComboObject, catcode);
+			if(isDisabled != undefined && isDisabled != null && isDisabled == true){
+				dhtmlxComboObject.disable(true);
+			}
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_initGridCustomCell
+ * @function_Description DhtmlxGrid 임의로 생성된 Column 데이터 생성 (isHidden : 숨김, isEssential : 필수 컬럼 강조, type : dhxCalendar, dhxCalendarA가 있을 경우 포맷 설정)
+ * @param dhtmlxGridObj (Object) / DhtmlxGrid Object
+ * @author 김종훈
+ */
+function gf_initGridCustomCell(dhtmlxGridObj){
+	var isDhxCalendar = false;
+	var dhtmlxGridCoulmnColorArray = [];	
+	var dhtmlxGridColumnArray = dhtmlxGridObj.columnsMapArray;
+	if(dhtmlxGridColumnArray == undefined || dhtmlxGridColumnArray == null || dhtmlxGridColumnArray.length == 0){
+		return false;
+	}	
+	for(var i in dhtmlxGridColumnArray){
+		var dhtmlxGridColumn = dhtmlxGridColumnArray[i];
+		var isHidden = dhtmlxGridColumn["isHidden"];		
+		if(isHidden != undefined && isHidden != null && isHidden == true){
+			dhtmlxGridObj.setColumnHidden(i, true);
+		}
+		var isEssenital = dhtmlxGridColumn["isEssential"];
+		if(isEssenital != undefined && isEssenital != null && isEssenital == true){
+			dhtmlxGridCoulmnColorArray.push("WhiteSmoke");
+		} else {
+			dhtmlxGridCoulmnColorArray.push("");
+		}
+		var type = dhtmlxGridColumn["type"];
+		if(type != undefined && type != null){
+			if(isDhxCalendar === false && (type == "dhxCalendar" || type == "dhxCalendarA")){
+				dhtmlxGridObj.setDateFormat("%Y-%m-%d", "%Y-%m-%d"); 
+				dhtmlxGridObj.attachEvent("onDhxCalendarCreated", function (calObject) {
+					calObject.setSensitiveRange("1900-01-01", "2999-12-31");
+					calObject.hideTime();					
+	            });
+				isDhxCalendar = true;
+			}
+		}
+	}
+	if(dhtmlxGridCoulmnColorArray.length > 0){
+		var strDhtmlxGridCoulmnColor = dhtmlxGridCoulmnColorArray.join(",");
+		//console.log(strDhtmlxGridCoulmnColor);
+		dhtmlxGridObj.setColumnColor(strDhtmlxGridCoulmnColor);
+	}	
+}
+
+/** 
+ * Description 
+ * @function gf_initGridDataColumns
+ * @function_Description DhtmlxDataProcessor CUD에 사용할 Column 세팅, Column 세팅에서 isDataColumn가 false인 경우 변경되어도 Updated 처리가 안됨
+ * @param dhtmlxGridObj (Object) / DhtmlxGrid Object
+ * @author 김종훈
+ */
+function gf_initGridDataColumns(dhtmlxGridObj){
+	var dhtmlxGridColumnArray = dhtmlxGridObj.columnsMapArray;
+	if(dhtmlxGridColumnArray == undefined || dhtmlxGridColumnArray == null || dhtmlxGridColumnArray.length == 0){
+		return false;
+	}
+	var dhtmlxDataProcessor = dhtmlxGridObj.getDataProcessor();
+	if(dhtmlxDataProcessor == undefined || dhtmlxDataProcessor == null){
+		return false;
+	}
+	var dataColumnsArray = [];
+	for(var i in dhtmlxGridColumnArray){
+		var dhtmlxGridColumn = dhtmlxGridColumnArray[i];
+		var isDataColumn = dhtmlxGridColumn["isDataColumn"];		
+		if(isDataColumn != undefined && isDataColumn != null && isDataColumn == false){
+			dataColumnsArray.push(false);
+		} else {
+			dataColumnsArray.push(true);
+		}
+	}
+	dhtmlxDataProcessor.setDataColumns(dataColumnsArray);
+}
+
+/** 
+ * Description 
+ * @function gf_dhtmlxGridDataSerialize
+ * @function_Description CUD에 사용할 데이터를 [{Key:Value}, {Key:Value}] 형태로 직렬화, CRUD에 따라 STATUS 세팅
+ * @param dhtmlxGridObj (Object) / DhtmlxGrid Object
+ * @param menu_id (Number) / Parameter에 포함 시킬 Menu ID
+ * @param isSendAllData (boolean) / CUD 상태에 상관 없이 모든 데이터를 Parameter에 직렬화 여부 
+ * @author 김종훈
+ */
+function gf_dhtmlxGridDataSerialize(dhtmlxGridObj, menu_id, isSendAllData){
+	if(dhtmlxGridObj == undefined || dhtmlxGridObj == null){
+		return null;
+	}
+	var dhtmlxDataProcessor = dhtmlxGridObj.getDataProcessor();
+	if(dhtmlxDataProcessor == undefined || dhtmlxDataProcessor == null){
+		return null;
+	}
+	var updatedRows = dhtmlxDataProcessor.updatedRows;
+	if(updatedRows.length <= 0){
+		return null;
+	}
+	if(isSendAllData){
+		updatedRows = [];
+		var rowCnt = dhtmlxGridObj.getRowsNum();
+		for(var i = 0; i < rowCnt; i++){
+			var rId = dhtmlxGridObj.getRowId(i);
+			updatedRows.push(rId);
+		}
+	}
+	var serializedData = {};
+	if(menu_id != undefined && menu_id != null && menu_id.length > 0){
+		serializedData["menu_id"]=menu_id;
+	}
+	var statusArray=[];
+	for(var i = 0; i < updatedRows.length ; i++){
+		var rId = updatedRows[i];
+		var tempStatus = dhtmlxDataProcessor.getState(rId);
+		var status = "R";
+		if(tempStatus == "inserted"){
+			status = "C";
+		} else if (tempStatus == "updated"){
+			status = "U";
+		} else if (tempStatus == "deleted") {
+			status = "D";
+		}	
+		statusArray.push(status);
+	}
+	serializedData["crud"] = statusArray;	
+	var gridColumnCount = dhtmlxGridObj.getColumnsNum();
+	for(var i = 0; i < gridColumnCount; i++){
+		var cId = dhtmlxGridObj.getColumnId(i);
+		var columnData = [];
+		for(var j = 0; j < updatedRows.length; j++){
+			var rId = updatedRows[j];
+			var cellValue = dhtmlxGridObj.cells(rId, i).getValue();
+			if(cellValue == undefined || cellValue == null){
+				cellValue="";
+			}
+			columnData.push(cellValue);
+		}
+		serializedData[cId]=columnData;
+	}
+	return serializedData;
+}
+
+/** 
+ * Description 
+ * @function gf_validDhtmlxGridEssentialData
+ * @function_Description DhtmlxGrid 내 Essential(필수) Column 데이터 입력 여부 유효성 검증
+ * @param dhtmlxGridObj (Object) / DhtmlxGrid Object
+ * @author 김종훈
+ */
+function gf_validDhtmlxGridEssentialData(dhtmlxGridObj){
+	var resultMap = { isError : false, errRowIdx : null, errColumnName : null, errMessage : null, errCode : null, errMessageParam : null};
+	if(dhtmlxGridObj == undefined || dhtmlxGridObj == null){
+		resultMap.isError = true;
+		resultMap.errMessage = "error.common.unknownGridObject";
+		resultMap.errCode = "-2001";
+		return resultMap;
+	}
+	var columnsMapArray = dhtmlxGridObj.columnsMapArray;
+	if(columnsMapArray == undefined || columnsMapArray == null){
+		resultMap.isError = true;
+		resultMap.errMessage = "error.common.unknownGridColumn";
+		resultMap.errCode = "-2002";
+		return resultMap;
+	}	
+	var dhtmlxDataProcessor = dhtmlxGridObj.getDataProcessor();
+	if(dhtmlxDataProcessor == undefined || dhtmlxDataProcessor == null){
+		resultMap.isError = true;
+		resultMap.errMessage = "error.common.unknownGridDataProcessor";
+		resultMap.errCode = "-2003";
+		return resultMap;
+	}
+	var updatedRows = dhtmlxDataProcessor.updatedRows;	
+	var colCount = columnsMapArray.length;
+	var i = 0;
+	var j = 0;		
+	
+	for(i = 0; i < updatedRows.length; i++){		
+		var rId = updatedRows[i];
+		var status = dhtmlxDataProcessor.getState(rId);
+		if(status == "deleted"){
+			continue;
+		}
+		for(j = 0; j < colCount; j++){
+			var isEssential = columnsMapArray[j].isEssential;
+			if(isEssential != undefined && isEssential != null && isEssential == true){
+				var value = dhtmlxGridObj.cells(rId, j).getValue();				
+				if(value == undefined || value == null || value == ""){
+					var rowIdx = dhtmlxGridObj.getRowIndex(rId);
+					
+					resultMap.isError = true;
+					resultMap.errMessage = "error.common.noEssentialGridData";
+					
+					var columnName = null;					
+					var columnLabel = columnsMapArray[j].label;
+					if(typeof columnLabel === 'object' && gf_isArray(columnLabel)){
+						if(columnLabel.length > 1){
+							columnName = columnLabel[1];
+							if(columnName.indexOf("#") > -1){
+								columnName = columnLabel[0];
+							}						
+						} else {
+							columnName = columnLabel[0];
+						}
+					} else if(typeof columnLabel === 'string'){
+						columnName=columnLabel;
+					}
+					
+					resultMap.errCode = "-2004";
+					resultMap.errMessageParam = [(rowIdx+1), columnName];
+					resultMap.errRowIdx = (rowIdx + 1);
+					resultMap.errColumnName = columnName;
+					return resultMap;
+				}
+			}
+		}
+	}
+	
+	return resultMap;
+}
+
+/** 
+ * Description 
+ * @function gf_isArray
+ * @function_Description Object의 Array 타입 여부 확인
+ * @param obj (Object)
+ * @author 김종훈
+ */
+function gf_isArray(obj){
+	return !!obj && Array === obj.constructor;
+}
+
+/** 
+ * Description 
+ * @function gf_alertSuccessMesage
+ * @function_Description 저장 완료 메시지 출력
+ * @param callbackFn (Function) / 메시지 출력 후 실행할 Function
+ * @param callbackFnParam (Object) / 메시지 출력 후 실행할 Function의 Parameter [{Key:Value}] 형태 사용
+ * @author 김종훈
+ */
+function gf_alertSuccessMesage(callbackFn, callbackFnParam){
+	var param = null;
+	if(callbackFn){
+		param = gf_makeMessageParam("info.common.saveSuccess", null, "info", true, null, callbackFn);
+	} else if(callbackFn && callbackFnParam){
+		param = gf_makeMessageParam("info.common.saveSuccess", null, "info", true, null, callbackFn, callbackFnParam);
+	} else {
+		param = gf_makeMessageParam("info.common.saveSuccess", null, "info", true);
+	}	
+	gf_alertMessage(param);
+}
+
+
+/** 
+ * Description 
+ * @function gf_getIdMapInElement
+ * @function_Description 특정 Dom 하위 노드 ID 목록 가져오기
+ * @param domObj (object) 
+ * @param isOnlyFirstChildNode (boolean) / 바로 하위 노드까지만 확인 여부
+ * @param idMap / 반환 및 재귀 함수를 위한 Id Map
+ * @author 김종훈
+ */
+function gf_getIdMapInElement(domObj, isOnlyFirstChildNode, idMap){
+	if(gf_isEmpty(idMap)){
+		idMap = {};
+	}	
+	if(domObj && domObj.childNodes){
+		for(var i in domObj.childNodes){
+			var child = domObj.childNodes[i];
+			if(child.attributes && child.attributes.id && child.attributes.id.value){
+				var id = child.attributes.id.value;
+				idMap[id] = document.getElementById(id);			
+			}
+			if(child.childNodes && !(isOnlyFirstChildNode === true)){
+				gf_getIdMapInElement(child, isOnlyFirstChildNode, idMap);
+			}
+		}
+	}
+	
+	return idMap;
+}
+
+
+/** 
+ * Description 
+ * @function gf_bindTextValue
+ * @function_Description txt로 시작하는 Dom에 데이터 바인딩
+ * @param dataObject (object) / 
+ * @param parentObj (object) / parentObj 하위 노드에 있는 것만 바인딩
+ * @author 김종훈
+ */
+function gf_bindTextValue(dataObject, parentObj){
+	var idMap = null;
+	if(!gf_isEmpty(parentObj)){
+		idMap = gf_getIdMapInElement(parentObj);
+	}
+	
+	if(typeof dataObject === 'object' && !gf_isArray(dataObject)){
+		for(var i in dataObject){			
+			var value = dataObject[i] == null ? "" : dataObject[i];
+			var domId = 'txt' + i;			
+			var obj = document.getElementById(domId);
+			if(obj){
+				if(!gf_isEmpty(idMap)){
+					if(!gf_isEmpty(idMap[domId])){
+						obj.value = value;
+					}
+				} else {
+					obj.value = value;
+				}
+			}
+			
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_bindCmbValue
+ * @function_Description cmd로 시작하는 DhtmlxCombo에 데이터 바인딩
+ * @param dataObject (object)
+ * @param parentObj (object) / parentObj 하위 노드에 있는 것만 바인딩
+ * @author 김종훈
+ */
+function gf_bindCmbValue(dataObject, parentObj){
+	var idMap = null;
+	if(!gf_isEmpty(parentObj)){
+		idMap = gf_getIdMapInElement(parentObj);
+	}
+	
+	if(typeof dataObject === 'object' && !gf_isArray(dataObject)){
+		for(var i in dataObject){			
+			var domId = 'cmb' + i;			
+			var obj = gf_getObjectFromId(domId);
+			if(obj && obj.setComboValue){
+				var isTarget = false;
+				if(!gf_isEmpty(idMap)){
+					if(!gf_isEmpty(idMap[domId])){
+						isTarget = true;
+					}
+				} else {
+					isTarget = true;
+				}
+				
+				if(isTarget === true){
+					if(dataObject[i]){
+						obj.setComboValue(dataObject[i]);
+					} else {
+						obj.selectOption(0);
+					}
+				}
+			}
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_clearDhtmlxCombo
+ * @function_Description cmd로 시작하는 DhtmlxCombo값 초기화
+ * @param dataObject (object)
+ * @author 김종훈
+ */
+function gf_clearDhtmlxCombo(dataObject){
+	if(typeof dataObject === 'object' && !gf_isArray(dataObject)){
+		for(var i in dataObject){			
+			var domId = 'cmb' + i;			
+			var obj = gf_getObjectFromId(domId);
+			if(obj && obj.setComboValue){
+				obj.selectOption(0);
+			}
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_getObjectFromId
+ * @function_Description 변수 이름을 통한 해당 Object 반환
+ * @param domId (String)
+ * @author 김종훈
+ */
+function gf_getObjectFromId(varId){
+	for(var prop in window){			
+		if(prop == varId){
+			return window[prop];
+		}
+	}
+	return undefined;
+}
+
+/** 
+ * Description 
+ * @function gf_clearInputInElement
+ * @function_Description Dom Object 하위 노드 내 Input 및 TextArea 초기화
+ * @param domObj (Object)
+ * @param isOnlyFirstChildNode (boolean) / true인 경우 첫번째 하위 노드만 초기화
+ * @author 김종훈
+ */
+function gf_clearInputInElement(domObj, isOnlyFirstChildNode){
+	if(domObj.childNodes){
+		for(var i in domObj.childNodes){
+			var child = domObj.childNodes[i];
+			if(child){
+				if(child.getAttribute){
+					var id = child.getAttribute("id");
+					if(!gf_isEmpty(id)){
+						if(id.indexOf("txt") > -1){
+							child.value = "";
+						} else if(id.indexOf("cmb") > -1){
+							var obj = gf_getObjectFromId(id);
+							if(obj && obj.selectOption){
+								obj.selectOption(0);
+							}
+						}
+					}
+					if(child.childNodes && !(isOnlyFirstChildNode===true)){
+						gf_clearInputInElement(child);
+					}
+				}
+			}
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_getElementEssentialEmpty
+ * @function_Description Dom Object 하위 노드 내 Input 및 TextArea 중 input_essential 클래스 가진 Element에 값이 없으면 해당 Object Return
+ * @param domObj (Object)
+ * @author 김종훈
+ */
+function gf_getElementEssentialEmpty(domObj){
+	if(domObj.childNodes){
+		for(var i in domObj.childNodes){
+			var child = domObj.childNodes[i];
+			if(child){
+				if(child.tagName && (child.tagName.toLowerCase() == "input" || child.tagName.toLowerCase() == "textarea")){
+					if(child.className && child.className.indexOf && child.className.indexOf("input_essential") > -1){
+						if(!(child.value && child.value != null && child.value.length > 0)){
+							return child;
+						}
+					}
+				}
+				if(child.childNodes){
+					var obj = gf_getElementEssentialEmpty(child);
+					if(obj != undefined){
+						return obj;
+					}
+				}
+			}
+		}
+	}
+	return undefined;
+}
+
+/** 
+ * Description 
+ * @function gf_isNumber
+ * @function_Description 숫자 유효성 검사
+ * @param value (String) 
+ * @author 김종훈
+ */
+function gf_isNumber(value){
+	var regex = /^[0-9]$/g;
+	if(regex.test(value)){
+		value = value.replace(/,/g, "");
+		return isNaN(value) ? false : true;
+	} else { 
+		return false; 
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_isKeyOnlyNumber
+ * @function_Description 키입력 숫자 유효성 검사
+ * @param event (Object) / event Object 
+ * @param type (String) / decimal 소수, date 날짜
+ * @author 김종훈
+ */
+function gf_isKeyOnlyNumber(e, type){
+	var isValid = true;
+	e = e || window.event;
+	if ($.inArray(e.keyCode, [46, 8, 9, 27, 13]) !== -1 ||
+	    // Allow: Ctrl+A, Command+A
+	   (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) || 
+	    // Allow: home, end, left, right, down, up
+	   (e.keyCode >= 35 && e.keyCode <= 40) ||
+	   // NumberPad 0~9
+	   (e.keyCode >= 96 && e.keyCode <= 105) ||
+	   
+	   (type && type.toLowerCase() == 'decimal' && (e.keyCode === 110 || e.keyCode === 190)) ||
+	   
+	   (type && type.toLowerCase() == 'date' && (e.keyCode === 109 || e.keyCode === 189))
+		) {
+	        // let it happen, don't do anything
+		   isValid = true;
+	   } 
+	else if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57))) { // Ensure that it is a number and stop the keypress
+		isValid = false;
+	}
+	if(isValid == false){
+		if (typeof (e.preventDefault) == 'function') e.preventDefault();
+	    if (typeof (e.stopPropagation) == 'function') e.stopPropagation();
+	    if (typeof (e.stopImmediatePropagation) == 'function') e.stopImmediatePropagation();
+	    e.cancelBubble = true;
+	    return false;
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_dhtmlxLayoutAllProgressOn
+ * @function_Description 대상 DhtmlxLayout 내 하위 Cell Loading 처리
+ * @param dhtmlxLayout (Object) / DhtmlxLayoutObject
+ * @author 김종훈
+ */
+function gf_dhtmlxLayoutAllProgressOn(dhtmlxLayout){
+	dhtmlxLayout.forEachItem(function(cell){
+	    cell.progressOn();
+	});
+}
+
+/** 
+ * Description 
+ * @function gf_dhtmlxLayoutAllProgressOn
+ * @function_Description 대상 DhtmlxLayout 내 하위 Cell Loading 종료 처리
+ * @param dhtmlxLayout (Object) / DhtmlxLayoutObject
+ * @author 김종훈
+ */
+function gf_dhtmlxLayoutAllProgressOff(dhtmlxLayout){
+	dhtmlxLayout.forEachItem(function(cell){
+	    cell.progressOff();
+	});
+}
+
+/** 
+ * Description 
+ * @function gf_dhtmlxLayoutSetSizes
+ * @function_Description DhtmlxLayout 모든 Cell Size 변경 시 이벤트 바인딩
+ * @param dhtmlxLayout (Object) / DhtmlxLayoutObject
+ * @param callback (Function) / CallBack Function
+ * @author 김종훈
+ */
+function gf_dhtmlxLayoutSetSizes(dhtmlxLayout, callback){
+	dhtmlxLayout.attachEvent("onPanelResizeFinish", callback);
+	dhtmlxLayout.attachEvent("onCollapse", callback);
+	dhtmlxLayout.attachEvent("onExpand", callback);	
+	dhtmlxLayout	.attachEvent("onResizeFinish", callback);
+}
+
+/** 
+ * Description 
+ * @function gf_getToday
+ * @function_Description 현재 년월일 String으로 반환
+ * @param separateText (String) / 년월일 구분자 예) "-" 일경우 2017-01-01, "." 일경우 2017.01.01, 없을 경우 20170101
+ * @author 김종훈
+ */
+function gf_getToday(separateText) {
+	if(separateText == undefined || separateText == null){
+		separateText = "";
+	}
+    var oDateNow = new Date();
+    var year = oDateNow.getFullYear();
+    var month = oDateNow.getMonth() + 1;
+    var day = oDateNow.getDate();
+
+    if (month < 10) month = '0' + month;
+    if (day < 10) day = '0' + day;
+    var today = String(year) + separateText + String(month) + separateText + String(day);
+
+    return today;
+}
+
+/** 
+ * Description 
+ * @function gf_clearDhtmlxGrid
+ * @function_Description DhtmlxGrid 초기화, 연결된 DhtmlxDataProcessor가 있을 경우 같이 초기화
+ * @param dhtmlxGridObj (Object) / DhtmlxGridObject
+ * @author 김종훈
+ */
+function gf_clearDhtmlxGrid(dhtmlxGridObj){
+	dhtmlxGridObj.clearAll();	
+	var dhtmlxDataProcessor = dhtmlxGridObj.getDataProcessor();
+	if(dhtmlxDataProcessor){
+		gf_clearDhtmlxDataProcessor(dhtmlxDataProcessor);
+	}
+	gf_setDhtmlxGridFooterRowCount(dhtmlxGridObj);
+}
+
+/** 
+ * Description 
+ * @function gf_clearDhtmlxDataProcessor
+ * @function_Description DhtmlxProcessor 초기화
+ * @param dhtmlxDataProcessorObj (Object) / DhtmlxDataProcessorObject
+ * @author 김종훈
+ */
+function gf_clearDhtmlxDataProcessor(dhtmlxDataProcessorObj){
+	if(dhtmlxDataProcessorObj && dhtmlxDataProcessorObj.updatedRows){
+		dhtmlxDataProcessorObj.updatedRows = [];
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_setDhtmlxGridPopupCellValue
+ * @function_Description DhtmlxGrid Popup 타입 Cell Text 및 Value 설정
+ * @param dhtmlxGridPopupCell (Object) / DhtmlxGridCellObject
+ * @author 김종훈
+ */
+function gf_setDhtmlxGridPopupCellValue(dhtmlxGridPopupCell, text, value){
+	if(dhtmlxGridPopupCell){
+		dhtmlxGridPopupCell.setValue({"text" : text, "value" : value});
+		var dhtmlxDataProcessor = dhtmlxGridPopupCell.grid.getDataProcessor();
+		if(dhtmlxDataProcessor != undefined && dhtmlxDataProcessor != null){
+			var rId = dhtmlxGridPopupCell.cell.parentNode.idd;
+			dhtmlxDataProcessor.setUpdated(rId, true, "updated");
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_initDhtmlxPopupDom
+ * @function_Description DOM Object에 연결시킨 DhtmlxGridPopup 초기화
+ * @param dom (object, String) / DOM Object
+ * @param infoText (String) / 팝업에 표시할 문구
+ * @author 김종훈
+ */
+function gf_initDhtmlxPopupDom(dom, infoText){
+	var obj = dom;
+	if(typeof dom === 'string'){
+		obj = document.getElementById(dom);
+	}
+	if(infoText && infoText.length > 0){
+		if(obj.popObject && obj.popObject.hide){
+			obj.popObject.hide();
+		}
+		obj.popObject = new dhtmlXPopup();
+		obj.popObject.setSkin(ERP_POPUP_CURRENT_SKINS);
+		obj.popObject.attachHTML(infoText);
+		
+		var x = window.dhx.absLeft(obj);
+		var y = window.dhx.absTop(obj);
+		var width = obj.offsetWidth;
+		var height = obj.offsetHeight;
+		
+		obj.popObject.show(x, y, width, height);
+		obj.popObject.attachEvent("onHide", function(){
+			var fn = (function(obj){				
+				return function(){		
+					if(obj && obj.unload){
+						obj.unload();
+					}
+				}
+			})(this);
+			setTimeout(fn, 100);
+			return true;
+		})
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_isEmpty
+ * @function_Description Object, String, Array가 현재 undefined or null or length가 0인 경우 true Return
+ * @param obj (Object, String, Array...)
+ * @author 김종훈
+ */
+function gf_isEmpty(obj){
+	if(obj == undefined || obj == null){
+		return true;
+	} else if(obj.length != undefined && obj.length != null){
+		if(obj.length <= 0){
+			return true;
+		} else {
+			return false;
+		}
+	}
+	return false;
+}
+
+/** 
+ * Description 
+ * @function gf_getDateFormat
+ * @function_Description Date Format (yyyy-MM-dd) 에 맞추어 String 생성
+ * @param d (String)
+ * @author 김종훈
+ */
+function gf_getDateFormat(d){
+	//숫자만 입력되는 경우도 고려하여 재구성
+	if(d && d.split){
+		d = d.split('-').join('');
+		// 8자 
+		if(d.length == 8){
+			return d.substring(0, 4) + '-' + d.substring(4, 6) + '-' + d.substring(6, 8);
+		} else {
+			return "";
+		}
+	} else {
+		return "";
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_isDateFormat
+ * @function_Description Date Format (yyyy-MM-dd) 정규식 체크
+ * @param d (String)
+ * @author 김종훈
+ */
+function gf_isDateFormat(d) {
+	var df = /[0-9]{4}-[0-9]{2}-[0-9]{2}/;
+    return d.match(df);
+}
+
+/** 
+ * Description 
+ * @function gf_isLeaf
+ * @function_Description 년도로 윤년검사
+ * @param year (Number)
+ * @author 김종훈
+ */
+function gf_isLeaf(year) {
+    var leaf = false;
+
+    if(year % 4 == 0) {
+        leaf = true;
+        if(year % 100 == 0) {
+            leaf = false;
+        }
+        if(year % 400 == 0) {
+            leaf = true;
+        }
+    }
+    return leaf;
+}
+
+/** 
+ * Description 
+ * @function gf_isDateValidate
+ * @function_Description 사용 가능한 날짜인지 확인 (2016-12-33 처럼 사용 불가 날짜 검출) 
+ * @param d (String) / 날짜 형태 (20000101, 2000-01-01 모두 확인 가능)
+ * @author 김종훈
+ */
+function gf_isDateValidate(d) {
+	d = gf_getDateFormat(d);
+    // 포맷에 안맞으면 false리턴
+    if(!gf_isDateFormat(d)) {
+        return false;
+    }
+    
+    var month_day = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    var dateToken = d.split('-');
+    var year = Number(dateToken[0]);
+    var month = Number(dateToken[1]);
+    var day = Number(dateToken[2]);
+    
+    // 년도가 1900 미만이나 3000 이상이면 False
+    if(year < 1900 || year >= 3000){
+    	return false;
+    }	
+    	
+    // 날짜가 0이면 false
+    if(day == 0) {
+        return false;
+    }
+
+    var isValid = false;
+
+    // 윤년일때
+    if(gf_isLeaf(year)) {
+        if(month == 2) {
+            if(day <= month_day[month-1] + 1) {
+                isValid = true;
+            }
+        } else {
+            if(day <= month_day[month-1]) {
+                isValid = true;
+            }
+        }
+    } else {
+        if(day <= month_day[month-1]) {
+            isValid = true;
+        }
+    }
+
+    return isValid;
+}
+
+/** 
+ * Description 
+ * @function gf_domSerialize
+ * @function_Description 특정 DOM 하위 노드를 검색하여 하위 노드 DOM들을 { key : value } 형태로 직렬화 (KEY는 NAME 기반이며 NAME이 여러개 인 경우 Value를 Array로 가지게 됨)
+ * @param domObj (Object) / DOM Object;
+ * @param serializedData (Object) / 재귀 함수용
+ * @author 김종훈
+ */
+function gf_domSerialize(domObj, serializedData){	
+	if(gf_isEmpty(serializedData)){
+		serializedData = {};
+	}
+	
+	if(domObj.childNodes){
+		for(var i in domObj.childNodes){
+			var child = domObj.childNodes[i];
+			if(child){
+				if(child.attributes && child.attributes.id && child.attributes.id && child.attributes.id.value){
+					var isTarget = true;
+					var id = child.attributes.id.value;
+					var name = child.attributes.name;
+					if(name && name.value && !gf_isEmpty(name.value)){
+						name = name.value;
+					} else {
+						name = id;
+					}
+					var value = "";
+					// 공통 Element가 추가 되는 경우 여기도 추가
+					// 일반 input text 혹은 textarea					
+					if(id.indexOf("txt") > -1){
+						if(document.getElementById(id).value){							
+							value = document.getElementById(id).value;
+						}
+					} else if(id.indexOf("cmb") > -1){
+						var cmbObj = gf_getObjectFromId(id);
+						value = cmbObj.getSelectedValue();
+					} else {
+						isTarget = false;
+					}
+					if(isTarget === true){
+						if(gf_isEmpty(value)){
+							value = "";
+						}
+						if(serializedData[name]){
+							var tmpValue = serializedData[name];
+							if(gf_isArray(tmpValue)){
+								tmpValue.push(value);
+							} else {
+								var tmpArray = [];
+								tmpArray.push(tmpValue);
+								tmpArray.push(value);
+								serializedData[name] = tmpArray;
+							}
+						} else {
+							serializedData[name] = value;
+						}
+					}
+				}
+				if(child.childNodes){
+					gf_domSerialize(child, serializedData);
+				}
+			}
+		}
+	}
+	
+	return serializedData;
+}
+
+/** 
+ * Description 
+ * @function gf_attachDhtmlxGridFooterRowCount
+ * @function_Description
+ * @param dhtmlxGridObj (Object) / dhtmlxGridObject
+ * @param text (String) / 좌측 행 갯수 안내 문구
+ * @author 김종훈
+ */
+function gf_attachDhtmlxGridFooterRowCount(dhtmlxGrid, text){
+	if(dhtmlxGrid){
+		var dhtmlxGridBox = dhtmlxGrid.globalBox;
+		if(gf_isEmpty(dhtmlxGridBox)){
+			dhtmlxGridBox = dhtmlxGrid.entBox;
+		}
+		var dhtmlxGridId = dhtmlxGridBox.id;
+		if(!gf_isEmpty(dhtmlxGridId)){
+			var divFooterWrapperId = dhtmlxGridId + "_footer_wrapper";
+			var spanFooterId = dhtmlxGridId.replace("div", "span") + "_footer_row_count";			
+			var footerTag = "<div id='" + divFooterWrapperId + "' class='div_grid_footer_wrapper'>" + text + "<span id='" + spanFooterId + "' class='span_grid_footer_row_count'>0</span></div>";
+						
+			var colCount = dhtmlxGrid.getColumnsNum();
+			if(colCount > 1){
+				for(var i = 0 ; i < colCount-1; i++){
+					footerTag += ",#cspan";
+				}	
+			}
+			erpGrid.attachFooter(footerTag, ["text-align:left"]);
+		}
+	}
+}
+
+/** 
+ * Description 
+ * @function gf_setDhtmlxGridFooterRowCount
+ * @function_Description 
+ * @param dhtmlxGridObj (Object) / dhtmlxGridObject
+ * @author 김종훈
+ */
+function gf_setDhtmlxGridFooterRowCount(dhtmlxGridObj){
+	var dhtmlxGridBox = dhtmlxGridObj.globalBox;
+	if(gf_isEmpty(dhtmlxGridBox)){
+		dhtmlxGridBox = dhtmlxGridObj.entBox;
+	}
+	var dhtmlxGridId = dhtmlxGridBox.id;
+	if(!gf_isEmpty(dhtmlxGridId)){
+		var spanFooterId = dhtmlxGridId.replace("div", "span") + "_footer_row_count";		
+		var spanFooterRowCountObject = document.getElementById(spanFooterId);
+		if(!gf_isEmpty(spanFooterRowCountObject)){
+			spanFooterRowCountObject.innerHTML = dhtmlxGridObj.getRowsNum();
+		}
+	}
+}

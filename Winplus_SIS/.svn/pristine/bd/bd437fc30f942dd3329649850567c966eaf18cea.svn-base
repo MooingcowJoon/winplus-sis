@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.order.dao.OrderCurrentSearchDao">
+	<select id="getCurrentSearchOrderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCurrentSearchOrderList 발주서(주문서) 현황 */
+        SELECT   A.ORGN_DIV_CD                            /* 조직영역코드   */
+                ,A.ORGN_CD                                /* 조직코드       */
+                ,A.ORD_NO                                 /* 발주번호       */
+                ,X.ORD_SEQ                                /* 일련번호       */
+                ,A.OUT_WARE_CD                            /* 출하창고코드   */
+                ,A.IN_WARE_CD                             /* 입고창고코드   */
+                ,CASE LEFT(A.ORGN_DIV_CD,1) WHEN 'Z' THEN
+                     M.CUSTMR_NM
+                     ELSE
+                     F.CMMN_DETAIL_CD_NM
+                 END IN_WARE_NM                            /* 입고창고명     */
+                ,A.CUSTMR_CD                               /* 협력사코드     */
+                ,J.CUSTMR_NM SUPR_NM                      /* 협력사명       */
+                ,SUBSTRING(A.RESV_DATE,1,4)+'-'+
+                 SUBSTRING(A.RESV_DATE,5,2)+'-'+
+                 SUBSTRING(A.RESV_DATE,7,2) RESV_DATE     /* 납기일자       */
+                ,SUBSTRING(A.REQ_DATE,1,4)+'-'+
+                 SUBSTRING(A.REQ_DATE,5,2)+'-'+
+                 SUBSTRING(A.REQ_DATE,7,2) REQ_DATE       /* 발주일자       */
+                ,A.ORD_TYPE                               /* 발주유형       */
+                ,G.CMMN_DETAIL_CD_NM ORD_TYPE_NM          /* 발주유형명     */
+                ,A.ORD_STATE                              /* 발주상태       */
+                ,E.CMMN_DETAIL_CD_NM ORD_STATE_NM         /* 발주상태명     */
+                ,A.RETN_YN                                /* 반품여부       */
+                ,C.BCD_CD                                 /* 자바코드       */
+                ,C.BCD_NM                                 /* 상품이름       */
+                ,C.DIMEN_NM                               /* 규격           */
+                ,Y.CMMN_DETAIL_CD_NM UNIT_NM              /* 단위명         */
+                ,X.ORD_QTY                                /* 발주수량       */
+                ,X.PUR_PRICE                              /* 매입단가       */
+                ,X.SUPR_AMT                               /* 공급가액       */
+                ,X.VAT_AMT VAT                            /* 부가세         */
+                ,X.TOT_AMT SUM_AMT                        /* 합계금액       */
+                ,A.RESP_USER                              /* 담당자코드     */
+                ,H.EMP_NM                                 /* 담당자명       */
+                ,X.MEMO                                   /* 비고           */
+                ,A.MEMO                                   /* 메모           */
+                ,A.RESN_CD                                /* 반품사유코드   */
+                ,A.ORD_CUSTMR_TYPE                        /* 발행구분       */
+                ,A.SEND_FAX_STATE                         /* 펙스발송상태(여부)  */
+                ,A.SEND_EMAIL_STATE                       /* Email발송상태(여부) */
+                ,A.PRINT_STATE                            /* PRINT인쇄상태(여부) */
+         FROM   T_PUR_ORD A
+                JOIN T_PUR_ORD_GOODS X ON A.ORD_NO    = X.ORD_NO
+                JOIN T_STD_MAST_BCD  C ON C.BCD_CD    = X.BCD_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL Y ON  Y.CMMN_CD   = 'UNIT_CD'   AND Y.CMMN_DETAIL_CD = C.UNIT_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD   = 'ORD_STATE' AND E.CMMN_DETAIL_CD = A.ORD_STATE
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'WARE_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD   = 'ORD_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_TYPE
+                LEFT OUTER JOIN COM_EMP_INFO         H ON  H.EMP_NO    = A.RESP_USER
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    J ON  J.CUSTMR_CD = A.CUSTMR_CD
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    M ON  M.CUSTMR_CD = A.IN_WARE_CD  /* 거래처포탈 처리용 */
+         WHERE  1 = 1
+        <if test='PARAM_ORGN_DIV_CD != null and PARAM_ORGN_DIV_CD != ""'>
+           AND  A.ORGN_DIV_CD = #{PARAM_ORGN_DIV_CD}
+        </if>
+        <if test='LOGIN_CHANNEL == "S" '>
+            AND  LEFT(A.ORGN_DIV_CD,1) != 'Z'     /* 거래처포탈 처리용 */
+        </if>
+        <if test='PARAM_ORGN_CD != null and PARAM_ORGN_CD != ""'>
+           AND  A.ORGN_CD     = #{PARAM_ORGN_CD}
+        </if>
+         /*  AND  A.ORD_TYPE  = {PARAM_ORD_TYPE}      1:발주, 2:주문 */
+        <if test='PARAM_ORD_STR_YYYYMMDD != null and PARAM_ORD_STR_YYYYMMDD != ""'>
+           AND  A.REQ_DATE  BETWEEN  #{PARAM_ORD_STR_YYYYMMDD} AND  #{PARAM_ORD_END_YYYYMMDD}
+        </if>
+        <if test='PARAM_DEL_STR_YYYYMMDD != null and PARAM_DEL_STR_YYYYMMDD != ""'>
+           AND  A.DELI_DATE BETWEEN  #{PARAM_DEL_STR_YYYYMMDD} AND  #{PARAM_DEL_END_YYYYMMDD}
+        </if>
+        <if test='PARAM_PROJ_CD != null and PARAM_PROJ_CD != ""'>
+           AND  A.PROJ_CD = #{PARAM_PROJ_CD}
+        </if>
+        <if test='PARAM_GOODS_NO != null and PARAM_GOODS_NO != ""'>
+           AND  X.BCD_CD   = #{PARAM_BCD_CD}
+        </if>
+        <if test='PARAM_SUPR_CD != null and PARAM_SUPR_CD != ""'>
+           AND  A.CUSTMR_CD = #{PARAM_SUPR_CD}
+        </if>
+        <if test='PARAM_IN_WARE_CD != null and PARAM_IN_WARE_CD != ""'>
+           AND  A.IN_WARE_CD = #{PARAM_IN_WARE_CD}
+        </if>
+        <if test='PARAM_OUT_WARE_CD != null and PARAM_OUT_WARE_CD != ""'>
+           AND  A.OUT_WARE_CD = #{PARAM_OUT_WARE_CD}
+        </if>
+        <if test='PARAM_RESP_USER != null and PARAM_RESP_USER != ""'>
+           AND  A.RESP_USER = #{PARAM_RESP_USER}
+        </if>
+         ORDER BY  A.REQ_DATE DESC, X.ORD_SEQ, A.RESV_DATE DESC
+	</select>
+
+</mapper>

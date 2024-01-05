@@ -1,0 +1,1037 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.order.dao.OrderSearchDao">
+    <select id="getSearchOrderList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchOrderList [OrderSearch.xml 직영점에서 공급사로 발주한 LIST조회 ]*/
+        SELECT   A.ORGN_DIV_CD                             /* 조직영역코드   */
+                ,K.CMMN_DETAIL_CD_NM ORGN_DIV_NM           /* 조직영역이름   */
+                ,SUBSTRING(A.ORGN_DIV_CD,1,1) ORGN_DIV_TYP /* 조직영역유형   */
+                ,A.ORGN_CD                                 /* 조직코드       */
+                ,L.ORGN_NM                                 /* 조직명         */
+                ,A.ORD_NO                                  /* 발주번호       */
+                ,A.OUT_WARE_CD                             /* 출하창고코드   */
+                ,A.IN_WARE_CD                              /* 입고창고코드   */
+                ,CASE LEFT(A.ORGN_DIV_CD,1) WHEN 'Z' THEN
+                     M.CUSTMR_NM
+                     ELSE
+                     F.CMMN_DETAIL_CD_NM
+                 END IN_WARE_NM                            /* 입고창고명     */
+                , A.CUSTMR_CD SUPR_CD                      /* 협력사코드     */
+                , J.CUSTMR_NM SUPR_NM                      /* 협력사명       */
+                ,SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.RESV_DATE, 7, 2) RESV_DATE    /* 납기일자       */
+                ,SUBSTRING(A.REQ_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.REQ_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.REQ_DATE, 7, 2) REQ_DATE      /* 발주일자       */
+                ,A.ORD_TYPE                                /* 발주유형       */
+                ,G.CMMN_DETAIL_CD_NM ORD_TYPE_NM           /* 발주유형명     */
+                ,A.ORD_STATE                               /* 발주상태       */
+                
+                ,CASE #{LOGIN_CHANNEL}  
+                     WHEN 'P' THEN     E.CMMN_DETAIL_CD_NM
+                     ELSE              E.DIV4
+                 END ORD_STATE_NM                          /* 발주상태명     */
+                ,A.RETN_YN                                 /* 반품여부       */
+                ,A.SEND_FAX_STATE                          /* FAX발송상태    */
+                ,A.SEND_EMAIL_STATE                        /* 이메일발송상태 */
+                ,A.SUPR_AMT                                /* 공급가액       */
+                ,A.VAT_AMT                                 /* 부가세         */
+                ,A.TOT_AMT                                 /* 합계금액       */
+                ,A.RESP_USER                               /* 담당자코드     */
+                ,H.EMP_NM                                  /* 담당자명       */
+                ,(
+                     SELECT TOP 1 C.BCD_NM
+                       FROM T_PUR_ORD_GOODS B JOIN T_STD_MAST_BCD  C ON C.BCD_CD  = B.BCD_CD
+                      WHERE A.ORD_NO        = B.ORD_NO
+                 ) + ' 등 ' +
+                 (
+                     SELECT CONVERT(NVARCHAR, COUNT(BCD_CD)) CNT
+                       FROM T_PUR_ORD_GOODS B
+                      WHERE A.ORD_NO  = B.ORD_NO
+                 ) + ' 건' GOODS_NM
+         FROM   T_PUR_ORD A
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD   = 'ORD_STATE'
+                     <if test='LOGIN_CHANNEL != "P" '>
+                            AND E.CMMN_DETAIL_CD = A.ORD_STATE
+                     </if>
+                     <if test='LOGIN_CHANNEL == "P" '>
+			               /* 승인이후부터 완료로 표시 */
+			               AND E.CMMN_DETAIL_CD = CASE A.ORD_STATE  WHEN '1' THEN '1' 
+                                                                    WHEN '2' THEN '2' 
+															        ELSE '5' END
+                     </if>
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'ORGN_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD   = 'ORD_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_TYPE
+                LEFT OUTER JOIN COM_EMP_INFO         H ON  H.EMP_NO    = A.RESP_USER
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    J ON  J.CUSTMR_CD = A.CUSTMR_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL K ON  A.ORGN_DIV_CD = K.CMMN_DETAIL_CD AND K.CMMN_CD = 'ORGN_DIV_CD'
+                LEFT OUTER JOIN COM_ORGN_INFO        L ON  A.ORGN_CD  = L.ORGN_CD
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    M ON  M.CUSTMR_CD  = A.IN_WARE_CD  /* 거래처포탈 처리용 */
+         WHERE  1 = 1
+        <if test='LOGIN_MENU == "CT" '>
+           /* 주문서관리(본사/센터) 메뉴 */
+           AND  A.ORGN_DIV_CD != 'B01'
+           AND  A.ORD_TYPE    != '2'   /* 직납발주 */
+           <if test='PARAM_ORGN_DIV_CD == "A01"'>
+	           /* 윈플러스 본사에서 로그인시  */
+	           AND  A.ORD_CUSTMR_CD NOT IN
+	                (
+	                  SELECT  ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+	                    FROM  COM_CMMN_CODE_DETAIL
+	                   WHERE  CMMN_CD='ORGN_CD'
+	                     AND  DIV1 = 'PM'
+	                )
+           </if>
+           <if test='PARAM_ORGN_DIV_CD == "B01"'>
+	       /*  센터에서 로그인시 자기 센터꺼만 보겠다  */
+           AND  A.CUSTMR_CD IN 
+                (
+                   SELECT  RM
+                     FROM  COM_CMMN_CODE_DETAIL
+                    WHERE  CMMN_CD = 'ORGN_CD'
+                      AND  DIV1    = 'CT'
+                      AND  CMMN_DETAIL_CD = #{PARAM_ORGN_CD}
+                )
+           </if>
+           <if test='PARAM_ORGN_DIV_CD == "A06"'>
+	           /* 윈플러스팜에서 로그인시  */
+	           AND  A.CUSTMR_CD  IN
+	                (
+	                   SELECT  RM  CUSTMR_CD
+	                     FROM  COM_CMMN_CODE_DETAIL
+	                    WHERE  CMMN_CD='ORGN_CD'
+	                      AND  DIV1 = 'PM'
+	                )
+           </if>
+        </if>
+        <if test='LOGIN_MENU != "CT" '>
+           AND  SUBSTRING(A.ORGN_DIV_CD,1,1) !=  'A'
+        </if>
+        <if test='LOGIN_CHANNEL == "S" '>
+           /*  AND  LEFT(A.ORGN_DIV_CD,1) != 'Z' 거래처포탈 처리용 */
+        </if>
+        <if test='PARAM_ORGN_CD != null and PARAM_ORGN_CD != ""'>
+           <if test='PARAM_ORGN_DIV_CD != "B01" and PARAM_ORGN_DIV_CD != "A01" and PARAM_ORGN_DIV_CD != "A06"'>
+           AND  A.ORGN_CD     = #{PARAM_ORGN_CD}
+           </if>
+        </if>
+        <if test='LOGIN_MENU == "CTM" '>
+           AND  A.ORGN_CD     = #{PARAM_ORGN_CD}
+        </if>
+        <if test='PARAM_ORD_STR_YYYYMMDD != null and PARAM_ORD_STR_YYYYMMDD != ""'>
+           AND  A.REQ_DATE  BETWEEN  #{PARAM_ORD_STR_YYYYMMDD} AND  #{PARAM_ORD_END_YYYYMMDD}
+        </if>
+        <if test='PARAM_DEL_STR_YYYYMMDD != null and PARAM_DEL_STR_YYYYMMDD != ""'>
+           AND  A.RESV_DATE BETWEEN  #{PARAM_DEL_STR_YYYYMMDD} AND  #{PARAM_DEL_END_YYYYMMDD}
+        </if>
+        <if test='PARAM_ORD_NO != null and PARAM_ORD_NO != ""'>
+           AND  A.ORD_NO  LIKE #{PARAM_ORD_NO}+'%'
+        </if>
+        <if test='PARAM_SUPR_CD != null and PARAM_SUPR_CD != ""'>
+           AND  A.CUSTMR_CD = #{PARAM_SUPR_CD}
+        </if>
+        <if test='PARAM_IN_WARE_CD != null and PARAM_IN_WARE_CD != ""'>
+           AND  A.IN_WARE_CD = #{PARAM_IN_WARE_CD}
+        </if>
+        <if test='PARAM_OUT_WARE_CD != null and PARAM_OUT_WARE_CD != ""'>
+           AND  A.OUT_WARE_CD = #{PARAM_OUT_WARE_CD}
+        </if>
+        <if test='PARAM_RESP_USER != null and PARAM_RESP_USER != ""'>
+           AND  A.RESP_USER = #{PARAM_RESP_USER}
+        </if>
+        <if test='PARAM_ORD_STATE != null and PARAM_ORD_STATE != ""'>
+           AND  A.ORD_STATE = #{PARAM_ORD_STATE}
+        </if>
+        <if test='LOGIN_MENU == "SP" '>
+           /* 공급사 포털 */
+           AND  A.CUSTMR_CD = #{PARAM_SUPR_CD}
+        </if>
+        <if test='LOGIN_MENU == "CT" '>
+           AND A.ORD_TYPE != '6' /* 긴급발주제외 */
+        </if>
+        <if test='LOGIN_MENU == "EM1" '>
+           AND A.ORD_TYPE = '6' /* 긴급발주건 영업승인대상 */
+           AND A.ORD_STATE  IN ('2','3')
+           <if test='PARAM_ORGN_DIV_CD == "B01"'>
+           /*  센터에서 로그인시 자기센타꺼만 보겠다  */
+           AND  A.CUSTMR_CD IN 
+                (
+                   SELECT  RM
+                     FROM  COM_CMMN_CODE_DETAIL
+                    WHERE  CMMN_CD = 'ORGN_CD'
+                      AND  DIV1    = 'CT'
+                      AND  CMMN_DETAIL_CD = #{PARAM_ORGN_CD}
+                )
+           </if>
+        </if>
+        <if test='LOGIN_MENU == "EM2" '>
+           AND A.ORD_TYPE = '6' /* 긴급발주건 물류센터(승인대상)) */
+           AND A.ORD_STATE  = '4'
+           <if test='PARAM_ORGN_DIV_CD == "B01"'>
+	       /*  센터에서 로그인시 자기센타꺼만 보겠다  */
+           AND  A.CUSTMR_CD IN 
+                (
+                   SELECT  RM
+                     FROM  COM_CMMN_CODE_DETAIL
+                    WHERE  CMMN_CD = 'ORGN_CD'
+                      AND  DIV1    = 'CT'
+                      AND  CMMN_DETAIL_CD = #{PARAM_ORGN_CD}
+                )
+           </if>
+        </if>
+         ORDER  BY  A.ORD_NO DESC, A.RESV_DATE DESC
+    </select>
+
+    <select id="getRequestOrderList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getRequestOrderList [OrderSearch.xml CS포털에서 센터로 주문한 LIST의 일자단위 조회 ]*/
+        SELECT  A.ORD_NO
+               ,A.ORD_TYPE
+               ,B.CMMN_DETAIL_CD_NM ORD_TYPE_NM             /* 발주유형명     */
+               ,A.FLAG
+               ,C.DIV4 ORD_STAT_NM                          /* 상태명  */
+               ,SUBSTRING(A.REQ_DATE, 1, 4)+'-'+
+                SUBSTRING(A.REQ_DATE, 5, 2)+'-' +
+                SUBSTRING(A.REQ_DATE, 7, 2) REQ_DATE        /* 주문일자       */
+               ,(
+                    SELECT TOP 1 C.BCD_NM
+                      FROM T_REQ_GOODS_TMP B JOIN T_STD_MAST_BCD  C ON C.BCD_CD  = B.BCD_CD
+                     WHERE A.ORD_NO        = B.ORD_NO
+                ) + ' 등 ' +
+                (
+                    SELECT CONVERT(NVARCHAR, COUNT(BCD_CD)) CNT
+                    FROM T_REQ_GOODS_TMP B
+                    WHERE A.ORD_NO  = B.ORD_NO
+                ) + ' 건' GOODS_NM
+               ,SUM(A.SUPR_AMT)   SUPR_AMT                   /* 공급가액       */
+               ,SUM(A.VAT_AMT)    VAT_AMT                    /* 부가세         */
+               ,SUM(A.TOT_AMT)    TOT_AMT                    /* 합계금액       */
+         FROM  T_REQ_GOODS_TMP A
+               JOIN COM_CMMN_CODE_DETAIL B ON  B.CMMN_CD = 'ORD_TYPE' AND B.CMMN_DETAIL_CD = A.ORD_TYPE
+               JOIN COM_CMMN_CODE_DETAIL C ON  C.CMMN_CD = 'ORD_STATE' AND C.CMMN_DETAIL_CD = A.FLAG
+        WHERE  REQ_CUSTMR_CD = #{PARAM_CUSTMR_CD}
+          AND  A.REQ_DATE BETWEEN  #{PARAM_STR_DATE} AND  #{PARAM_END_DATE}
+        GROUP  BY A.ORD_NO, ORD_TYPE, A.FLAG, A.REQ_DATE, B.CMMN_DETAIL_CD_NM, C.DIV4
+        ORDER  BY A.ORD_NO DESC
+    </select>
+
+    <select id="getSecondOrderList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSecondOrderList [OrderSearch.xml 착지변경,일배발주, 팜발주를 집계하기위한 발주NO단위 조회 ]*/
+        SELECT   A.ORD_NO                                  /* 발주번호       */
+                ,A.IN_WARE_CD                              /* 입고창고코드   */
+                ,CASE LEFT(A.ORGN_DIV_CD,1) WHEN 'Z' THEN
+                     M.CUSTMR_NM
+                     ELSE
+                     F.CMMN_DETAIL_CD_NM
+                 END IN_WARE_NM                            /* 입고창고명     */
+                , A.CUSTMR_CD SUPR_CD                      /* 협력사코드     */
+                , J.CUSTMR_NM SUPR_NM                      /* 협력사명       */
+                ,SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.RESV_DATE, 7, 2) RESV_DATE    /* 납기일자       */
+                ,SUBSTRING(A.REQ_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.REQ_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.REQ_DATE, 7, 2) REQ_DATE      /* 발주일자       */
+                ,A.ORD_TYPE                                /* 발주유형       */
+                ,G.CMMN_DETAIL_CD_NM ORD_TYPE_NM           /* 발주유형명     */
+                ,CASE A.SEC_ORD_YN                         /* 발주상태       */
+                      WHEN 'Y' THEN '발주완료'
+                      ELSE          '발주예정'   
+                 END  ORD_STATE_NM
+                ,A.SUPR_AMT                                /* 공급가액       */
+                ,A.VAT_AMT                                 /* 부가세         */
+                ,A.TOT_AMT                                 /* 합계금액       */
+                ,(
+                     SELECT TOP 1 C.BCD_NM
+                       FROM T_PUR_ORD_GOODS B JOIN T_STD_MAST_BCD  C ON C.BCD_CD  = B.BCD_CD
+                      WHERE A.ORD_NO        = B.ORD_NO
+                 ) + ' 등 ' +
+                 (
+                     SELECT CONVERT(NVARCHAR, COUNT(BCD_CD)) CNT
+                       FROM T_PUR_ORD_GOODS B
+                      WHERE A.ORD_NO  = B.ORD_NO
+                 ) + ' 건' GOODS_NM
+         FROM   T_PUR_ORD A
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'ORGN_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD   = 'ORD_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_TYPE
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    J ON  J.CUSTMR_CD = A.CUSTMR_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL K ON  A.ORGN_DIV_CD = K.CMMN_DETAIL_CD AND K.CMMN_CD = 'ORGN_DIV_CD'
+                LEFT OUTER JOIN COM_ORGN_INFO        L ON  A.ORGN_CD  = L.ORGN_CD
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    M ON  M.CUSTMR_CD  = A.IN_WARE_CD  /* 거래처포탈 처리용 */
+         WHERE  1 = 1
+           AND  A.ORGN_DIV_CD != 'B01'
+           AND  A.ORD_TYPE    =  #{PARAM_ORD_TYPE}
+           AND  A.CUSTMR_CD   IN
+                (
+                  SELECT  ISNULL(RM, CMMN_DETAIL_CD) CUSTMR_CD
+                    FROM  COM_CMMN_CODE_DETAIL
+                   WHERE  CMMN_CD='ORGN_CD'
+                     AND  DIV1 IN ('CT','PM')
+                )
+           AND  A.ORD_STATE = '3'
+           AND  A.REQ_DATE  = #{PARAM_REQ_DATE}
+         ORDER  BY  A.ORD_NO DESC, A.RESV_DATE DESC
+    </select>
+
+
+    <select id="getSearchBaljooList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchBaljooList [OrderSearch.xml  센터,직영점 => 협력사로 발주한 LIST조회 ]*/
+        SELECT   A.ORGN_DIV_CD                             /* 조직영역코드   */
+                ,K.CMMN_DETAIL_CD_NM ORGN_DIV_NM           /* 조직영역이름   */
+                ,SUBSTRING(A.ORGN_DIV_CD,1,1) ORGN_DIV_TYP /* 조직영역유형   */
+                ,A.ORGN_CD                                 /* 조직코드       */
+                ,L.ORGN_NM                                 /* 조직명         */
+                ,A.ORD_NO                                  /* 발주번호       */
+                ,A.OUT_WARE_CD                             /* 출하창고코드   */
+                ,A.IN_WARE_CD                              /* 입고창고코드   */
+                ,CASE LEFT(A.ORGN_DIV_CD,1) WHEN 'Z' THEN
+                     M.CUSTMR_NM
+                     ELSE
+                     F.CMMN_DETAIL_CD_NM
+                 END IN_WARE_NM                            /* 입고창고명     */
+                , A.CUSTMR_CD SUPR_CD                      /* 협력사코드     */
+                , J.CUSTMR_NM SUPR_NM                      /* 협력사명       */
+                ,SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.RESV_DATE, 7, 2) RESV_DATE    /* 납기일자       */
+                ,SUBSTRING(A.REQ_DATE, 1, 4)+'-'+
+                 SUBSTRING(A.REQ_DATE, 5, 2)+'-' +
+                 SUBSTRING(A.REQ_DATE, 7, 2) REQ_DATE      /* 발주일자       */
+                ,A.ORD_TYPE                                /* 발주유형       */
+                ,G.CMMN_DETAIL_CD_NM ORD_TYPE_NM           /* 발주유형명     */
+                ,A.ORD_STATE                               /* 발주상태       */
+                ,CASE #{LOGIN_MENU}
+                      WHEN 'MK' THEN  E.DIV4
+                      ELSE  E.CMMN_DETAIL_CD_NM
+                 END  ORD_STATE_NM                         /* 발주상태명     */
+                ,A.RETN_YN                                 /* 반품여부       */
+                ,A.SEND_FAX_STATE                          /* FAX발송상태    */
+                ,A.SEND_EMAIL_STATE                        /* 이메일발송상태 */
+                ,A.SUPR_AMT                                /* 공급가액       */
+                ,A.VAT_AMT                                 /* 부가세         */
+                ,A.TOT_AMT                                 /* 합계금액       */
+                ,A.RESP_USER                               /* 담당자코드     */
+                ,H.EMP_NM                                  /* 담당자명       */
+                ,(
+                     SELECT TOP 1 C.BCD_NM
+                       FROM T_PUR_ORD_GOODS B JOIN T_STD_MAST_BCD  C ON C.BCD_CD  = B.BCD_CD
+                      WHERE A.ORD_NO        = B.ORD_NO
+                 ) + ' 등 ' +
+                 (
+                     SELECT CONVERT(NVARCHAR, COUNT(BCD_CD)) CNT
+                       FROM T_PUR_ORD_GOODS B
+                      WHERE A.ORD_NO  = B.ORD_NO
+                 ) + ' 건' GOODS_NM
+         FROM   T_PUR_ORD A
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD   = 'ORD_STATE'
+                          <if test='LOGIN_MENU == "CT" '>
+			               AND E.CMMN_DETAIL_CD = A.ORD_STATE 
+                           </if>
+                          <if test='LOGIN_MENU == "MK" '>
+			               /* 승인이후부터 완료로 표시 */
+			               AND E.CMMN_DETAIL_CD = CASE A.ORD_STATE  WHEN '1' THEN '1' 
+                                                                    WHEN '2' THEN '2' 
+                                                                    WHEN '3' THEN '3' 
+                                                                    WHEN '6' THEN '3' 
+															        ELSE A.ORD_STATE END
+                           </if>
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'ORGN_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD   = 'ORD_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_TYPE
+                LEFT OUTER JOIN COM_EMP_INFO         H ON  H.EMP_NO    = A.RESP_USER
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    J ON  J.CUSTMR_CD = A.CUSTMR_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL K ON  A.ORGN_DIV_CD = K.CMMN_DETAIL_CD AND K.CMMN_CD = 'ORGN_DIV_CD'
+                LEFT OUTER JOIN COM_ORGN_INFO        L ON  A.ORGN_CD  = L.ORGN_CD
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    M ON  M.CUSTMR_CD  = A.IN_WARE_CD  /* 거래처포탈 처리용 */
+         WHERE  1 = 1
+        <if test='LOGIN_MENU == "CT" '>
+           /* 주문서관리(본사/센터) 메뉴 */
+           <if test='PARAM_ORGN_DIV_CD == "A01"'>
+	           /* 윈플러스 본사에서 로그인시  */
+           AND  A.ORD_CUSTMR_CD NOT IN
+                (
+                  SELECT  ISNULL(RM, CMMN_DETAIL_CD) ORGN_CD
+                    FROM  COM_CMMN_CODE_DETAIL
+                    WHERE CMMN_CD='ORGN_CD'
+                     AND  DIV1 = 'PM'
+                )
+           </if>
+           <if test='PARAM_ORGN_DIV_CD == "B01"'>
+               AND  A.ORGN_DIV_CD   = 'B01'
+	           AND  A.ORD_CUSTMR_CD =  #{PARAM_ORGN_CD}
+           </if>
+           <if test='PARAM_ORGN_DIV_CD == "A06"'>
+	           /* 윈플러스팜에서 로그인시  */
+               AND  A.ORGN_DIV_CD = 'A06'
+	           AND  A.ORD_CUSTMR_CD  IN
+	                (
+	                  SELECT CMMN_DETAIL_CD
+	                    FROM  COM_CMMN_CODE_DETAIL
+	                    WHERE CMMN_CD='ORGN_CD'
+	                     AND  DIV1 = 'PM'
+	                )
+           </if>
+        </if>
+        <if test='LOGIN_MENU == "MK" '>
+             AND  A.IN_WARE_CD =  #{PARAM_ORGN_CD}   /* ORD_CUSTMR_CD */
+        </if>
+        <if test='LOGIN_MENU != "CT" '>
+           AND  SUBSTRING(A.ORGN_DIV_CD,1,1) !=  'A'
+        </if>
+        <if test='PARAM_ORD_STR_YYYYMMDD != null and PARAM_ORD_STR_YYYYMMDD != ""'>
+           AND  A.REQ_DATE  BETWEEN  #{PARAM_ORD_STR_YYYYMMDD} AND  #{PARAM_ORD_END_YYYYMMDD}
+        </if>
+        <if test='PARAM_DEL_STR_YYYYMMDD != null and PARAM_DEL_STR_YYYYMMDD != ""'>
+           AND  A.RESV_DATE BETWEEN  #{PARAM_DEL_STR_YYYYMMDD} AND  #{PARAM_DEL_END_YYYYMMDD}
+        </if>
+        <if test='PARAM_ORD_NO != null and PARAM_ORD_NO != ""'>
+           AND  A.ORD_NO  LIKE #{PARAM_ORD_NO}+'%'
+        </if>
+        <if test='PARAM_SUPR_CD != null and PARAM_SUPR_CD != ""'>
+           AND  A.ORD_CUSTMR_CD = #{PARAM_SUPR_CD}
+        </if>
+        <if test='PARAM_IN_WARE_CD != null and PARAM_IN_WARE_CD != ""'>
+           AND  A.IN_WARE_CD = #{PARAM_IN_WARE_CD}
+        </if>
+        <if test='PARAM_OUT_WARE_CD != null and PARAM_OUT_WARE_CD != ""'>
+           AND  A.OUT_WARE_CD = #{PARAM_OUT_WARE_CD}
+        </if>
+        <if test='PARAM_RESP_USER != null and PARAM_RESP_USER != ""'>
+           AND  A.RESP_USER = #{PARAM_RESP_USER}
+        </if>
+        <if test='PARAM_ORD_STATE != null and PARAM_ORD_STATE != ""'>
+           AND  A.ORD_STATE = #{PARAM_ORD_STATE}
+        </if>
+          /*  AND  A.ORD_TYPE IN  ( '1','2','3','4','5','6') */
+         ORDER  BY  A.ORD_NO DESC, A.RESV_DATE DESC
+    </select>
+
+    <select id="getSearchOrderDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchOrderDetailList  [OrderSearch.xml 직영점에서 공급사로 발주한 상품상세내역 조회 ] */
+        SELECT   A.ORGN_DIV_CD                            /* 조직영역코드   */
+                ,A.ORGN_CD                                /* 조직코드       */
+                ,A.ORD_NO                                 /* 발주번호       */
+                ,SUBSTRING(A.ORGN_DIV_CD,1,1) ORGN_DIV_TYP /* 조직영역유형   */
+                ,X.ORD_SEQ                                /* 일련번호       */
+                ,A.OUT_WARE_CD                            /* 출하창고코드   */
+                ,A.IN_WARE_CD                             /* 입고창고코드   */
+                ,CASE LEFT(A.ORGN_DIV_CD,1) WHEN 'Z' THEN I.CUSTMR_NM
+                      ELSE F.CMMN_DETAIL_CD_NM
+                 END  IN_WARE_NM                          /* 입고창고명     */
+                ,A.CUSTMR_CD SUPR_CD                      /* 협력사코드     */
+                ,J.CUSTMR_NM SUPR_NM                      /* 협력사명       */
+                ,SUBSTRING(A.RESV_DATE,1,4)+'-'+
+                 SUBSTRING(A.RESV_DATE,5,2)+'-'+
+                 SUBSTRING(A.RESV_DATE,7,2) RESV_DATE     /* 납기일자       */
+                ,SUBSTRING(A.REQ_DATE,1,4)+'-'+
+                 SUBSTRING(A.REQ_DATE,5,2)+'-'+
+                 SUBSTRING(A.REQ_DATE,7,2) REQ_DATE       /* 발주일자       */
+                ,A.ORD_TYPE                               /* 발주유형       */
+                ,G.CMMN_DETAIL_CD_NM ORD_TYPE_NM          /* 발주유형명     */
+                ,A.ORD_STATE                              /* 발주상태       */
+                ,E.CMMN_DETAIL_CD_NM ORD_STATE_NM         /* 발주상태명     */
+                ,A.RETN_YN                                /* 반품여부       */
+                , ( SELECT CMMN_DETAIL_CD_NM 
+                         FROM   COM_CMMN_CODE_DETAIL
+                         WHERE  CMMN_CD = 'DSCD_TYPE' AND CMMN_DETAIL_CD =  B.PUR_DSCD_TYPE
+                   )  DSCD_TYPE                           /* 반품가능여부 */              
+                ,B.SALE_DSCD_TYPE                         /* 반품가능여부   */
+                ,C.BCD_CD                                 /* 자바코드       */
+                ,C.BCD_NM                                 /* 상품이름       */
+                ,C.DIMEN_NM                               /* 규격           */
+                ,Y.CMMN_DETAIL_CD_NM UNIT_NM              /* 단위명         */
+                ,X.ORD_QTY                                /* 발주수량       */
+                ,X.PUR_PRICE                              /* 매입단가       */
+                ,X.SUPR_AMT                               /* 공급가액       */
+                ,X.VAT_AMT                                /* 부가세         */
+                ,X.TOT_AMT                                /* 합계금액       */
+                ,A.RESP_USER                              /* 담당자코드     */
+                ,H.EMP_NM                                 /* 담당자명       */
+                ,X.MEMO REMK                              /* 비고           */
+                ,A.MEMO                                   /* 메모           */
+                ,A.RESN_CD                                /* 반품사유코드   */
+                ,A.ORD_CUSTMR_TYPE                        /* 발행구분       */
+                ,A.SEND_FAX_STATE                         /* 펙스발송상태(여부)  */
+                ,A.SEND_EMAIL_STATE                       /* Email발송상태(여부) */
+                ,A.PRINT_STATE                            /* PRINT인쇄상태(여부) */
+                ,ISNULL(K.ORGN_DIV_CD,'OUT') P_ORGN_DIV_CD /* 협력사조직유형      */
+         FROM   T_PUR_ORD A
+                JOIN T_PUR_ORD_GOODS X ON A.ORD_CUSTMR_CD = X.ORD_CUSTMR_CD  AND A.ORD_NO = X.ORD_NO
+                JOIN T_STD_MAST_BCD  C ON C.BCD_CD  = X.BCD_CD /* C.GOODS_NO    = X.GOODS_CD    AND  */
+                LEFT OUTER JOIN T_STD_MAST_GOODS     B ON  B.GOODS_NO  = C.GOODS_NO
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL Y ON  Y.CMMN_CD   = 'UNIT_CD'   AND  Y.CMMN_DETAIL_CD =  C.UNIT_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD   = 'ORD_STATE' AND E.CMMN_DETAIL_CD = A.ORD_STATE
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'ORGN_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD   = 'ORD_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_TYPE
+                LEFT OUTER JOIN COM_EMP_INFO         H ON  H.EMP_NO    = A.RESP_USER
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    J ON  J.CUSTMR_CD = A.CUSTMR_CD
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    I ON  I.CUSTMR_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN
+                     (
+                          SELECT   C.ORGN_DIV_CD,  C.ORGN_CD  , B.RM
+                            FROM   COM_CMMN_CODE_DETAIL      B
+                                   JOIN COM_ORGN_INFO        C ON B.CMMN_DETAIL_CD = C.ORGN_CD
+                           WHERE   B.CMMN_CD =  'ORGN_CD'
+                      )  K ON  K.RM        = A.ORD_CUSTMR_CD
+         WHERE  1 = 1
+           AND  A.ORGN_DIV_CD = #{PARAM_ORGN_DIV_CD}
+           AND  A.ORGN_CD     = #{PARAM_ORGN_CD}
+           AND  A.ORD_NO      = #{PARAM_ORD_NO}
+           <if test='PARAM_ORD_TYPE != null and PARAM_ORD_TYPE != ""'>
+           AND  A.ORD_TYPE    = #{PARAM_ORD_TYPE}      /* 1:발주, 2:주문 */
+           </if>
+         ORDER  BY  X.ORD_SEQ
+    </select>
+
+    <select id="getSearchOrderDetailListCopy" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchOrderDetailListCopy  센타에서 기존발주서 복사   */
+        SELECT   A.ORGN_DIV_CD                            /* 조직영역코드   */
+                ,A.ORGN_CD                                /* 조직코드       */
+                ,A.ORD_NO                                 /* 발주번호       */
+                ,X.ORD_SEQ                                /* 일련번호       */
+                ,A.ORD_TITLE                              /* 발주제목       */
+                ,A.OUT_WARE_CD                            /* 출하창고코드   */
+                ,A.IN_WARE_CD                             /* 입고창고코드   */
+                ,F.CMMN_DETAIL_CD_NM IN_WARE_NM           /* 입고창고명     */
+                ,A.SUPR_CD                                /* 협력사코드     */
+                ,K.CUSTMR_NM SUPR_NM                      /* 협력사명       */
+                ,A.PROJ_CD                                /* 프로젝트코드   */
+                ,D.CMMN_DETAIL_CD_NM PROJ_NM              /* 프로젝트명     */
+                ,SUBSTRING(A.DELI_DATE,1,4)+'-'+
+                 SUBSTRING(A.DELI_DATE,5,2)+'-'+
+                 SUBSTRING(A.DELI_DATE,7,2) DELI_DATE     /* 납기일자       */
+                ,CONVERT(varchar,A.ORD_DATE,23) ORD_DATE  /* 발주일시       */
+                ,A.ORD_TYPE                               /* 발주유형       */
+                ,G.CMMN_DETAIL_CD_NM ORD_TYPE_NM          /* 발주유형명     */
+                ,A.ORD_STATE                              /* 발주상태       */
+                ,E.CMMN_DETAIL_CD_NM ORD_STATE_NM         /* 발주상태명     */
+                ,A.RETN_YN                                /* 반품여부       */
+                ,B.DSCD_TYPE                              /* 반품가능여부   */
+                ,X.GOODS_CD                               /* 상품코드       */
+                ,C.BCD_CD                                 /* 자바코드       */
+                ,C.BCD_NM                                 /* 상품이름       */
+                ,C.DIMEN_NM                               /* 규격           */
+                ,X.ORD_QTY                                /* 발주수량       */
+                ,X.BOX_QTY                                /* BOX수량        */
+                ,I.PUR_PRICE                              /* 구매단가       */
+                ,A.RESP_USER                              /* 담당자코드     */
+                ,H.EMP_NM                                 /* 담당자명       */
+         FROM   T_PUR_ORD A
+                JOIN T_PUR_ORD_GOODS X ON A.ORGN_DIV_CD = X.ORGN_DIV_CD AND A.ORGN_CD = X.ORGN_CD  AND A.ORD_NO = X.ORD_NO
+                JOIN T_STD_MAST_BCD  C ON C.GOODS_NO    = X.GOODS_CD    AND C.BCD_CD  = X.BCD_CD
+                LEFT OUTER JOIN T_STD_MAST_GOODS     B ON  B.GOODS_NO  = C.GOODS_NO
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL D ON  D.CMMN_CD   = 'PROJ_CD'   AND D.CMMN_DETAIL_CD = A.PROJ_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD   = 'ORD_STATE' AND E.CMMN_DETAIL_CD = A.ORD_STATE
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL F ON  F.CMMN_CD   = 'WARE_CD'   AND F.CMMN_DETAIL_CD = A.IN_WARE_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD   = 'ORD_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_TYPE
+                LEFT OUTER JOIN COM_EMP_INFO         H ON  H.EMP_NO    = A.RESP_USER
+                JOIN T_STD_MAST_PUR_PRICE            I ON  I.BCD_CD    = X.BCD_CD    AND I.GOODS_NO    = X.GOODS_CD
+                JOIN T_STD_CUSTMR_MK                 J ON  J.CUSTMR_CD = I.CUSTMR_CD AND J.ORGN_DIV_CD = 'B01' AND J.ORGN_CD = A.ORGN_CD
+                JOIN T_STD_MAST_CUSTMR               K ON  K.CUSTMR_CD = I.CUSTMR_CD
+         WHERE  1 = 1
+           AND  A.ORGN_DIV_CD = #{PARAM_ORGN_DIV_CD}
+           AND  A.ORGN_CD     = #{PARAM_ORGN_CD}
+           AND  A.ORD_NO     IN ( #{PARAM_ORD_NO1},#{PARAM_ORD_NO2},#{PARAM_ORD_NO3},#{PARAM_ORD_NO4},#{PARAM_ORD_NO5} )
+           AND  A.ORD_TYPE    = #{PARAM_ORD_TYPE}      /* 1:발주, 2:주문 */
+         ORDER  BY  X.ORD_SEQ
+    </select>
+
+
+    <select id="getBusinessDay" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getBusinessDay leadtime일에 해당하는 영업일 구하기 */
+        SELECT ROWNUM, YYYYMMDD, YYYY_MM_DD, SUBSTRING(DAY_WEEK,1,1) DAY_WEEK
+          FROM (
+                SELECT CONVERT(CHAR(8),  NEXT_DATE, 112) YYYYMMDD,
+                       CONVERT(CHAR(10), NEXT_DATE, 23) YYYY_MM_DD,
+                       DAY_WEEK,
+                       ROW_NUMBER() OVER ( ORDER BY NEXT_DATE) AS ROWNUM
+                  FROM (
+                        /* 30일 연속 휴일은 없으므로 */
+                        SELECT GETDATE() CURR_DATE, DATEADD(DD, AA.ROWNUM, GETDATE()) NEXT_DATE,
+                               DATENAME(WEEKDAY, DATEADD(DD, AA.ROWNUM, GETDATE())) DAY_WEEK
+                        FROM  (
+                                 SELECT ROW_NUMBER() OVER ( ORDER BY CMMN_CD) AS ROWNUM
+                                 FROM COM_CMMN_CODE
+                              )  AA
+                       ) BB
+                 WHERE CONVERT(CHAR(8), NEXT_DATE, 112) NOT IN
+                      (
+                        SELECT CMMN_DETAIL_CD_NM
+                          FROM COM_CMMN_CODE_DETAIL
+                         WHERE CMMN_CD = 'NONHOLIDAY'
+                           AND USE_YN = 'Y'
+                           AND CONVERT(CHAR(8),GETDATE(), 112) BETWEEN BEGIN_DATE AND END_DATE
+                       )
+                   AND DAY_WEEK NOT IN ('토요일','일요일')
+               ) CC
+         WHERE ROWNUM = #{PARAM_LEAD_TIME}
+    </select>
+
+    <select id="getOrderDeadTimeLeadTime" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getOrderDeadTimeLeadTime 협력사 주문마감시간 고려  leadetime일 구하기*/
+        SELECT LEAD_TIME OR_LEAD_TIME, CLSE_TIME,  CURR_TIME,
+               CASE
+                   WHEN  CURR_TIME >  CLSE_TIME THEN LEAD_TIME + 1
+                   ELSE  LEAD_TIME
+               END GET_LEAD_TIME,
+               SUBSTRING(CLSE_TIME,1,2)+':'+SUBSTRING(CLSE_TIME,3,2) DISP_CLSE_TIME,
+               CASE
+                   WHEN  CURR_TIME >  CLSE_TIME THEN 2
+                   ELSE  1
+               END CHK_CNT
+        FROM  (
+                SELECT LEAD_TIME, CLSE_TIME,
+                       REPLACE( CONVERT(CHAR(5), GETDATE(), 108),':','') CURR_TIME
+                  FROM T_STD_MAST_CUSTMR
+                 WHERE CUSTMR_CD = #{PARAM_CUSTMR_CD}
+            ) AA
+    </select>
+
+    <select id="getLoginOrgInfo" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getLoginOrgInfo [OrderSearch.xml Login조직정보, WINPLUS거래처정보, INPLUS팜 정보, 협력업체 배송일자, Leadtime, 여신잔액및한도 ] */
+         WITH OBJ AS (
+                SELECT B.CUSTMR_CD, A.EMP_NO,  B.LOAN_YN
+                  FROM COM_EMP_INFO A
+                       JOIN T_STD_MAST_CUSTMR B ON B.CUSTMR_CD = A.EMP_NO
+                 WHERE A.EMP_NO = #{PARAM_EMP_NO}
+         )
+         SELECT   A.EMP_NO
+                , A.EMP_NM
+                , C.ORGN_CD DEPT_CD
+                , C.ORGN_NM
+                , C.ORGN_DIV_CD
+                , D.CMMN_DETAIL_CD_NM ORGN_DIV_CD_NM
+                , SUBSTRING(C.ORGN_DIV_CD,1,1) ORGN_DIV_TYPE
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+				       WHEN 'Z' THEN E.CUSTMR_NM       /* 취급점 */
+                       WHEN 'Y' THEN E.CUSTMR_NM       /* 전문점 */
+                       WHEN 'A' THEN F.WIN_CUSTMR_NM   /* 본사   */
+                       WHEN 'B' THEN F.WIN_CUSTMR_NM   /* 센터   */
+                       ELSE          I.CUSTMR_NM       /* 직영점 */
+                  END  CUSTMR_NM
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+				       WHEN 'Z' THEN E.CUSTMR_CD
+                       WHEN 'Y' THEN E.CUSTMR_CD
+                       WHEN 'A' THEN F.WIN_CUSTMR_CD
+                       WHEN 'B' THEN F.WIN_CUSTMR_CD
+                       ELSE          I.CUSTMR_CD
+                  END  CUSTMR_CD
+                , F.WIN_CUSTMR_CD
+                , F.WIN_CUSTMR_NM
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) WHEN 'Z' THEN
+                            CASE SUBSTRING(E.DELI_YOIL,1,1) WHEN '1' THEN '월' ELSE '' END +
+                            CASE SUBSTRING(E.DELI_YOIL,2,1) WHEN '1' THEN '화' ELSE '' END +
+                            CASE SUBSTRING(E.DELI_YOIL,3,1) WHEN '1' THEN '수' ELSE '' END +
+                            CASE SUBSTRING(E.DELI_YOIL,4,1) WHEN '1' THEN '목' ELSE '' END +
+                            CASE SUBSTRING(E.DELI_YOIL,5,1) WHEN '1' THEN '금' ELSE '' END +
+                            CASE SUBSTRING(E.DELI_YOIL,6,1) WHEN '1' THEN '토' ELSE '' END +
+                            CASE SUBSTRING(E.DELI_YOIL,7,1) WHEN '1' THEN '일' ELSE '' END 
+                       ELSE
+                            CASE SUBSTRING(I.DELI_YOIL,1,1) WHEN '1' THEN '월' ELSE '' END +
+                            CASE SUBSTRING(I.DELI_YOIL,2,1) WHEN '1' THEN '화' ELSE '' END +
+                            CASE SUBSTRING(I.DELI_YOIL,3,1) WHEN '1' THEN '수' ELSE '' END +
+                            CASE SUBSTRING(I.DELI_YOIL,4,1) WHEN '1' THEN '목' ELSE '' END +
+                            CASE SUBSTRING(I.DELI_YOIL,5,1) WHEN '1' THEN '금' ELSE '' END +
+                            CASE SUBSTRING(I.DELI_YOIL,6,1) WHEN '1' THEN '토' ELSE '' END +
+                            CASE SUBSTRING(I.DELI_YOIL,7,1) WHEN '1' THEN '일' ELSE '' END 
+                  END  DELI_YOIL
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) WHEN 'Z' THEN E.LEAD_TIME
+                       ELSE I.LEAD_TIME
+                  END  LEAD_TIME
+                  /* 마감시간 가져오기 */
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) WHEN 'Z' THEN 
+                            SUBSTRING(E.CLSE_TIME,1,2) + ':' +  SUBSTRING(E.CLSE_TIME,3,2)
+                       ELSE SUBSTRING(I.CLSE_TIME,1,2) + ':' +  SUBSTRING(I.CLSE_TIME,3,2)
+                  END  CLSE_TIME   /* 일반상품주문마감 */
+                , SUBSTRING(G.DIV1,1,2) + ':' +  SUBSTRING(G.DIV1,3,2) FRESH_CLSE_TIME      /* 신선상품주문마감 */
+                , SUBSTRING(H.DIV1,1,2) + ':' +  SUBSTRING(H.DIV1,3,2) DAILY_CLSE_TIME      /* 일배상품주문마감 */
+                , (
+                     SELECT A.CUSTMR_CD WIN_PARM_CUSTMR_CD  /*WINPLUS 팜 거래처코드 및 상호 구하기 */
+                       FROM T_STD_MAST_CUSTMR A
+                            JOIN COM_CMMN_CODE_DETAIL F ON F.CMMN_CD = 'ORGN_CD' AND F.DIV1 ='PM' AND F.RM = A.CUSTMR_CD
+                   ) WIN_PARM_CUSTMR_CD
+                , (  
+                     SELECT A.CUSTMR_NM WIN_PARM_CUSTMR_NM  /*WINPLUS 팜 거래처코드 및 상호 구하기 */
+                       FROM T_STD_MAST_CUSTMR A
+                            JOIN COM_CMMN_CODE_DETAIL F ON F.CMMN_CD = 'ORGN_CD' AND F.DIV1 ='PM' AND F.RM = A.CUSTMR_CD
+                   ) WIN_PARM_CUSTMR_NM
+                ,  ( SELECT COUNT(CMMN_DETAIL_CD) MK_CNT
+                       FROM COM_CMMN_CODE_DETAIL
+                      WHERE  CMMN_CD = 'ORGN_CD' 
+                        AND  DIV1 = 'MK' 
+                        AND  CMMN_DETAIL_CD != '200000'
+				    ) MK_CNT
+                , ISNULL(K.DIV1, 'N')     LMT_CNTROL_YN  /* 발주한도 체크여부     */
+                , ISNULL(K.DIV2, 'N')     ORD_APPEND_YN  /* 마감이후 발주가능여부 */
+                , ISNULL(K.DIV3, '1900')  ORD_SEC_TIME   /* 긴급발주마감시간  */
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) WHEN 'Z' THEN E.CLSE_TIME
+                       ELSE I.CLSE_TIME
+                  END  CLOSE_TIME 
+				, LEFT(REPLACE(CONVERT(CHAR(8), getdate(), 8), ':',''),4) CURR_TIME
+				, CASE WHEN  LEFT(REPLACE(CONVERT(CHAR(8), getdate(), 8), ':',''),4) >= ISNULL(K.DIV3, '1900') THEN '9'
+					   ELSE  CASE WHEN  LEFT(REPLACE(CONVERT(CHAR(8), getdate(), 8), ':',''),4)  >=
+                                  CASE SUBSTRING(C.ORGN_DIV_CD,1,1) WHEN 'Z' THEN E.CLSE_TIME
+                                       ELSE I.CLSE_TIME
+                                  END  THEN '1'
+							 ELSE '0'
+							 END
+				  END  EM_ORD_CD                         /* 긴급발주 가능구분 */                   
+                , ISNULL(Y.BAL_AMT,0)     LOAN_BAL_AMT   /* 여신잔액 */
+                , ISNULL(Y.BAL_AMT,0)     LOAN_AVL_AMT   /* 발주잔액 */
+                , ISNULL(Y.LOAN_AMT,0)    LOAN_LMT_AMT   /* 여신한도 */
+                , ISNULL(Y.LOAN_YN,'N')   LOAN_YN        /* 여신관리여부 */
+           FROM COM_EMP_INFO A
+                JOIN COM_ORGN_INFO B ON A.DEPT_CD = B.ORGN_CD
+                JOIN COM_ORGN_INFO C ON B.ORGN_DELEGATE_CD = C.ORGN_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL D ON C.ORGN_DIV_CD = D.CMMN_DETAIL_CD AND D.CMMN_CD = 'ORGN_DIV_CD'
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    E ON E.CUSTMR_CD = A.EMP_NO
+                /* WINPLUS 본사 거래처코드 및 상호 구하기 */
+                LEFT OUTER JOIN (
+                         SELECT A.CUSTMR_CD WIN_CUSTMR_CD, A.CUSTMR_NM WIN_CUSTMR_NM, F.CMMN_CD
+                           FROM T_STD_MAST_CUSTMR A
+                           JOIN COM_CMMN_CODE_DETAIL F ON F.CMMN_CD = 'WINPLUS' AND F.DIV1 = A.CUSTMR_CD
+                     ) F ON F.CMMN_CD = 'WINPLUS'
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON G.CMMN_CD = 'DEADLINE' AND G.CMMN_DETAIL_CD  = '01'
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL H ON H.CMMN_CD = 'DEADLINE' AND H.CMMN_DETAIL_CD  = '02'
+                /* 직영점  조직 */
+                LEFT OUTER JOIN ( 
+                         SELECT A.CUSTMR_CD, A.CUSTMR_NM, F.CMMN_CD, F.CMMN_DETAIL_CD ORGN_CD, A.LEAD_TIME, A.CLSE_TIME, A.DELI_YOIL
+                           FROM T_STD_MAST_CUSTMR A
+                           JOIN COM_CMMN_CODE_DETAIL F ON F.CMMN_CD = 'ORGN_CD' AND F.DIV1 = 'MK' AND A.CUSTMR_CD = F.RM
+                         ) I ON  I.ORGN_CD  = C.ORGN_CD
+                /* 발주한도 체크여부 및 마감시간이후 입력여부 */
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL K ON K.CMMN_CD = 'ORGN_CD2' AND K.CMMN_DETAIL_CD = C.ORGN_CD
+                /* 여신한도 및 잔액( 전문점 및 취급점만 해당) */
+                LEFT OUTER JOIN (
+                                    SELECT C.EMP_NO, A.BAL_AMT, A.LOAN_AMT,  C.LOAN_YN
+                                     FROM  T_STD_MAST_CREDITLOAN A
+                                           JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+                                           JOIN OBJ C ON C.CUSTMR_CD = B.OBJ_CD
+                                    WHERE  A.LOAN_SEQ = (
+                                             SELECT MAX(A.LOAN_SEQ)
+                                               FROM T_STD_MAST_CREDITLOAN A
+                                                    JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+                                                    JOIN OBJ C ON C.CUSTMR_CD = B.OBJ_CD
+                                            ) 
+                               ) Y ON Y.EMP_NO = A.EMP_NO
+         WHERE  A.EMP_NO = #{PARAM_EMP_NO}
+    </select>
+    
+    <select id="getOrderCloseTime" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getOrderCloseTime [OrderSearch.xml 현재시간 과 발주 마감시간을 구한다 ] */
+         WITH OBJ AS (
+                SELECT B.CUSTMR_CD, A.EMP_NO,  B.LOAN_YN
+                  FROM COM_EMP_INFO A
+                       JOIN T_STD_MAST_CUSTMR B ON B.CUSTMR_CD = A.EMP_NO
+                 WHERE A.EMP_NO = #{PARAM_EMP_NO}
+         )
+         SELECT   A.EMP_NO
+                , A.EMP_NM
+                , C.ORGN_CD DEPT_CD
+                , C.ORGN_NM
+                , CONVERT(CHAR(8), GETDATE(), 112) CURR_DATE
+                , substring(CONVERT(CHAR(8), GETDATE(), 108),1,2) + substring(CONVERT(CHAR(8), GETDATE(), 108),4,2) CURR_TIME
+                , SUBSTRING(C.ORGN_DIV_CD,1,1) ORGN_DIV_TYPE
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+                       WHEN 'Z' THEN      E.CUSTMR_NM
+                       WHEN 'Y' THEN      E.CUSTMR_NM
+                       ELSE               I.CUSTMR_NM
+                  END  CUSTMR_NM
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+                       WHEN 'Z' THEN      E.CUSTMR_CD
+                       WHEN 'Y' THEN      E.CUSTMR_CD
+                       ELSE               I.CUSTMR_CD
+                  END  CUSTMR_CD
+                  /* 마감시간 가져오기 */
+                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+                       WHEN 'Z' THEN      E.CLSE_TIME
+                       ELSE               I.CLSE_TIME
+                  END                     GERNL_CLSE_TIME      /* 일반상품주문마감 */
+                , G.DIV1                  FRESH_CLSE_TIME      /* 신선상품주문마감 */
+                , H.DIV1                  DAILY_CLSE_TIME      /* 일배상품주문마감 */
+                , ISNULL(K.DIV3, '1900')  EMERG_CLSE_TIME      /* 긴급발주마감시간 */
+                , ISNULL(K.DIV1, 'N')     LMT_CNTROL_YN        /* 발주한도체크여부 */
+                , ISNULL(K.DIV2, 'N')     ORD_APPEND_YN        /* 긴급발주가능여부 */
+                , ISNULL(L.CLSE_TIME,'2359') OUTCT_CLSE_TIME   /* 외부공급주문마감 */
+           FROM COM_EMP_INFO A
+                JOIN COM_ORGN_INFO B ON A.DEPT_CD = B.ORGN_CD
+                JOIN COM_ORGN_INFO C ON B.ORGN_DELEGATE_CD = C.ORGN_CD
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL D ON C.ORGN_DIV_CD = D.CMMN_DETAIL_CD AND D.CMMN_CD = 'ORGN_DIV_CD'
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    E ON E.CUSTMR_CD   = A.EMP_NO                                 /* 취급점,공급사 주문마감시간 */
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON G.CMMN_CD     = 'DEADLINE' AND G.CMMN_DETAIL_CD  = '01'  /* 신선상품주문마감    */
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL H ON H.CMMN_CD     = 'DEADLINE' AND H.CMMN_DETAIL_CD  = '02'  /* 일배상품주문마감    */
+                /* 직영점  조직 */
+                LEFT OUTER JOIN ( 
+                         SELECT A.CUSTMR_CD, A.CUSTMR_NM, F.CMMN_CD, F.CMMN_DETAIL_CD ORGN_CD, A.LEAD_TIME, A.CLSE_TIME, A.DELI_YOIL
+                           FROM T_STD_MAST_CUSTMR A
+                           JOIN COM_CMMN_CODE_DETAIL F ON F.CMMN_CD = 'ORGN_CD' AND F.DIV1 = 'MK' AND A.CUSTMR_CD = F.RM
+                         ) I ON  I.ORGN_CD  = C.ORGN_CD
+                /* 발주한도 체크여부 및 마감시간이후 입력여부 */
+                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL K ON K.CMMN_CD = 'ORGN_CD2' AND K.CMMN_DETAIL_CD = C.ORGN_CD
+                LEFT OUTER JOIN T_STD_MAST_CUSTMR    L ON L.CUSTMR_CD =  #{PARAM_CUSTMR_CD}  /*  외부공급사 발주마감시간 */
+         WHERE  A.EMP_NO = #{PARAM_EMP_NO}
+    </select>
+
+    <select id="getSelectedOrgInfo" resultType="java.util.Map" parameterType="java.util.Map">
+         /* getSelectedOrgInfo  Combo박스에서 선택된 조직(부서)의 조직영역 구하기 */
+         SELECT  TOP 1 DEPT_CD, ORGN_NM, ORGN_DIV_CD, ORGN_DIV_CD_NM, ORGN_DIV_TYPE
+           FROM  (
+                  SELECT   1 PART, C.ORGN_CD DEPT_CD, C.ORGN_NM, C.ORGN_DIV_CD, D.CMMN_DETAIL_CD_NM ORGN_DIV_CD_NM, SUBSTRING(C.ORGN_DIV_CD,1,1) ORGN_DIV_TYPE
+                    FROM   COM_CMMN_CODE_DETAIL      B
+                           JOIN COM_ORGN_INFO        C ON B.CMMN_DETAIL_CD = C.ORGN_CD
+                           JOIN COM_CMMN_CODE_DETAIL D ON C.ORGN_DIV_CD    = D.CMMN_DETAIL_CD AND D.CMMN_CD = 'ORGN_DIV_CD'
+                   WHERE   B.CMMN_CD =  'ORGN_CD'
+                     AND   B.RM     =  #{PARAM_ORGN_CD}
+                   UNION
+                  SELECT   2 PART, C.ORGN_CD DEPT_CD, C.ORGN_NM, C.ORGN_DIV_CD, D.CMMN_DETAIL_CD_NM ORGN_DIV_CD_NM, SUBSTRING(C.ORGN_DIV_CD,1,1) ORGN_DIV_TYPE
+                    FROM   COM_ORGN_INFO        C
+                           JOIN COM_CMMN_CODE_DETAIL D ON C.ORGN_DIV_CD    = D.CMMN_DETAIL_CD AND D.CMMN_CD = 'ORGN_DIV_CD'
+                   WHERE   C.ORGN_CD =  #{PARAM_ORGN_CD}
+                   UNION
+                  SELECT   3 PART, #{PARAM_ORGN_CD} DEPT_CD, #{PARAM_ORGN_CD} ORGN_NM, 'OUT' ORGN_DIV_CD, '외부공급사' ORGN_DIV_CD_NM, 'O' ORGN_DIV_TYPE
+                 ) B
+          ORDER  BY PART
+    </select>
+
+    <select id="getGoodsTreeComboList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getGoodsTreeComboList  센타,공급사에서 취급및 취급점에서 주문가능한 상품list를 COMBO로 출력하기 */
+        SELECT CAST(A.LVL AS VARCHAR) + '**' + CAST(A.GRUP_TOP_CD AS VARCHAR) + '**' + CAST(A.GRUP_MID_CD AS VARCHAR) + '**' + CAST(A.GRUP_BOT_CD AS VARCHAR) DETAIL_CD,
+               CASE WHEN A.LVL = '3' THEN  A.TOP_GRP_NM+'▶'+A.MID_GRP_NM+'▶'+ A.BOT_GRP_NM
+                    ELSE CASE WHEN LVL = '2'  THEN A.TOP_GRP_NM+'▶'+A.MID_GRP_NM
+                         ELSE A.TOP_GRP_NM
+                    END
+               END   DETAIL_CD_NM,
+               CASE WHEN LVL = '3' THEN  A.TOP_GRP_NM+'▶'+A.MID_GRP_NM+'▶'+ A.BOT_GRP_NM
+                    ELSE CASE WHEN LVL = '2'  THEN A.TOP_GRP_NM+'▶'+A.MID_GRP_NM
+                         ELSE A.TOP_GRP_NM
+                    END
+              END   DETAIL_NM
+         FROM  (
+                SELECT CASE WHEN A.GRUP_MID_CD = '0' THEN 1
+                            ELSE CASE WHEN A.GRUP_BOT_CD = '0' THEN 2
+                                 ELSE 3
+                            END
+                       END  AS LVL,
+                       A.GRUP_TOP_CD,
+                       A.GRUP_MID_CD,
+                       A.GRUP_BOT_CD,
+                       B.GRUP_NM TOP_GRP_NM,
+                       C.GRUP_NM MID_GRP_NM,
+                       D.GRUP_NM BOT_GRP_NM
+                  FROM (
+                        SELECT GRUP_TOP_CD,
+                               GRUP_MID_CD,
+                               GRUP_BOT_CD,
+                               SUM(CNT) CNT
+                          FROM (
+                                SELECT T.GRUP_TOP_CD,
+                                       CASE WHEN T.ROWNUM = 1 THEN '0'
+                                            ELSE T.GRUP_MID_CD
+                                       END  GRUP_MID_CD,
+                                       CASE WHEN T.ROWNUM = 3 THEN T.GRUP_BOT_CD
+                                            ELSE 0
+                                       END  GRUP_BOT_CD,
+                                       1    CNT
+                                  FROM (
+                                            SELECT A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD,
+                                                   ROW_NUMBER() OVER (PARTITION BY A.GRUP_TOP_CD,A.GRUP_MID_CD,A.GRUP_BOT_CD
+                                                                          ORDER BY A.GRUP_TOP_CD,A.GRUP_MID_CD,A.GRUP_BOT_CD) AS ROWNUM
+                                              FROM T_STD_GOODSGRUP A
+                                                   JOIN (
+                                                           SELECT DISTINCT(A.GRUP_CD) GRUP_CD
+                                                             FROM T_STD_GOODSGRUP  A
+                                                             JOIN T_STD_MAST_GOODS B ON B.GRUP_TOP_CD = A.GRUP_TOP_CD AND B.GRUP_MID_CD = A.GRUP_MID_CD AND B.GRUP_BOT_CD = A.GRUP_BOT_CD
+                                                             JOIN T_STD_MAST_BCD   C ON C.GOODS_NO    = B.GOODS_NO    AND C.USE_YN      = 'Y'
+                                                             /* 본사및 외부공급사인경우 공급상서 취급가능한 상품LIST */
+                                                             JOIN T_STD_MAST_PUR_PRICE E ON E.BCD_CD     =  C.BCD_CD      AND E.GOODS_NO    = C.GOODS_NO AND E.CUSTMR_CD   = '0000010025'
+                                                             /* 팜인경우 취급점에서 발주가능한 상품LIST에서 */
+                                                             --JOIN T_STD_CUSTMR_GOODS D ON D.CUSTMR_CD   = '0000000021'  AND D.BCD_CD      = C.BCD_CD
+                                                        ) B ON A.GRUP_CD = B.GRUP_CD
+                                                   LEFT OUTER JOIN ( /* ROWNUM 1,2,3을 강제로 처리하기 위함 */
+                                                        SELECT GRUP_TOP_CD,GRUP_MID_CD,GRUP_BOT_CD
+                                                          FROM (
+                                                                SELECT 1 GRUP_TOP_CD, 1 GRUP_MID_CD, 0 GRUP_BOT_CD  UNION
+                                                                SELECT 1 GRUP_TOP_CD, 0 GRUP_MID_CD, 0 GRUP_BOT_CD  UNION
+                                                                SELECT 0 GRUP_TOP_CD, 0 GRUP_MID_CD, 0 GRUP_BOT_CD
+                                                               ) B
+                                                         ) C  ON A.GRUP_CD = B.GRUP_CD
+                                        ) T
+                                ) Z
+                         GROUP BY GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD
+                       ) A
+                       LEFT OUTER JOIN
+                             ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM FROM T_STD_GOODSGRUP
+                                WHERE GRUP_MID_CD = '0' AND GRUP_BOT_CD = '0'
+                             ) B ON B.GRUP_TOP_CD = A.GRUP_TOP_CD
+                       LEFT OUTER JOIN
+                             ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM FROM T_STD_GOODSGRUP
+                                WHERE GRUP_MID_CD != '0' AND GRUP_BOT_CD = '0'
+                             ) C ON C.GRUP_TOP_CD = A.GRUP_TOP_CD AND C.GRUP_MID_CD = A.GRUP_MID_CD AND C.GRUP_BOT_CD = '0'
+                       LEFT OUTER JOIN
+                             ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM FROM T_STD_GOODSGRUP
+                                WHERE GRUP_MID_CD != '0' AND GRUP_BOT_CD != '0'
+                             ) D ON D.GRUP_TOP_CD = A.GRUP_TOP_CD AND D.GRUP_MID_CD = A.GRUP_MID_CD AND D.GRUP_BOT_CD = A.GRUP_BOT_CD
+               ) A
+         ORDER BY  A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD
+    </select>
+
+    <select id="getGoodsTreeList" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getGoodsTreeList  [OrderSearch.xml 센타,팜,공급사에서 취급및 취급점에서 주문가능한 상품list를 TREE로 출력하기] */
+        SELECT CAST(A.GRUP_TOP_CD AS VARCHAR) + '_' + CAST(A.GRUP_MID_CD AS VARCHAR) + '_' + CAST(A.GRUP_BOT_CD AS VARCHAR) UNI_KEY,
+               CAST(A.LVL AS VARCHAR) LVL,
+               CASE WHEN A.LVL = '3' THEN   CAST(A.GRUP_TOP_CD AS VARCHAR) + '_' + CAST(A.GRUP_MID_CD AS VARCHAR) + '_0'
+                    ELSE CASE WHEN LVL = '2'  THEN CAST(A.GRUP_TOP_CD AS VARCHAR) + '_0_0'
+                         ELSE '0_0_0'
+                    END
+               END  UPPER_UNI_KEY,
+               CASE WHEN A.LVL = '3' THEN   A.BOT_GRP_NM
+                    ELSE CASE WHEN LVL = '2'  THEN A.MID_GRP_NM
+                         ELSE A.TOP_GRP_NM
+                    END
+               END  GRUP_NM,
+               CASE WHEN A.LVL = '3' THEN   A.BOT_GRUP_CD
+                    ELSE CASE WHEN LVL = '2'  THEN A.MID_GRUP_CD
+                         ELSE A.TOP_GRUP_CD
+                    END
+               END  GRUP_CD,
+               CASE WHEN A.LVL = '3' THEN   A.BOT_GRUP_STATE
+                    ELSE CASE WHEN LVL = '2'  THEN A.MID_GRUP_STATE
+                         ELSE A.TOP_GRUP_STATE
+                    END
+               END  GRUP_STATE
+         FROM  (
+                SELECT CASE WHEN A.GRUP_MID_CD = '0' THEN 1
+                            ELSE CASE WHEN A.GRUP_BOT_CD = '0' THEN 2
+                                 ELSE 3
+                            END
+                       END  AS LVL,
+                       A.GRUP_TOP_CD,
+                       A.GRUP_MID_CD,
+                       A.GRUP_BOT_CD,
+                       B.GRUP_CD TOP_GRUP_CD,
+                       C.GRUP_CD MID_GRUP_CD,
+                       D.GRUP_CD BOT_GRUP_CD,
+                       B.GRUP_STATE  TOP_GRUP_STATE,
+                       C.GRUP_STATE  MID_GRUP_STATE,
+                       D.GRUP_STATE  BOT_GRUP_STATE,
+                       B.GRUP_NM TOP_GRP_NM,
+                       C.GRUP_NM MID_GRP_NM,
+                       D.GRUP_NM BOT_GRP_NM
+                  FROM (
+                        SELECT GRUP_TOP_CD,
+                               GRUP_MID_CD,
+                               GRUP_BOT_CD,
+                               SUM(CNT) CNT
+                          FROM (
+                                SELECT T.GRUP_TOP_CD,
+                                       CASE WHEN T.ROWNUM = 1 THEN '0'
+                                            ELSE T.GRUP_MID_CD
+                                       END  GRUP_MID_CD,
+                                       CASE WHEN T.ROWNUM = 3 THEN T.GRUP_BOT_CD
+                                            ELSE 0
+                                       END  GRUP_BOT_CD,
+                                       1    CNT
+                                  FROM (
+                                            SELECT A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD,
+                                                   ROW_NUMBER() OVER (PARTITION BY A.GRUP_TOP_CD,A.GRUP_MID_CD,A.GRUP_BOT_CD
+                                                                          ORDER BY A.GRUP_TOP_CD,A.GRUP_MID_CD,A.GRUP_BOT_CD) AS ROWNUM
+                                              FROM T_STD_GOODSGRUP A
+                                                   JOIN (
+                                                           SELECT DISTINCT(A.GRUP_CD) GRUP_CD
+                                                             FROM T_STD_GOODSGRUP  A
+                                                             JOIN T_STD_MAST_GOODS B ON B.GRUP_TOP_CD = A.GRUP_TOP_CD AND B.GRUP_MID_CD = A.GRUP_MID_CD AND B.GRUP_BOT_CD = A.GRUP_BOT_CD
+                                                             <if test='PARAM_GOODS_TYPE == "5" ' > AND DELI_DD_YN = 'Y' /* 일배발주 */ </if>
+                                                             <if test='PARAM_GOODS_TYPE != "5" ' > AND ISNULL(DELI_DD_YN,'N') = 'N' /* 일반발주 */ </if>
+                                                             JOIN T_STD_MAST_BCD   C ON C.GOODS_NO    = B.GOODS_NO    AND C.USE_YN      = 'Y'
+                                                             <if test='PARAM_CUST_DIV_CD == "B01"  or  PARAM_CUST_DIV_CD == "A06" ' >
+                                                             JOIN ( SELECT BCD_CD, GOODS_NO FROM T_STD_MAST_PUR_PRICE
+                                                                     WHERE CUSTMR_CD IN  
+                                                                          (  SELECT ISNULL(RM, CMMN_DETAIL_CD) CUSTMR_CD
+                                                                               FROM COM_CMMN_CODE_DETAIL
+                                                                              WHERE CMMN_CD='ORGN_CD'
+                                                                              <if test='PARAM_CUST_DIV_CD == "B01"' >AND DIV1 = 'CT'</if> /* 물류센타로주문 */
+                                                                              <if test='PARAM_CUST_DIV_CD == "A06"' >AND DIV1 = 'PM'</if> /* 팜으로의 주문  */
+                                                                           ) 
+                                                                       AND USE_YN   = 'Y'
+                                                                   ) E ON E.BCD_CD  = C.BCD_CD      AND E.GOODS_NO    = C.GOODS_NO
+                                                             </if>
+                                                             <if test='PARAM_CUST_DIV_CD == "OUT" ' >
+                                                             /*  화면에서 외부공급사를 지정하지 않고 바코드를 기준으로 최저가 및 공급사를 찾는다 */
+                                                             JOIN ( SELECT BCD_CD, GOODS_NO FROM T_STD_MAST_PUR_PRICE
+                                                                     WHERE CUSTMR_CD NOT IN /* 외부공급사(OUT, CHG착지변경) */ 
+                                                                          (  SELECT ISNULL(RM, CMMN_DETAIL_CD) CUSTMR_CD
+                                                                               FROM COM_CMMN_CODE_DETAIL
+                                                                              WHERE CMMN_CD='ORGN_CD'
+                                                                                AND DIV1 IN( 'CT','PM')
+                                                                           ) 
+                                                                       AND USE_YN   = 'Y'
+                                                                   ) E ON E.BCD_CD  = C.BCD_CD      AND E.GOODS_NO    = C.GOODS_NO
+                                                             </if>
+                                                             <if test='PARAM_CUST_DIV_CD == "OT1"  or PARAM_CUST_DIV_CD == "CHG" ' >
+                                                             /*  센터발주(착지변경포함) 화면에서 외부공급사를 지정한경우 해당공급사의 가격을 구한다 */
+                                                             JOIN ( SELECT BCD_CD, GOODS_NO FROM T_STD_MAST_PUR_PRICE
+                                                                     WHERE CUSTMR_CD = #{OUT_CUST_CD}
+                                                                   ) E ON E.BCD_CD  = C.BCD_CD      AND E.GOODS_NO    = C.GOODS_NO
+                                                             </if>
+                                                             <if test='PARAM_ORGN_DIV_CD == "Z01" or PARAM_ORGN_DIV_CD == "Z02"  '>
+                                                             /* 취급점인경우  발주가능한 상품LIST에서 */
+                                                             JOIN T_STD_CUSTMR_GOODS D ON D.CUSTMR_CD   =  #{PARAM_CUST_CD}  AND D.BCD_CD = C.BCD_CD
+                                                             </if>
+                                                        ) B ON A.GRUP_CD = B.GRUP_CD
+                                                   LEFT OUTER JOIN ( /* ROWNUM 1,2,3을 강제로 처리하기 위함 */
+                                                        SELECT GRUP_TOP_CD,GRUP_MID_CD,GRUP_BOT_CD
+                                                          FROM (
+                                                                SELECT 1 GRUP_TOP_CD, 1 GRUP_MID_CD, 0 GRUP_BOT_CD  UNION
+                                                                SELECT 1 GRUP_TOP_CD, 0 GRUP_MID_CD, 0 GRUP_BOT_CD  UNION
+                                                                SELECT 0 GRUP_TOP_CD, 0 GRUP_MID_CD, 0 GRUP_BOT_CD
+                                                               ) B
+                                                         ) C  ON A.GRUP_CD = B.GRUP_CD
+                                        ) T
+                                ) Z
+                         GROUP BY GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD
+                       ) A
+                       LEFT OUTER JOIN
+                             ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM, GRUP_STATE FROM T_STD_GOODSGRUP
+                                WHERE GRUP_MID_CD = '0' AND GRUP_BOT_CD = '0'
+                             ) B ON B.GRUP_TOP_CD = A.GRUP_TOP_CD
+                       LEFT OUTER JOIN
+                             ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM, GRUP_STATE FROM T_STD_GOODSGRUP
+                                WHERE GRUP_MID_CD != '0' AND GRUP_BOT_CD = '0'
+                             ) C ON C.GRUP_TOP_CD = A.GRUP_TOP_CD AND C.GRUP_MID_CD = A.GRUP_MID_CD AND C.GRUP_BOT_CD = '0'
+                       LEFT OUTER JOIN
+                             ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM, GRUP_STATE FROM T_STD_GOODSGRUP
+                                WHERE GRUP_MID_CD != '0' AND GRUP_BOT_CD != '0'
+                             ) D ON D.GRUP_TOP_CD = A.GRUP_TOP_CD AND D.GRUP_MID_CD = A.GRUP_MID_CD AND D.GRUP_BOT_CD = A.GRUP_BOT_CD
+               ) A
+         ORDER BY  A.GRUP_TOP_CD, A.GRUP_MID_CD, A.GRUP_BOT_CD
+    </select>
+
+    <select id="getGroupCdFromTreeID" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getGroupCdFromTreeID  TreeId를 기준으로 그룹코드를 구하기 */
+        SELECT CASE WHEN A.GRUP_MID_CD = '0' THEN 1
+                    ELSE CASE WHEN A.GRUP_BOT_CD = '0' THEN 2
+                         ELSE 3
+                    END
+               END  AS LVL,
+               A.GRUP_TOP_CD,
+               A.GRUP_MID_CD,
+               A.GRUP_BOT_CD,
+               B.GRUP_NM GRP_NM_TOP,
+               C.GRUP_NM GRP_NM_MID,
+               D.GRUP_NM GRP_NM_BOT
+          FROM T_STD_GOODSGRUP A
+               LEFT OUTER JOIN
+                     ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM, GRUP_STATE FROM T_STD_GOODSGRUP
+                        WHERE GRUP_MID_CD = '0' AND GRUP_BOT_CD = '0'
+                     ) B ON B.GRUP_TOP_CD = A.GRUP_TOP_CD
+               LEFT OUTER JOIN
+                     ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM, GRUP_STATE FROM T_STD_GOODSGRUP
+                        WHERE GRUP_MID_CD != '0' AND GRUP_BOT_CD = '0'
+                     ) C ON C.GRUP_TOP_CD = A.GRUP_TOP_CD AND C.GRUP_MID_CD = A.GRUP_MID_CD AND C.GRUP_BOT_CD = '0'
+               LEFT OUTER JOIN
+                     ( SELECT GRUP_CD, GRUP_TOP_CD, GRUP_MID_CD, GRUP_BOT_CD, GRUP_NM, GRUP_STATE FROM T_STD_GOODSGRUP
+                        WHERE GRUP_MID_CD != '0' AND GRUP_BOT_CD != '0'
+                     ) D ON D.GRUP_TOP_CD = A.GRUP_TOP_CD AND D.GRUP_MID_CD = A.GRUP_MID_CD AND D.GRUP_BOT_CD = A.GRUP_BOT_CD
+        WHERE A.GRUP_CD = #{PARAM_TREE_ID}
+    </select>
+
+</mapper>

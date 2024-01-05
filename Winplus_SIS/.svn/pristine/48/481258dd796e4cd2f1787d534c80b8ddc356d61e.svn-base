@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.price.dao.PriceReservationDao">
+	<select id="getPriceReservationHeaderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPriceReservationHeaderList */
+		SELECT
+			[ORGN_DIV_CD]
+			,[ORGN_CD]
+			,[CHG_SEQ]
+			,[CHG_TITLE]
+			,[GRUP_CD]
+			,[STRT_DATE]
+			,[STRT_TIME]
+			,CAST(LEFT([STRT_TIME],2) AS INT) AS STRT_TIME_HH
+			,RIGHT([STRT_TIME],2) AS STRT_TIME_MM
+			,[CHG_REMK]
+			,[APPLY_EMP_NO]
+			,[APPLY_ORGN_CD]
+			,[APPLY_STATE]
+		FROM T_RESV_PRICE_CHG
+		WHERE STRT_DATE BETWEEN DATEADD(DD,0,#{searchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDateTo}))
+		<if test='orgNcds != null and orgNcds != "" and orgNcds != "ALL"'>
+			AND ORGN_CD IN (SELECT VAL1 FROM [dbo].[FN_SPLIT](#{orgNcds},','))
+		</if>
+	</select>
+	
+	<select id="updatePriceReservationHeader" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updatePriceReservationHeader */
+		<if test='CRUD != null and CRUD != "D"'>
+			DECLARE @CHG_SEQ INT
+					,@ORGN_DIV_CD NVARCHAR(10)
+					
+			SET @CHG_SEQ = (
+								SELECT
+									(COUNT(CHG_SEQ)+1) AS CHG_SEQ
+								FROM T_RESV_PRICE_CHG
+							)
+							
+			SET @ORGN_DIV_CD = (
+								SELECT
+									DIV2 AS ORGN_DIV_CD
+								FROM COM_CMMN_CODE_DETAIL
+								WHERE CMMN_CD = 'ORGN_CD'
+								AND CMMN_DETAIL_CD = #{ORGN_CD}
+							)
+			
+			IF EXISTS(
+						SELECT
+							CHG_SEQ
+						FROM T_RESV_PRICE_CHG
+						WHERE CHG_SEQ = #{CHG_SEQ} 
+					)
+				BEGIN
+					UPDATE T_RESV_PRICE_CHG
+					SET CHG_TITLE = #{CHG_TITLE}
+						,STRT_DATE = #{STRT_DATE}
+						,STRT_TIME = CONCAT(REPLICATE('0',2 - LEN(#{STRT_TIME_HH})),#{STRT_TIME_HH},#{STRT_TIME_MM})
+						,CHG_REMK = #{CHG_REMK}
+						,MPROGRM = #{PROGRM}
+						,MUSER = #{EMP_NO}
+						,MDATE = GETDATE()
+					WHERE CHG_SEQ = #{CHG_SEQ} 
+					
+					SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+				END
+			ELSE
+				BEGIN
+					INSERT INTO T_RESV_PRICE_CHG (
+						[ORGN_DIV_CD]
+						,[ORGN_CD]
+						,[CHG_SEQ]
+						,[CHG_TITLE]
+						,[STRT_DATE]
+						,[STRT_TIME]
+						,[CHG_REMK]
+						,[APPLY_EMP_NO]
+						,[APPLY_ORGN_CD]
+						,[APPLY_STATE]
+						,[CPROGRM]
+						,[CUSER]
+						,[CDATE]
+					) VALUES (
+						@ORGN_DIV_CD
+						,#{ORGN_CD}
+						,@CHG_SEQ
+						,#{CHG_TITLE}
+						,#{STRT_DATE}
+						,CONCAT(REPLICATE('0',2 - LEN(#{STRT_TIME_HH})),#{STRT_TIME_HH},#{STRT_TIME_MM})
+						,#{CHG_REMK}
+						,#{EMP_NO}
+						,#{ORGN_CD}
+						,'1'
+						,#{PROGRM}
+						,#{EMP_NO}
+						,GETDATE()
+					)
+					
+					SELECT 'INS_SUCCESS' AS RESULT_MSG
+				END
+		</if>
+		<if test='CRUD != null and CRUD == "D"'>
+			DELETE T_RESV_PRICE_CHG
+			WHERE CHG_SEQ = #{CHG_SEQ}
+			
+			SELECT 'DEL_SUCCESS' AS RESULT_MSG
+		</if>
+	</select>
+	
+	<select id="getPriceReservationDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPriceReservationDetailList */
+		SELECT
+			RPCD.ORGN_DIV_CD
+			,RPCD.ORGN_CD
+			,RPCD.CHG_SEQ
+			,RPCD.DETL_SEQ
+			,RPCD.BCD_CD
+			,SMG.GOODS_NO
+			,SMG.TAX_TYPE
+			,RPCD.BCD_NM
+			,RPCD.DIMEN_NM
+			,SMC.CORP_NO
+			,SMC.CUSTMR_CD
+			,SMC.CUSTMR_NM
+			,(
+				SELECT TOP 1 PUR_PRICE
+				FROM T_RESV_PRICE_CHG_DETL AS A
+				WHERE A.CHG_SEQ = RPCD.CHG_SEQ
+				AND A.BCD_CD = RPCD.BCD_CD
+			) AS B_PUR_PRICE
+			,(
+				SELECT TOP 1 SALE_PRICE
+				FROM T_RESV_PRICE_CHG_DETL AS A
+				WHERE A.CHG_SEQ = RPCD.CHG_SEQ
+				AND A.BCD_CD = RPCD.BCD_CD
+			) AS B_SALE_PRICE
+			,ISNULL(RPCD.PUR_PRICE,0) AS A_PUR_PRICE
+			,ISNULL(RPCD.SALE_PRICE,0) AS A_SALE_PRICE
+		FROM T_RESV_PRICE_CHG_DETL RPCD
+		INNER JOIN T_STD_MAST_BCD SMB
+		ON RPCD.BCD_CD = SMB.BCD_CD
+		INNER JOIN T_STD_MAST_GOODS SMG
+		ON SMB.GOODS_NO = SMG.GOODS_NO
+		INNER JOIN T_STD_MAST_CUSTMR SMC
+		ON RPCD.CUSTMR_CD = SMC.CUSTMR_CD
+		LEFT OUTER JOIN T_STD_MAST_PUR_PRICE SMPP
+		ON RPCD.BCD_CD = SMPP.BCD_CD AND SMPP.USE_YN = 'Y'
+		AND RPCD.CUSTMR_CD = SMPP.CUSTMR_CD
+		WHERE RPCD.USE_YN = 'Y' 
+		AND RPCD.CHG_SEQ = #{CHG_SEQ}
+		AND RPCD.ORGN_CD = #{ORGN_CD}
+		ORDER BY DETL_SEQ
+	</select>
+	
+	<select id="updatePriceReservationDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updatePriceReservationDetailList */
+		<if test='CRUD != null and CRUD != "D"'>
+			DECLARE @DETL_SEQ INT
+					
+			SET @DETL_SEQ = (
+								SELECT
+									(COUNT(DETL_SEQ)+1) AS DETL_SEQ
+								FROM T_RESV_PRICE_CHG_DETL
+								WHERE CHG_SEQ = #{CHG_SEQ}
+							)
+							
+			IF EXISTS(
+						SELECT
+							CHG_SEQ
+						FROM T_RESV_PRICE_CHG_DETL
+						WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+						AND ORGN_CD = #{ORGN_CD}
+						AND CHG_SEQ = #{CHG_SEQ}
+						AND DETL_SEQ = #{DETL_SEQ}
+					)
+				BEGIN
+					UPDATE T_RESV_PRICE_CHG_DETL
+					SET BCD_CD = #{BCD_CD}
+						,BCD_NM = #{BCD_NM}
+						,DIMEN_NM = #{DIMEN_NM}
+						,CUSTMR_CD = #{CUSTMR_CD}
+						,PUR_PRICE = #{PUR_PRICE}
+						,SALE_PRICE = #{SALE_PRICE}
+						,MPROGRM = #{PROGRM}
+						,MUSER = #{EMP_NO}
+						,MDATE = GETDATE()
+					WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+					AND ORGN_CD = #{ORGN_CD}
+					AND CHG_SEQ = #{CHG_SEQ}
+					AND DETL_SEQ = #{DETL_SEQ}
+					
+					SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+				END
+			ELSE
+				BEGIN
+					INSERT INTO T_RESV_PRICE_CHG_DETL (
+						[ORGN_DIV_CD]
+						,[ORGN_CD]
+						,[CHG_SEQ]
+						,[DETL_SEQ]
+						,[BCD_CD]
+						,[BCD_NM]
+						,[DIMEN_NM]
+						,[CUSTMR_CD]
+						,[PUR_PRICE]
+						,[SALE_PRICE]
+						,[USE_YN]
+						,[CPROGRM]
+						,[CUSER]
+						,[CDATE]
+					) VALUES (
+						#{ORGN_DIV_CD}
+						,#{ORGN_CD}
+						,#{CHG_SEQ}
+						,@DETL_SEQ
+						,#{BCD_CD}
+						,#{BCD_NM}
+						,#{DIMEN_NM}
+						,#{CUSTMR_CD}
+						,#{PUR_PRICE}
+						,#{SALE_PRICE}
+						,'Y'
+						,#{PROGRM}
+						,#{EMP_NO}
+						,GETDATE()
+					)
+					
+					SELECT 'INS_SUCCESS' AS RESULT_MSG
+				END
+		</if>
+		<if test='CRUD != null and CRUD == "D"'>
+			UPDATE T_RESV_PRICE_CHG_DETL
+			SET USE_YN = 'N'
+				,MPROGRM = #{PROGRM}
+				,MUSER = #{EMP_NO}
+				,MDATE = GETDATE()
+			WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND CHG_SEQ = #{CHG_SEQ}
+			AND DETL_SEQ = #{DETL_SEQ}
+			
+			SELECT 'DEL_SUCCESS' AS RESULT_MSG
+		</if>
+	</select>
+	
+	<select id="getPriceInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPriceInformation */
+		SELECT
+			ISNULL((
+				SELECT
+					MIN(PUR_PRICE) AS PUR_PRICE
+				FROM T_STD_MAST_PUR_PRICE
+				WHERE CUSTMR_CD = #{CUSTMR_CD}
+				AND BCD_CD = #{BCD_CD}
+			),0) AS PUR_PRICE
+			,ISNULL((
+				SELECT
+					MIN(SALE_PRICE) AS SALE_PRICE
+				FROM T_STD_MAST_SALE_PRICE
+				WHERE BCD_CD = #{BCD_CD}
+				<if test='ORGN_DIV_CD != null and ORGN_DIV_CD != "" and !ORGN_DIV_CD.equals("ALL")'>
+					AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+					AND ORGN_CD = #{ORGN_CD}
+				</if>
+			),0) AS SALE_PRICE
+	</select>
+
+	<select id="getPriceScheduleList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPriceScheduleList */
+		SELECT
+			AAAA.ORGN_DIV_CD
+			,AAAA.ORGN_CD
+			,AAAA.CHG_SEQ
+			,SMB.GOODS_NO
+			,SMB.BCD_NM
+			,AAAA.DIMEN_NM
+			,AAAA.CHG_TITLE
+			,CONVERT(NVARCHAR(10),CONVERT(DATE,AAAA.STRT_DATE),120) AS STRT_DATE
+			,CAST(LEFT(AAAA.STRT_TIME,2) AS INT) AS STRT_TIME_HH
+			,RIGHT(AAAA.STRT_TIME,2) AS STRT_TIME_MM
+			,AAAA.APPLY_STATE
+			,ISNULL(SMPP.PUR_PRICE,0) AS B_PUR_PRICE
+			,ISNULL((
+				SELECT
+					MIN(SALE_PRICE)
+				FROM T_STD_MAST_SALE_PRICE
+				WHERE BCD_CD = AAAA.BCD_CD
+				AND (
+						AAAA.ORGN_DIV_CD = 'ALL' 
+						OR 
+						(ORGN_DIV_CD = AAAA.ORGN_DIV_CD AND ORGN_CD = AAAA.ORGN_CD)
+					)
+				GROUP BY BCD_CD
+			),0) AS B_SALE_PRICE
+			,ISNULL(AAAA.PUR_PRICE,0) AS A_PUR_PRICE
+			,ISNULL(AAAA.SALE_PRICE,0) AS A_SALE_PRICE
+		FROM (
+			SELECT
+				AAA.ORGN_DIV_CD
+				,AAA.ORGN_CD
+				,AAA.CHG_SEQ
+				,AAA.CHG_TITLE
+				,AAA.STRT_DATE
+				,AAA.STRT_TIME
+				,AAA.BCD_CD
+				,AAA.CUSTMR_CD
+				,AAA.DIMEN_NM
+				,AAA.PUR_PRICE
+				,AAA.SALE_PRICE
+				,AAA.APPLY_STATE
+				,RANK() OVER(PARTITION BY AAA.BCD_CD ORDER BY AAA.CAL1) AS RN3
+				,RANK() OVER(PARTITION BY AAA.BCD_CD ORDER BY AAA.CAL2) AS RN4
+			FROM (
+				SELECT
+					AA.ORGN_DIV_CD
+					,AA.ORGN_CD
+					,AA.CHG_SEQ
+					,AA.CHG_TITLE
+					,AA.STRT_DATE
+					,AA.STRT_TIME
+					,AA.BCD_CD
+					,AA.CUSTMR_CD
+					,AA.DIMEN_NM
+					,AA.PUR_PRICE
+					,AA.SALE_PRICE
+					,AA.APPLY_STATE
+					-- 조회일자 조건에 따른 시점 차이값(과거는 (-) 미래는 (+))
+					,DATEDIFF(SS,#{search_date},CONVERT(DATETIME2,CONCAT(AA.STRT_DATE,' ',LEFT(AA.STRT_TIME,2),':',RIGHT(AA.STRT_TIME,2),':00'))) AS CAL1
+					-- 조회일자 조건에 따른 시점 차이값(과거 미래 포함하여 가장 가까운시점의 순위)
+					,ABS(DATEDIFF(SS,#{search_date},CONVERT(DATETIME2,CONCAT(AA.STRT_DATE,' ',LEFT(AA.STRT_TIME,2),':',RIGHT(AA.STRT_TIME,2),':00')))) AS CAL2
+				FROM (
+					SELECT
+						A.ORGN_DIV_CD
+						,A.ORGN_CD
+						,A.CHG_SEQ
+						,A.CHG_TITLE
+						,A.STRT_DATE
+						,A.STRT_TIME
+						,A.BCD_CD
+						,A.CUSTMR_CD
+						,A.DIMEN_NM
+						,A.PUR_PRICE
+						,A.SALE_PRICE
+						,A.APPLY_STATE
+						-- 적용직영점 조건을 포함한 바코드별 최저가 순위
+						,RANK() OVER (PARTITION BY A.BCD_CD,A.STRT_DATE,A.STRT_TIME ORDER BY SALE_PRICE) AS RN2
+					FROM (
+						SELECT 
+							RPCD.ORGN_DIV_CD
+							,RPCD.ORGN_CD
+							,RPC.CHG_SEQ
+							,RPC.CHG_TITLE
+							,RPC.STRT_DATE
+							,RPC.STRT_TIME
+							,RPCD.BCD_CD
+							,RPCD.CUSTMR_CD
+							,RPCD.DIMEN_NM
+							,RPCD.PUR_PRICE
+							,RPCD.SALE_PRICE
+							,RPC.APPLY_STATE
+							-- 직영점별 바코드별 최저가 순위(적용상태별 분리)
+							,RANK() OVER (PARTITION BY RPCD.ORGN_DIV_CD,RPCD.ORGN_CD,RPCD.BCD_CD,RPC.STRT_DATE,RPC.STRT_TIME,RPC.APPLY_STATE ORDER BY SALE_PRICE) AS RN
+						FROM T_RESV_PRICE_CHG_DETL RPCD
+						INNER JOIN T_RESV_PRICE_CHG RPC
+						ON RPCD.ORGN_DIV_CD = RPC.ORGN_DIV_CD
+						AND RPCD.ORGN_CD = RPC.ORGN_CD
+						AND RPCD.CHG_SEQ = RPC.CHG_SEQ
+						WHERE RPCD.USE_YN = 'Y'
+					) A
+					WHERE A.RN = 1
+					<if test='orgn_cd != null and orgn_cd != ""'>
+						AND (
+								A.ORGN_DIV_CD = 'ALL'
+										OR
+									A.ORGN_CD = #{orgn_cd}	-- 적용직영점 조건자
+							)
+					</if>
+					<if test='apply_state != null and apply_state != ""'>
+						AND APPLY_STATE = #{apply_state}	-- 적용상태 조건자
+					</if>
+				) AA
+				WHERE AA.RN2 = 1
+			) AAA
+			<if test='apply_state != null and apply_state != "" and apply_state.equals("1")'>
+				WHERE AAA.CAL1 >= 0	-- 가격적용예정 조건일 경우에 미래값만 조회
+			</if>
+		) AAAA
+		INNER JOIN T_STD_MAST_BCD SMB
+		ON AAAA.BCD_CD = SMB.BCD_CD
+		LEFT OUTER JOIN T_STD_MAST_PUR_PRICE SMPP
+		ON AAAA.BCD_CD = SMPP.BCD_CD
+		AND AAAA.CUSTMR_CD = SMPP.CUSTMR_CD
+		WHERE (
+				AAAA.CHG_TITLE LIKE '%'+#{key_word}+'%'	-- 검색어 조건자
+					OR
+				SMB.BCD_NM LIKE '%'+#{key_word}+'%'	-- 검색어 조건자
+			)
+		<if test='apply_state != null and apply_state != "" and apply_state.equals("1")'>
+			AND RN3 = 1	-- 가격적용예정 조건일 경우에 미래값만 조회
+		</if>
+		<if test='!(apply_state != null and apply_state != "" and apply_state.equals("1"))'>
+			AND RN4 = 1	-- 가격적용예정 조건 외 경우에 과거미래 상관없이 가까운 값만 조회
+		</if>
+		ORDER BY AAAA.STRT_DATE,AAAA.STRT_TIME,AAAA.ORGN_CD,AAAA.BCD_CD
+	</select>
+</mapper>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.price.dao.GoodsByPriceSearchDao">
+	<select id="getGoodsByPriceList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsByPriceList */
+		SELECT *
+			<if test='CUSTMR_CD != ""'>
+			, PP.CUSTMR_CD
+			, PP.CUSTMR_NM
+			</if>
+		FROM (
+				SELECT G.GOODS_NO
+					, B.BCD_NM
+					, G.GOODS_STATE
+					, B.BCD_CD
+					, P.PUR_PRICE
+					, P.GOODS_FEE_RATE
+					, S.SALE_PRICE
+					, S.PROF_RATE
+					, CASE WHEN ISNULL(S.SALE_PRICE, 0) = 0 THEN 0 ELSE ((S.SALE_PRICE-P.PUR_PRICE) / S.SALE_PRICE) * 100 END AS CUR_RATE
+					, S.WSALE_PRICE_01
+					, S.WSALE_PRICE_02
+					, S.WSALE_PRICE_03
+					, S.WSALE_PRICE_04
+					, S.WSALE_PRICE_05
+					, GRUP.GRUP_TOP_CD
+					, GRUP.GRUP_MID_CD
+					, GRUP.GRUP_BOT_CD
+					, B.DIMEN_NM
+					, B.UNIT_CD
+					, S.ORGN_DIV_CD
+					, S.ORGN_CD
+				FROM T_STD_GOODSGRUP AS GRUP
+				INNER JOIN T_STD_MAST_GOODS AS G ON GRUP.GRUP_TOP_CD = G.GRUP_TOP_CD AND GRUP.GRUP_MID_CD = G.GRUP_MID_CD AND GRUP.GRUP_BOT_CD = G.GRUP_BOT_CD
+				INNER JOIN T_STD_MAST_BCD AS B ON G.GOODS_NO = B.GOODS_NO
+				LEFT OUTER JOIN T_STD_MAST_SALE_PRICE AS S ON S.BCD_CD = B.BCD_CD 
+						<if test='ORGN_DIV_CD != ""'>
+						AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+						</if>
+						<if test='ORGN_CD != ""'>
+						AND ORGN_CD = #{ORGN_CD}
+						</if>	
+				LEFT OUTER JOIN (
+					SELECT * FROM (
+						SELECT ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY LAST_P_PRICE_DATE) AS ROW_NUM
+								, *
+						FROM T_STD_MAST_PUR_PRICE
+						<if test='BCD_CD != ""'>
+						WHERE BCD_CD IN (${BCD_CD})
+						</if>
+					) AS Q WHERE Q.ROW_NUM = 1
+				) AS P ON P.BCD_CD = B.BCD_CD
+				WHERE 1=1
+				<if test="GRUP_CD != 'ALL'">
+					<choose>
+						<when test='GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+							AND GRUP.GRUP_TOP_CD = #{GRUP_TOP_CD}
+						</when>
+						<when test ='GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+							AND GRUP.GRUP_TOP_CD = #{GRUP_TOP_CD}
+							AND GRUP.GRUP_MID_CD = #{GRUP_MID_CD}
+						</when>
+						<when test='GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+							AND GRUP.GRUP_TOP_CD = #{GRUP_TOP_CD}
+							AND GRUP.GRUP_MID_CD = #{GRUP_MID_CD}
+							AND GRUP.GRUP_BOT_CD = #{GRUP_BOT_CD}
+						</when>
+					</choose>
+				</if>
+				<if test='BCD_CD != ""'>
+				AND B.BCD_CD IN (${BCD_CD})
+				</if>
+		) AS AA
+		<if test='CUSTMR_CD != ""'>
+		INNER JOIN (
+					SELECT MP.CUSTMR_CD
+						, MC.CUSTMR_NM
+						, MP.BCD_CD
+					FROM T_STD_MAST_PUR_PRICE AS MP
+					INNER JOIN T_STD_MAST_CUSTMR AS MC ON MP.CUSTMR_CD = MC.CUSTMR_CD
+					WHERE 1=1
+					<if test='BCD_CD != ""'>
+					AND MP.BCD_CD IN (${BCD_CD})
+					</if>
+		) AS PP ON PP.BCD_CD = AA.BCD_CD
+		AND PP.CUSTMR_CD = #{CUSTMR_CD}
+		</if>
+		WHERE 1=1
+		<if test='KEY_WORD != ""'>
+		AND (AA.BCD_NM LIKE CONCAT('%', #{KEY_WORD}, '%') OR AA.BCD_CD LIKE CONCAT('%', #{KEY_WORD}, '%'))
+		</if>
+		<if test='GOODS_GRUP_CD != "" and GOODS_GRUP_CD != null'>
+		AND AA.BCD_CD IN (
+							SELECT OBJ_CD 
+							FROM T_STD_GOODSGRUP_U_DETL 
+							WHERE GRUP_CD = #{GOODS_GRUP_CD} AND ORGN_CD = #{GOODS_GRUP_ORGN_CD}
+						)
+		</if>
+		<if test="ORGN_DIV_CD != ''">
+		AND AA.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		</if>
+		<if test="ORGN_CD != ''">
+		AND AA.ORGN_CD = #{ORGN_CD}
+		</if>
+		ORDER BY AA.ORGN_CD, AA.BCD_NM ASC
+	</select>
+</mapper>

@@ -1,0 +1,720 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.stock.dao.ConversionManagementDao">
+
+	<select id="getStockConvHeaderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockConvHeaderList */
+		SELECT
+			SCS.[ORGN_DIV_CD]
+			,SCS.[ORGN_CD]
+			,SCS.[CONV_CD]
+			,SCS.[CONV_DATE]
+			,CONVERT(NVARCHAR(10),CONVERT(DATE,SCS.[CONV_DATE]),23) AS CONV_YYYYMMDD
+			,SCS.ORI_TOT_AMT
+			,SCS.REPLC_TOT_AMT
+			,CONVERT(NVARCHAR(20),ISNULL(SCS.MDATE,SCS.CDATE),120) AS MDATE_YYYYMMDD
+			,SCS.ORI_SEND_TYPE
+			,SCS.REPLC_SEND_TYPE
+			,SCS.CONV_STATE
+		FROM T_STOCK_CONV_SLIP SCS
+		WHERE SCS.ORGN_CD = #{ORGN_CD}
+		AND SCS.CONV_DATE = #{CONV_DATE}
+	</select>
+	
+	<select id="getConvInfo" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getConvInfo */
+		SELECT
+			SCS.ORGN_DIV_CD
+			,SCS.ORGN_CD
+			,SCS.CONV_CD
+			,SCS.CONV_DATE
+			,ISNULL(SCS.ORI_SEND_TYPE,'N') AS ORI_SEND_TYPE
+			,ISNULL(SCS.REPLC_SEND_TYPE,'N') AS REPLC_SEND_TYPE
+			,SCS.CONV_STATE
+		FROM T_STOCK_CONV_SLIP SCS
+		WHERE SCS.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND SCS.ORGN_CD = #{ORGN_CD}
+		AND SCS.CONV_CD = #{CONV_CD}
+	</select>
+	
+	<select id="getStockOriConvDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockOriConvDetailList */
+		SELECT
+			SCG.ORGN_DIV_CD
+			,SCG.ORGN_CD
+			,SCG.CONV_CD
+			,SCG.CONV_TYPE
+			,SCG.GOODS_BCD
+			,SMB.BCD_CD
+			,SMB.BCD_CD AS HID_BCD_CD
+			,SMB.BCD_NM
+			,SMB.DIMEN_NM
+			,SCG.STD_PRICE
+			,SCG.CONV_PRICE
+			,SCG.CONV_QTY
+			,SCG.CONV_TOT_AMT AS ORI_TOT_AMT
+			,SCG.GOODS_TAX_YN AS TAX_YN
+		FROM T_STOCK_CONV_GOODS SCG
+		INNER JOIN T_STD_MAST_BCD SMB
+		ON SCG.GOODS_BCD = SMB.BCD_CD
+		WHERE SCG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND SCG.ORGN_CD = #{ORGN_CD}
+		AND SCG.CONV_CD = #{CONV_CD}
+		AND SCG.CONV_TYPE = 'ORI'
+	</select>
+	
+	<select id="getStockReplcConvDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockReplcConvDetailList */
+		SELECT
+			SCG.ORGN_DIV_CD
+			,SCG.ORGN_CD
+			,SCG.CONV_CD
+			,SCG.CONV_TYPE
+			,SCG.GOODS_BCD
+			,SMB.BCD_CD
+			,SMB.BCD_CD AS HID_BCD_CD
+			,SMB.BCD_NM
+			,SMB.DIMEN_NM
+			,SCG.STD_PRICE
+			,SCG.CONV_PRICE
+			,SCG.CONV_QTY
+			,SCG.CONV_TOT_AMT AS CONV_TOT_AMT
+			,SCG.GOODS_TAX_YN AS TAX_YN
+		FROM T_STOCK_CONV_GOODS SCG
+		INNER JOIN T_STD_MAST_BCD SMB
+		ON SCG.GOODS_BCD = SMB.BCD_CD
+		WHERE SCG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND SCG.ORGN_CD = #{ORGN_CD}
+		AND SCG.CONV_CD = #{CONV_CD}
+		AND SCG.CONV_TYPE = 'CONV'
+	</select>
+	
+	<select id="getStockConvSeq" resultType="java.lang.String" parameterType="java.util.Map">
+		/* getStockConvSeq */
+		DECLARE @TMP_SEQ INT
+		
+		SELECT @TMP_SEQ = NEXT VALUE FOR SEQ_T_STOCK_CONV
+
+		SELECT CONCAT(REPLICATE('0',4-LEN(@TMP_SEQ)),@TMP_SEQ) AS RM_SEQ
+	</select>
+	
+	<select id="updateConversionDetail" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateConversionDetail */
+		<if test='CRUD != null and CRUD != "D"'>
+			IF EXISTS(
+						SELECT
+							GOODS_BCD
+						FROM T_STOCK_CONV_GOODS
+						WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+						AND ORGN_CD = #{ORGN_CD}
+						AND CONV_CD = #{CONV_CD}
+						AND CONV_TYPE = #{CONV_TYPE}
+						AND GOODS_BCD = #{GOODS_BCD}
+					)
+				BEGIN
+					UPDATE T_STOCK_CONV_GOODS
+					SET CONV_PRICE = #{CONV_PRICE}
+						,CONV_QTY = #{CONV_QTY}
+						,CONV_TOT_AMT = ROUND(#{CONV_TOT_AMT},0)
+						,GOODS_TAX_YN = #{GOODS_TAX_YN}
+						,MPROGRM = #{PROGRM}
+						,MUSER = #{EMP_NO}
+						,MDATE = GETDATE()
+					WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+					AND ORGN_CD = #{ORGN_CD}
+					AND CONV_CD = #{CONV_CD}
+					AND CONV_TYPE = #{CONV_TYPE}
+					AND GOODS_BCD = #{GOODS_BCD}
+					AND (
+							(
+								'N' IN (
+										SELECT
+											ISNULL(ISNULL(ORI_SEND_TYPE,REPLC_SEND_TYPE),'N')
+										FROM T_STOCK_CONV_SLIP
+										WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+										AND ORGN_CD = #{ORGN_CD}
+										AND CONV_CD = #{CONV_CD}
+									)
+							AND
+								'1' IN (
+										SELECT
+											CONV_STATE
+										FROM T_STOCK_CONV_SLIP
+										WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+										AND ORGN_CD = #{ORGN_CD}
+										AND CONV_CD = #{CONV_CD}
+									)
+							)
+						OR
+							NOT EXISTS (
+									SELECT
+										ISNULL(ISNULL(ORI_SEND_TYPE,REPLC_SEND_TYPE),'N')
+									FROM T_STOCK_CONV_SLIP
+									WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+									AND ORGN_CD = #{ORGN_CD}
+									AND CONV_CD = #{CONV_CD}
+								)
+						)
+					
+					SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+				END
+			ELSE
+				BEGIN
+					INSERT INTO T_STOCK_CONV_GOODS (
+						[ORGN_DIV_CD]
+						,[ORGN_CD]
+						,[CONV_CD]
+						,[CONV_TYPE]
+						,[GOODS_BCD]
+						,[STD_PRICE]
+						,[CONV_PRICE]
+						,[CONV_QTY]
+						,[CONV_TOT_AMT]
+						,[GOODS_TAX_YN]
+						,[CPROGRM]
+						,[CUSER]
+						,[CDATE]
+					) VALUES (
+						#{ORGN_DIV_CD}
+						,#{ORGN_CD}
+						,#{CONV_CD}
+						,#{CONV_TYPE}
+						,#{GOODS_BCD}
+						,#{STD_PRICE}
+						,#{CONV_PRICE}
+						,#{CONV_QTY}
+						,ROUND(#{CONV_TOT_AMT},0)
+						,#{GOODS_TAX_YN}
+						,#{PROGRM}
+						,#{EMP_NO}
+						,GETDATE()
+					)
+					
+					SELECT 'INS_SUCCESS' AS RESULT_MSG
+				END
+		</if>
+		<if test='CRUD != null and CRUD == "D"'>
+			DELETE FROM T_STOCK_CONV_GOODS
+			WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND CONV_CD = #{CONV_CD}
+			AND CONV_TYPE = #{CONV_TYPE}
+			AND GOODS_BCD = #{GOODS_BCD}
+			AND 'N' IN (
+							SELECT
+								ISNULL(ISNULL(ORI_SEND_TYPE,REPLC_SEND_TYPE),'N')
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_CD = #{CONV_CD}
+						)
+			AND '1' IN (
+							SELECT
+								CONV_STATE
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_CD = #{CONV_CD}
+						)
+			
+			SELECT 'DEL_SUCCESS' AS RESULT_MSG
+		</if>
+	</select>
+	
+	<update id="updateConversionHeader" parameterType="java.util.Map">
+		/* updateConversionHeader */
+		SET NOCOUNT ON;
+		
+		UPDATE SCG
+		SET SCG.CONV_SUPR_AMT = TMP.SUPR_AMT
+			,SCG.CONV_VAT = TMP.VAT
+			,SCG.GOODS_TAX_YN = TMP.TAX_TYPE
+			,SCG.GOODS_SALE_TYPE = TMP.GOODS_SALE_TYPE
+		FROM T_STOCK_CONV_GOODS SCG
+		INNER JOIN (
+			SELECT
+				SCG.ORGN_DIV_CD
+				,SCG.ORGN_CD
+				,SCG.CONV_CD
+				,SCG.CONV_TYPE
+				,SCG.GOODS_BCD
+				-- 이미 앞에서 계산되어 옴
+				--,(CASE 
+				--	WHEN ISNULL(SMG.TAX_TYPE,'N') = 'Y' THEN ROUND(((ISNULL(SCG.CONV_PRICE,0)*SCG.CONV_QTY)/1.1),0) 
+				--	ELSE ISNULL(SCG.CONV_PRICE,0)*SCG.CONV_QTY
+				--END) AS SUPR_AMT
+				,ROUND(ISNULL(SCG.CONV_PRICE,0)*SCG.CONV_QTY,0) AS SUPR_AMT
+				-- 이미 앞에서 계산되어 옴
+				--,(CASE
+				--	WHEN ISNULL(SMG.TAX_TYPE,'N') = 'Y' THEN (ISNULL(SCG.CONV_PRICE,0)*SCG.CONV_QTY - ROUND(((ISNULL(SCG.CONV_PRICE,0)*SCG.CONV_QTY)/1.1),0))
+				--	ELSE 0
+				--END) AS VAT
+				,0 AS VAT
+				,SMG.GOODS_SALE_TYPE
+				,ISNULL(SMG.TAX_TYPE,'N') AS TAX_TYPE
+			FROM T_STOCK_CONV_GOODS SCG
+			INNER JOIN T_STD_MAST_BCD SMB
+			ON SCG.GOODS_BCD = SMB.BCD_CD
+			INNER JOIN T_STD_MAST_GOODS SMG
+			ON SMB.GOODS_NO = SMG.GOODS_NO
+			WHERE SCG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND SCG.ORGN_CD = #{ORGN_CD}
+			AND SCG.CONV_CD = #{CONV_CD}
+		) TMP
+		ON SCG.ORGN_DIV_CD = TMP.ORGN_DIV_CD
+		AND SCG.ORGN_CD = TMP.ORGN_CD
+		AND SCG.CONV_CD = TMP.CONV_CD
+		AND SCG.CONV_TYPE = TMP.CONV_TYPE
+		AND SCG.GOODS_BCD = TMP.GOODS_BCD
+		WHERE SCG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND SCG.ORGN_CD = #{ORGN_CD}
+		AND SCG.CONV_CD = #{CONV_CD}
+		AND (
+				(
+					'N' IN (
+							SELECT
+								ISNULL(ISNULL(ORI_SEND_TYPE,REPLC_SEND_TYPE),'N')
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_CD = #{CONV_CD}
+						)
+				AND
+					'1' IN (
+							SELECT
+								CONV_STATE
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_CD = #{CONV_CD}
+						)
+				)
+			OR
+				NOT EXISTS (
+						SELECT
+							ISNULL(ISNULL(ORI_SEND_TYPE,REPLC_SEND_TYPE),'N')
+						FROM T_STOCK_CONV_SLIP
+						WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+						AND ORGN_CD = #{ORGN_CD}
+						AND CONV_CD = #{CONV_CD}
+					)
+			)
+		
+		SET NOCOUNT OFF;
+		
+		IF EXISTS(
+					SELECT
+						CONV_CD
+					FROM T_STOCK_CONV_SLIP
+					WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+					AND ORGN_CD = #{ORGN_CD}
+					AND CONV_CD = #{CONV_CD}
+				)
+			BEGIN
+				UPDATE SCS
+				SET SCS.ORI_SUPR_AMT = SCG.ORI_SUPR_AMT
+					,SCS.ORI_VAT = SCG.ORI_VAT
+					,SCS.ORI_TOT_AMT = SCG.ORI_TOT_AMT
+					,SCS.REPLC_SUPR_AMT = SCG.REPLC_SUPR_AMT
+					,SCS.REPLC_VAT = SCG.REPLC_VAT
+					,SCS.REPLC_TOT_AMT = SCG.REPLC_TOT_AMT
+					,SCS.MPROGRM = #{PROGRM}
+					,SCS.MUSER = #{EMP_NO}
+					,SCS.MDATE = GETDATE()
+				FROM T_STOCK_CONV_SLIP SCS
+				INNER JOIN (
+					SELECT
+						SCG.ORGN_DIV_CD
+						,SCG.ORGN_CD
+						,SCG.CONV_CD
+						,SUM(
+							CASE SCG.CONV_TYPE
+								WHEN 'ORI' THEN SCG.CONV_SUPR_AMT
+								ELSE 0
+							END
+						) AS ORI_SUPR_AMT
+						,SUM(
+							CASE SCG.CONV_TYPE
+								WHEN 'ORI' THEN SCG.CONV_VAT
+								ELSE 0
+							END
+						) AS ORI_VAT
+						,SUM(
+							CASE SCG.CONV_TYPE
+								WHEN 'ORI' THEN SCG.CONV_TOT_AMT
+								ELSE 0
+							END
+						) AS ORI_TOT_AMT
+						,SUM(
+							CASE SCG.CONV_TYPE
+								WHEN 'CONV' THEN SCG.CONV_SUPR_AMT
+								ELSE 0
+							END
+						) AS REPLC_SUPR_AMT
+						,SUM(
+							CASE SCG.CONV_TYPE
+								WHEN 'CONV' THEN SCG.CONV_VAT
+								ELSE 0
+							END
+						) AS REPLC_VAT
+						,SUM(
+							CASE SCG.CONV_TYPE
+								WHEN 'CONV' THEN SCG.CONV_TOT_AMT
+								ELSE 0
+							END
+						) AS REPLC_TOT_AMT
+					FROM T_STOCK_CONV_GOODS SCG
+					WHERE SCG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+					AND SCG.ORGN_CD = #{ORGN_CD}
+					AND SCG.CONV_CD = #{CONV_CD}
+					GROUP BY SCG.ORGN_DIV_CD,SCG.ORGN_CD,SCG.CONV_CD
+				) SCG
+				ON SCS.ORGN_DIV_CD = SCG.ORGN_DIV_CD
+				AND SCS.ORGN_CD = SCG.ORGN_CD
+				AND SCS.CONV_CD = SCG.CONV_CD
+				WHERE SCG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+				AND SCG.ORGN_CD = #{ORGN_CD}
+				AND SCG.CONV_CD = #{CONV_CD}
+				AND ISNULL(SCS.ORI_SEND_TYPE,'N') = 'N'
+				AND ISNULL(SCS.REPLC_SEND_TYPE,'N') = 'N'
+				AND SCS.CONV_STATE = '1'			-- 자료입력 상태
+			END
+		ELSE
+			BEGIN
+				INSERT INTO T_STOCK_CONV_SLIP (
+					[ORGN_DIV_CD]
+					,[ORGN_CD]
+					,[CONV_CD]
+					,[CONV_DATE]
+					,[ORI_SUPR_AMT]
+					,[ORI_VAT]
+					,[ORI_TOT_AMT]
+					,[ORI_SEND_TYPE]
+					,[REPLC_SUPR_AMT]
+					,[REPLC_VAT]
+					,[REPLC_TOT_AMT]
+					,[REPLC_SEND_TYPE]
+					,[CONV_STATE]
+					,[CPROGRM]
+					,[CUSER]
+					,[CDATE]
+				)
+				SELECT
+					SCG.ORGN_DIV_CD
+					,SCG.ORGN_CD
+					,SCG.CONV_CD
+					,#{CONV_DATE} AS CONV_DATE
+					,SUM(
+						CASE SCG.CONV_TYPE
+							WHEN 'ORI' THEN SCG.CONV_SUPR_AMT
+							ELSE 0
+						END
+					) AS ORI_SUPR_AMT
+					,SUM(
+						CASE SCG.CONV_TYPE
+							WHEN 'ORI' THEN SCG.CONV_VAT
+							ELSE 0
+						END
+					) AS ORI_VAT
+					,SUM(
+						CASE SCG.CONV_TYPE
+							WHEN 'ORI' THEN SCG.CONV_TOT_AMT
+							ELSE 0
+						END
+					) AS ORI_TOT_AMT
+					,'N' ORI_SEND_TYPE
+					,SUM(
+						CASE SCG.CONV_TYPE
+							WHEN 'CONV' THEN SCG.CONV_SUPR_AMT
+							ELSE 0
+						END
+					) AS REPLC_SUPR_AMT
+					,SUM(
+						CASE SCG.CONV_TYPE
+							WHEN 'CONV' THEN SCG.CONV_VAT
+							ELSE 0
+						END
+					) AS REPLC_VAT
+					,SUM(
+						CASE SCG.CONV_TYPE
+							WHEN 'CONV' THEN SCG.CONV_TOT_AMT
+							ELSE 0
+						END
+					) AS REPLC_TOT_AMT
+					,'N' AS REPLC_SEND_TYPE
+					,'1' AS CONV_STATE				-- 자료입력
+					,#{PROGRM} AS CPROGRM
+					,#{EMP_NO} AS CUSER
+					,GETDATE() AS CDATE
+				FROM T_STOCK_CONV_GOODS SCG
+				WHERE SCG.ORGN_DIV_CD = #{ORGN_DIV_CD}
+				AND SCG.ORGN_CD = #{ORGN_CD}
+				AND SCG.CONV_CD = #{CONV_CD}
+				GROUP BY SCG.ORGN_DIV_CD,SCG.ORGN_CD,SCG.CONV_CD
+			END
+	</update>
+	
+	<select id="deleteConversionManagementList" resultType="java.lang.String" parameterType="java.util.Map">
+		/* deleteConversionManagementList */
+		DECLARE @SELECT_CNT INT
+				,@DELETE_CNT INT
+		
+		SET @SELECT_CNT = (
+							SELECT COUNT(CONV_CD)
+							FROM T_STOCK_CONV_GOODS
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_CD IN (
+								SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+							)
+						)
+		
+		DELETE FROM T_STOCK_CONV_GOODS
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		AND CONV_CD IN (
+			SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+		)
+		AND 'N' IN (
+						SELECT
+							MAX(ISNULL(ISNULL(ORI_SEND_TYPE,REPLC_SEND_TYPE),'N'))
+						FROM T_STOCK_CONV_SLIP
+						WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+						AND ORGN_CD = #{ORGN_CD}
+						AND CONV_DATE = #{CONV_DATE}
+						AND CONV_CD IN (
+							SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+						)
+					)
+		AND '1' IN (
+						SELECT
+							MAX(CONV_STATE)
+						FROM T_STOCK_CONV_SLIP
+						WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+						AND ORGN_CD = #{ORGN_CD}
+						AND CONV_DATE = #{CONV_DATE}
+						AND CONV_CD IN (
+							SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+						)
+					)
+		
+		SET @DELETE_CNT = @@ROWCOUNT
+
+		IF(@SELECT_CNT = @DELETE_CNT AND @DELETE_CNT >= 1)
+			BEGIN
+				SELECT 'SUCCESS' AS RESULT_MSG
+				
+				DELETE FROM T_STOCK_CONV_SLIP
+				WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+				AND ORGN_CD = #{ORGN_CD}
+				AND CONV_DATE = #{CONV_DATE}
+				AND CONV_CD IN (
+					SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+				)
+				AND ISNULL(ORI_SEND_TYPE,'N') = 'N'
+				AND ISNULL(REPLC_SEND_TYPE,'N') = 'N'
+				AND CONV_STATE = '1'
+			END
+		ELSE
+			BEGIN
+				SELECT 'FAIL' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="reqConfirmConv" resultType="java.lang.String" parameterType="java.util.Map">
+		/* reqConfirmConv */
+		DECLARE @SELECT_CNT INT
+				,@UPDATE_CNT INT
+		
+		SET @SELECT_CNT = (
+							SELECT
+								COUNT(CONV_CD)
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_DATE = #{CONV_DATE}
+							AND CONV_CD IN (
+								SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+							)
+						)
+		
+		UPDATE T_STOCK_CONV_SLIP
+		SET CONV_STATE = '2'
+			,MPROGRM = 'reqConfirmConv'
+			,MDATE = GETDATE()
+			,MUSER = #{RESP_USER}
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		AND CONV_DATE = #{CONV_DATE}
+		AND CONV_CD IN (
+			SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+		)
+		AND ISNULL(ORI_SEND_TYPE,'N') = 'N'
+		AND ISNULL(REPLC_SEND_TYPE,'N') = 'N'
+		AND CONV_STATE = '1'
+		
+		SET @UPDATE_CNT = @@ROWCOUNT
+
+		IF(@SELECT_CNT = @UPDATE_CNT AND @UPDATE_CNT >= 1)
+			BEGIN
+				SELECT 'SUCCESS' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				SELECT 'FAIL' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="reqConfirmCancelConv" resultType="java.lang.String" parameterType="java.util.Map">
+		/* reqConfirmCancelConv */
+		DECLARE @SELECT_CNT INT
+				,@UPDATE_CNT INT
+		
+		SET @SELECT_CNT = (
+							SELECT
+								COUNT(CONV_CD)
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_DATE = #{CONV_DATE}
+							AND CONV_CD IN (
+								SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+							)
+						)
+		
+		UPDATE T_STOCK_CONV_SLIP
+		SET CONV_STATE = '1'
+			,MPROGRM = 'reqConfirmCancelConv'
+			,MDATE = GETDATE()
+			,MUSER = #{RESP_USER}
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		AND CONV_DATE = #{CONV_DATE}
+		AND CONV_CD IN (
+			SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+		)
+		AND ISNULL(ORI_SEND_TYPE,'N') = 'N'
+		AND ISNULL(REPLC_SEND_TYPE,'N') = 'N'
+		AND CONV_STATE = '2'
+		
+		SET @UPDATE_CNT = @@ROWCOUNT
+
+		IF(@SELECT_CNT = @UPDATE_CNT AND @UPDATE_CNT >= 1)
+			BEGIN
+				SELECT 'SUCCESS' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				SELECT 'FAIL' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="getStockConvReqList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getStockConvReqList */
+		SELECT
+			SCS.[ORGN_DIV_CD]
+			,SCS.[ORGN_CD]
+			,SCS.[CONV_CD]
+			,SCS.[CONV_DATE]
+			,CONVERT(NVARCHAR(10),CONVERT(DATE,SCS.[CONV_DATE]),23) AS CONV_YYYYMMDD
+			,SCS.ORI_TOT_AMT
+			,SCS.REPLC_TOT_AMT
+			,CONVERT(NVARCHAR(20),ISNULL(SCS.MDATE,SCS.CDATE),120) AS MDATE_YYYYMMDD
+			,SCS.ORI_SEND_TYPE
+			,SCS.REPLC_SEND_TYPE
+			,SCS.CONV_STATE
+		FROM T_STOCK_CONV_SLIP SCS
+		WHERE SCS.ORGN_CD = #{ORGN_CD}
+		AND SCS.CONV_DATE = #{CONV_DATE}
+		AND SCS.CONV_STATE NOT IN ('1')
+	</select>
+	
+	<select id="confirmConvData" resultType="java.lang.String" parameterType="java.util.Map">
+		/* confirmConvData */
+		DECLARE @SELECT_CNT INT
+				,@UPDATE_CNT INT
+		
+		SET @SELECT_CNT = (
+							SELECT
+								COUNT(CONV_CD)
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_DATE = #{CONV_DATE}
+							AND CONV_CD IN (
+								SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+							)
+						)
+		
+		UPDATE T_STOCK_CONV_SLIP
+		SET CONV_STATE = '3'
+			,MPROGRM = 'reqConfirmConv'
+			,MDATE = GETDATE()
+			,MUSER = #{RESP_USER}
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		AND CONV_DATE = #{CONV_DATE}
+		AND CONV_CD IN (
+			SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+		)
+		AND ISNULL(ORI_SEND_TYPE,'N') = 'N'
+		AND ISNULL(REPLC_SEND_TYPE,'N') = 'N'
+		AND CONV_STATE = '2'
+		
+		SET @UPDATE_CNT = @@ROWCOUNT
+
+		IF(@SELECT_CNT = @UPDATE_CNT AND @UPDATE_CNT >= 1)
+			BEGIN
+				SELECT 'SUCCESS' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				SELECT 'FAIL' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="confirmCancelConvData" resultType="java.lang.String" parameterType="java.util.Map">
+		/* confirmCancelConvData */
+		DECLARE @SELECT_CNT INT
+				,@UPDATE_CNT INT
+		
+		SET @SELECT_CNT = (
+							SELECT
+								COUNT(CONV_CD)
+							FROM T_STOCK_CONV_SLIP
+							WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND CONV_DATE = #{CONV_DATE}
+							AND CONV_CD IN (
+								SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+							)
+						)
+		
+		UPDATE T_STOCK_CONV_SLIP
+		SET CONV_STATE = '2'
+			,MPROGRM = 'reqConfirmConv'
+			,MDATE = GETDATE()
+			,MUSER = #{RESP_USER}
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		AND CONV_DATE = #{CONV_DATE}
+		AND CONV_CD IN (
+			SELECT VALUE FROM STRING_SPLIT(#{UNI_KEYS},',') 
+		)
+		AND ISNULL(ORI_SEND_TYPE,'N') = 'N'
+		AND ISNULL(REPLC_SEND_TYPE,'N') = 'N'
+		AND CONV_STATE = '3'
+		
+		SET @UPDATE_CNT = @@ROWCOUNT
+
+		IF(@SELECT_CNT = @UPDATE_CNT AND @UPDATE_CNT >= 1)
+			BEGIN
+				SELECT 'SUCCESS' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				SELECT 'FAIL' AS RESULT_MSG
+			END
+	</select>
+	
+</mapper>

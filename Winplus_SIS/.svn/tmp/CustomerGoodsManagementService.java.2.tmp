@@ -1,0 +1,88 @@
+package com.samyang.winplus.sis.basic.service;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+@Service("CustomerGoodsManagementService")
+public interface CustomerGoodsManagementService {
+	
+	/**
+	  * insertMkCustomer - 대상거래처 납품업체 등록
+	  * @author 손경락
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */	
+	int insertStdCustomrGoods(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * updateMkCustomer - 대상거래처 납품업체 수정
+	  * @author 손경락
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int updateStdCustomrGoods(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * deleteMkCustomer - 대상거래처 납품업체 삭제
+	  * @author 손경락
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int deleteStdCustomrGoods(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * saveCustomerMkScreenList -  대상거래처 납품업체 C,U,D
+	  * @author 손경락
+	  * @param paramMapList
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int saveStdCustomrGoodsScreenList(List<Map<String, Object>> paramMapList) throws SQLException, Exception;
+
+	/**
+ 	 * getSearchMasterBarcodeList -  바코드마스터 && 상품마스트에서 상품및  바코드를 가져온다
+ 	 * @author 손경락
+ 	 * @param paramMap
+ 	 */	
+    List<Map<String, Object>> getSearchMasterBarcodeList(Map<String, Object> paramMap) throws SQLException, Exception;
+
+    /**
+ 	 * getSearchTstdCustomerGoodsList -  등록된 주문가능상조회 
+ 	 * @author 손경락
+ 	 * @param paramMap
+ 	 */	
+    List<Map<String, Object>> getSearchTstdCustomerGoodsList(Map<String, Object> paramMap) throws SQLException, Exception;
+    
+    /**
+ 	 * getSearchMasterBarcodePriceList - 바코드마스터 && 상품마스트에서 상품및  바코드 && 구매단가를 가져온다
+ 	 * @author 손경락
+ 	 * @param paramMap
+ 	 */	
+    List<Map<String, Object>> getSearchMasterBarcodePriceList(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+   /**
+	 * getSearchMasterBarcodeLowestPriceList - 상품기준 최저 구매가격 가져오기
+	 * @author 손경락
+	 * @param paramMap
+	 */	
+    List<Map<String, Object>> getSearchMasterBarcodeLowestPriceList(Map<String, Object> paramMap) throws SQLException, Exception;
+    
+	/**
+	  * getSearchMasterBarcodeFreshPriceList - 팜센터에서의 신선발주( 팜센터에서 취급하는 상품을  구한다음 외부협력사를 찾는다)
+	  * @author 손경락
+	  * @param paramMap
+	  */	
+	 List<Map<String, Object>> getSearchMasterBarcodeFreshPriceList(Map<String, Object> paramMap)  throws SQLException, Exception;	
+    
+    
+}

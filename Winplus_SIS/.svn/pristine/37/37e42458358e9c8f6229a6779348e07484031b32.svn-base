@@ -1,0 +1,793 @@
+package com.samyang.winplus.sis.order.controller;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.samyang.winplus.sis.order.service.OrderSearchService;
+import com.samyang.winplus.sis.order.service.OrderRequestService;
+import com.samyang.winplus.common.system.model.EmpSessionDto;
+import com.samyang.winplus.common.system.util.CommonUtil;
+
+@RequestMapping("/sis/order")
+@RestController
+public class orderRequestController {
+
+	@Autowired
+	private MessageSource messageSource;
+	
+	@Autowired
+	OrderRequestService orderRequestService;
+	
+	@Autowired
+	OrderSearchService orderSearchService;
+	
+	@Autowired
+	protected CommonUtil commonUtil;		
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	private final static String DEFAULT_PATH = "sis/order"; // JSP경로
+
+
+	/**
+	  * orderRequest - 취급점 발주요청서화면 LOAD 조회
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequest.sis", method=RequestMethod.POST)
+	public ModelAndView orderSearch(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequest.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequest");
+		return mav;
+	}
+
+	/**
+	  * orderRequestEM - 취급점 긴급발주요청서화면 LOAD 조회
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequestEM.sis", method=RequestMethod.POST)
+	public ModelAndView orderRequestEM(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequestEM.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequestEM");
+		return mav;
+	}
+
+	
+	/**
+	  * orderRequestCT - 센터 발주요청서화면 LOAD 조회
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequestCT.sis", method=RequestMethod.POST)
+	public ModelAndView orderRequestCT(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequestCT.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequestCT");
+		return mav;
+	}
+
+	/**
+	  * orderRequestPM - 팜 발주요청 화면 호출
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequestPM.sis", method=RequestMethod.POST)
+	public ModelAndView orderRequestPM(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequestPM.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequestPM");
+		return mav;
+	}
+
+	
+	/**
+	  * orderRequestSelf - 사내소비등록프로그램
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequestSelf.sis", method=RequestMethod.POST)
+	public ModelAndView orderRequestSelf(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequestSelf.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequestSelf");
+		return mav;
+	}
+
+	/**
+	  * orderRequestReturnCT - 구매반품등록(센터)
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequestReturnCT.sis", method=RequestMethod.POST)
+	public ModelAndView orderRequestReturnCT(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequestReturnCT.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequestReturnCT");
+		return mav;
+	}
+	
+	/**
+	  * orderRequestReturnMK - 구매반품등록(직영점)
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequestReturnMK.sis", method=RequestMethod.POST)
+	public ModelAndView orderRequestReturnMK(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequestReturnMK.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequestReturnMK");
+		return mav;
+	}
+	
+	/**
+	  * orderRequestReturnCS - 구매반품등록(취급점)
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderRequestReturnCS.sis", method=RequestMethod.POST)
+	public ModelAndView orderRequestReturnCS(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderRequestReturnCS.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderRequestReturnCS");
+		return mav;
+	}
+	
+	/**
+	  * orderPortalGridPopupCS - 취급점 전용 주문상세 조회
+	  * @author 손경락
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="orderPortalGridPopupCS.sis", method=RequestMethod.POST)
+	public ModelAndView orderPortalGridPopupCS(HttpServletRequest request) throws SQLException, Exception {
+		logger.info("@@@@@@@@@@ orderRequestController.java  orderPortalGridPopupCS.sis ============");
+		
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "orderPortalGridPopupCS");
+		return mav;
+	}
+
+	/**
+	  * orderRequestSearch - 주문요청서 조회 
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="orderRequestSearch.do", method=RequestMethod.POST)
+	public Map<String, Object> orderRequestSearch(HttpServletRequest request, @RequestParam Map<String,String> parmaMap) throws SQLException, Exception {
+		logger.debug("@@@@@ orderRequestController.java orderRequestSearch.do ");
+	    Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		String PARAM_CUST_DIV_TYP   = request.getParameter("PARAM_CUST_DIV_TYP");
+		String PARAM_REQ_DATE       = request.getParameter("PARAM_REQ_DATE");
+		String PARAM_REQ_CUSTMR_CD  = request.getParameter("PARAM_REQ_CUSTMR_CD");
+		String PARAM_SUPR_CUSTMR_CD = request.getParameter("PARAM_SUPR_CUSTMR_CD");
+		String PARAM_RESP_USER      = request.getParameter("PARAM_RESP_USER");
+		String PARAM_FLAG           = request.getParameter("PARAM_FLAG");
+		String PARAM_ORD_TYPE       = request.getParameter("PARAM_ORD_TYPE");
+		String PARAM_MKT_TYPE       = request.getParameter("PARAM_MKT_TYPE");
+		String PARAM_ORD_PATH       = request.getParameter("PARAM_ORD_PATH");
+		String PARAM_EME_YN         = request.getParameter("PARAM_EME_YN");
+		String PARAM_RET_YN         = request.getParameter("PARAM_RET_YN");
+		
+		logger.debug(" PARAM_CUST_DIV_TYP =>" + PARAM_CUST_DIV_TYP + " PARAM_REQ_DATE =>" + PARAM_REQ_DATE +" PARAM_REQ_CUSTMR_CD =>" + PARAM_REQ_CUSTMR_CD + "PARAM_SUPR_CUSTMR_CD=> "+PARAM_SUPR_CUSTMR_CD );
+		logger.debug(" PARAM_RESP_USER =>" + PARAM_RESP_USER + " PARAM_FLAG =>" + PARAM_FLAG  +  " PARAM_MKT_TYPE=>" + PARAM_MKT_TYPE );
+		logger.debug(" PARAM_ORD_PATH =>" + PARAM_ORD_PATH + " PARAM_ORD_TYPE =>" + PARAM_ORD_TYPE );
+		logger.debug(" PARAM_EME_YN =>" + PARAM_EME_YN  + "PARAM_RET_YN => " + PARAM_RET_YN);
+ 
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("PARAM_CUST_DIV_TYP"    ,  PARAM_CUST_DIV_TYP);
+		paramMap.put("PARAM_REQ_DATE"        ,  PARAM_REQ_DATE);
+		paramMap.put("PARAM_REQ_CUSTMR_CD"   ,  PARAM_REQ_CUSTMR_CD);
+		paramMap.put("PARAM_SUPR_CUSTMR_CD"  ,  PARAM_SUPR_CUSTMR_CD);
+		paramMap.put("PARAM_RESP_USER"       ,  PARAM_RESP_USER);
+		paramMap.put("PARAM_FLAG"            ,  PARAM_FLAG);
+		paramMap.put("PARAM_ORD_TYPE"        ,  PARAM_ORD_TYPE);
+		paramMap.put("PARAM_MKT_TYPE"        ,  PARAM_MKT_TYPE);
+		paramMap.put("PARAM_ORD_PATH"        ,  PARAM_ORD_PATH);
+		paramMap.put("PARAM_EME_YN"          ,  PARAM_EME_YN);
+		paramMap.put("PARAM_RET_YN"          ,  PARAM_RET_YN);
+		
+		List<Map<String, Object>> customList = orderRequestService.getSearchReqGoodsTmp(paramMap);				
+		resultMap.put("gridDataList", customList);
+		
+		return resultMap;
+	}
+	
+	/**
+	  * getSearchReqGoodsCSportal - CS포털 팝업 주문요청서 조회
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="getSearchReqGoodsCSportal.do", method=RequestMethod.POST)
+	public Map<String, Object> getSearchReqGoodsCSportal(HttpServletRequest request, @RequestParam Map<String,String> parmaMap) throws SQLException, Exception {
+		logger.debug("@@@@@ orderRequestController.java getSearchReqGoodsCSportal.do ");
+	    Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		String PARAM_ORD_NO   = request.getParameter("PARAM_ORD_NO");
+		String PARAM_ORD_TYPE = request.getParameter("PARAM_ORD_TYPE");
+		logger.debug(" PARAM_ORD_NO =>" + PARAM_ORD_NO + " PARAM_ORD_TYPE =>" + PARAM_ORD_TYPE );
+
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("PARAM_ORD_NO"    ,  PARAM_ORD_NO);
+		paramMap.put("PARAM_ORD_TYPE"  ,  PARAM_ORD_TYPE);
+		List<Map<String, Object>> customList = orderRequestService.getSearchReqGoodsCSportal(paramMap);				
+		resultMap.put("gridDataList", customList);
+		
+		return resultMap;
+	}
+	
+	/**
+	  * orderRequestFreshSearch -  팜에서 외부공급사 신선발주 주문요청서 조회 
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="orderRequestFreshSearch.do", method=RequestMethod.POST)
+	public Map<String, Object> orderRequestFreshSearch(HttpServletRequest request, @RequestParam Map<String,String> parmaMap) throws SQLException, Exception {
+		logger.debug("@@@@@ orderRequestController.java orderRequestFreshSearch.do ");
+	    Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		String PARAM_CUST_DIV_TYP   = request.getParameter("PARAM_CUST_DIV_TYP");
+		String PARAM_REQ_DATE       = request.getParameter("PARAM_REQ_DATE");
+		String PARAM_REQ_CUSTMR_CD  = request.getParameter("PARAM_REQ_CUSTMR_CD");
+		String PARAM_SUPR_CUSTMR_CD = request.getParameter("PARAM_SUPR_CUSTMR_CD");
+		String PARAM_RESP_USER      = request.getParameter("PARAM_RESP_USER");
+		String PARAM_FLAG           = request.getParameter("PARAM_FLAG");
+		String PARAM_ORD_TYPE       = request.getParameter("PARAM_ORD_TYPE");
+		String PARAM_MKT_TYPE       = request.getParameter("PARAM_MKT_TYPE");
+		String PARAM_ORD_PATH       = request.getParameter("PARAM_ORD_PATH");
+		String PARAM_EME_YN         = request.getParameter("PARAM_EME_YN");
+		String PARAM_RET_YN         = request.getParameter("PARAM_RET_YN");
+		
+		logger.debug(" PARAM_CUST_DIV_TYP =>" + PARAM_CUST_DIV_TYP + " PARAM_REQ_DATE =>" + PARAM_REQ_DATE +" PARAM_REQ_CUSTMR_CD =>" + PARAM_REQ_CUSTMR_CD + "PARAM_SUPR_CUSTMR_CD=> "+PARAM_SUPR_CUSTMR_CD );
+		logger.debug(" PARAM_RESP_USER =>" + PARAM_RESP_USER + " PARAM_FLAG =>" + PARAM_FLAG  +  " PARAM_MKT_TYPE=>" + PARAM_MKT_TYPE );
+		logger.debug(" PARAM_ORD_PATH =>" + PARAM_ORD_PATH + " PARAM_ORD_TYPE =>" + PARAM_ORD_TYPE );
+		logger.debug(" PARAM_EME_YN =>" + PARAM_EME_YN  + "PARAM_RET_YN => " + PARAM_RET_YN);
+
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("PARAM_CUST_DIV_TYP"    ,  PARAM_CUST_DIV_TYP);
+		paramMap.put("PARAM_REQ_DATE"        ,  PARAM_REQ_DATE);
+		paramMap.put("PARAM_REQ_CUSTMR_CD"   ,  PARAM_REQ_CUSTMR_CD);
+		paramMap.put("PARAM_SUPR_CUSTMR_CD"  ,  PARAM_SUPR_CUSTMR_CD);
+		paramMap.put("PARAM_RESP_USER"       ,  PARAM_RESP_USER);
+		paramMap.put("PARAM_FLAG"            ,  PARAM_FLAG);
+		paramMap.put("PARAM_ORD_TYPE"        ,  PARAM_ORD_TYPE);
+		paramMap.put("PARAM_MKT_TYPE"        ,  PARAM_MKT_TYPE);
+		paramMap.put("PARAM_ORD_PATH"        ,  PARAM_ORD_PATH);
+		paramMap.put("PARAM_EME_YN"          ,  PARAM_EME_YN);
+		paramMap.put("PARAM_RET_YN"          ,  PARAM_RET_YN);
+		
+		List<Map<String, Object>> customList = orderRequestService.getSearchReqFreshGoodsTmp(paramMap);				
+		resultMap.put("gridDataList", customList);
+		
+		return resultMap;
+	}
+		
+	
+	/**
+	  * getSearchReqGoodsTmpOnly - 협력사 포털 주문요청서 조회 
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="getSearchReqGoodsTmpOnly.do", method=RequestMethod.POST)
+	public Map<String, Object> getSearchReqGoodsTmpOnly(HttpServletRequest request, @RequestParam Map<String,String> parmaMap) throws SQLException, Exception {
+		logger.debug("@@@@@ orderRequestController.java getSearchReqGoodsTmpOnly.do ");
+	    Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		String PARAM_REQ_DATE   = request.getParameter("PARAM_REQ_DATE");
+		String PARAM_SUPR_CD    = request.getParameter("PARAM_SUPR_CD");
+		String PARAM_ORD_TYPE   = request.getParameter("PARAM_ORD_TYPE");
+		String PARAM_ORD_NO     = request.getParameter("PARAM_ORD_NO");
+
+		logger.debug(" PARAM_REQ_DATE =>" + PARAM_REQ_DATE + " PARAM_SUPR_CD =>" + PARAM_SUPR_CD );
+		logger.debug(" PARAM_ORD_TYPE =>" + PARAM_ORD_TYPE + " PARAM_ORD_NO  =>" + PARAM_ORD_NO );
+		
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("PARAM_REQ_DATE"    ,  PARAM_REQ_DATE);
+		paramMap.put("PARAM_SUPR_CD"     ,  PARAM_SUPR_CD);
+		paramMap.put("PARAM_ORD_TYPE"    ,  PARAM_ORD_TYPE);
+		paramMap.put("PARAM_ORD_NO"      ,  PARAM_ORD_NO);
+
+		List<Map<String, Object>> customList = orderRequestService.getSearchReqGoodsTmpOnly(paramMap);				
+		resultMap.put("gridDataList", customList);
+		
+		return resultMap;
+	}
+		
+	
+	/**
+	  * OrderRequestCUD - 주문요청서C,U,D
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@SuppressWarnings("unchecked")
+	@ResponseBody
+	@RequestMapping(value="OrderRequestCUD.do", method=RequestMethod.POST)
+	public Map<String, Object>  OrderRequestCUD(HttpServletRequest request, @RequestBody Map<String,Object> paramMap) throws SQLException, Exception {
+		Map<String, Object> HeadMap = new HashMap<String, Object>();
+		Map<String, Object> ImsiMap    = new HashMap<String, Object>();
+		Map<String, Object> resultMap  = new HashMap<String, Object>();
+		
+		int index        = 0;
+		int ll_SUPR_AMT  = 0;
+		int ll_VAT       = 0;
+		int ll_SUM_AMT   = 0;
+
+		/* 발주마감시간 체크용 변수 */
+		String GERNL_CLSE_TIME  =   "";  /* 일반상품주문마감 */
+		String FRESH_CLSE_TIME  =   "";  /* 신선상품주문마감 */
+		String DAILY_CLSE_TIME  =   "";  /* 일배상품주문마감 */
+		String EMERG_CLSE_TIME  =   "";  /* 긴급발주마감시간 */
+		String OUTCT_CLSE_TIME  =   "";  /* 외부공급주문마감 */
+
+		String ORD_APPEND_YN    =   "";  /* 긴급발주가능여부 */
+		String SYS_CURR_DATE    =   "";  /* 시스템일자       */
+		String SYS_CURR_TIME    =   "";  /* 시스템시분       */
+		String SCR_ORD_DATE     =   "";  /* 발주요청일자     */
+        String ORD_TYPE         =   "";  /* 발주유형 */
+        String ORD_PATH         =   "";  /* 발주요청경로 P(포털), 1, 센터, 2직영점  */
+        
+        EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String emp_no = empSessionDto.getEmp_no();
+
+		logger.debug(" 1. 넘어온 파라미터 값 확인 "); 
+		logger.debug(  paramMap.toString()  );
+        for (String mapkey : paramMap.keySet()){
+   		    logger.debug("paramMap Key =>" + mapkey + " value =>" +paramMap.get(mapkey) );
+        }    	
+       
+        logger.debug(" 2. HEAD부분 Map To Map  변환 "); 
+        HeadMap     = (Map<String,Object>) paramMap.get("HEAD");	
+        
+        ORD_PATH    = HeadMap.get("ORD_PATH").toString();
+
+        logger.debug(" 3. 디테일 Map To LIST<Map>  변환 "); 
+		List<Map<String, Object>> paramMapList = (List<Map<String,Object>>) paramMap.get("BODY");
+
+        logger.debug(" 3-1. 디테일 Map To LIST<Map>  변환 "); 
+		
+        /*  화면에서 밪이 않는 값들은 Default값으로 처리한다 */
+		if(null != paramMapList && paramMapList.size() >0){
+			
+			for( Map<String, Object> temptMap2 : paramMapList){
+	             index++;
+
+	             logger.debug(" ll_SUPR_AMT => " +  ll_SUPR_AMT + " ll_VAT => " +  ll_VAT + " ll_SUM_AMT => " +  ll_SUM_AMT );
+	             
+	             temptMap2.put("ORD_TRANS_TYPE", "N");   /* 발주확정구분  */
+	             temptMap2.put("USE_YN", "N");   /* 발주확정구분  */
+  	             temptMap2.put("REG_ID", emp_no);
+	             
+			}
+			
+		}
+		
+		index=0;
+		for( Map<String, Object> temptMap2 : paramMapList){
+             index++;
+             // LIST<> 의 각 칼럼들을 DISPLAY한다
+			 for(Map.Entry<String, Object> entry: temptMap2.entrySet()){
+			      String key   = entry.getKey();
+			      Object value = entry.getValue();
+			      if (index == 1) {
+				      logger.debug(" 3-2. Index => " +  index + " key => " +  key + " value => " +  value );
+			      }
+			 }
+			 /* 발주요청일자 */
+			 if ( index == 1) {
+				 SCR_ORD_DATE = temptMap2.get("REQ_DATE").toString();  /* 발주일자 */
+				 ORD_TYPE     = temptMap2.get("ORD_TYPE").toString();  /* 발주유형 */
+			 }
+		}		
+
+		logger.debug("ORD_PATH =>"  + ORD_PATH );
+		/*****************************************/
+		/* 저장전 발주 마감시간 체크             */
+		/* 센터에서의 발주시는 체크 하지 않는다  */
+		/*****************************************/
+		if( !ORD_PATH.equals("1")) { 
+			Map<String, Object> tempMap = new HashMap<String, Object>();
+			tempMap.put("PARAM_EMP_NO"     , emp_no);
+			logger.debug("PARAM_EMP_NO =>"  + emp_no );
+			Map<String, Object> customList = orderSearchService.getOrderCloseTime(tempMap);		
+			
+			GERNL_CLSE_TIME = customList.get("GERNL_CLSE_TIME").toString();  /* 일반상품주문마감 */
+			FRESH_CLSE_TIME = customList.get("FRESH_CLSE_TIME").toString();  /* 신선상품주문마감 */
+			DAILY_CLSE_TIME = customList.get("DAILY_CLSE_TIME").toString();  /* 일배상품주문마감 */
+			EMERG_CLSE_TIME = customList.get("EMERG_CLSE_TIME").toString();  /* 긴급발주마감시간 */
+			OUTCT_CLSE_TIME = customList.get("OUTCT_CLSE_TIME").toString();  /* 외부공급주문마감 */
+			ORD_APPEND_YN   = customList.get("ORD_APPEND_YN").toString();    /* 긴급발주가능여부 */
+			SYS_CURR_DATE   = customList.get("CURR_DATE").toString();        /* 시스템일자 */
+			SYS_CURR_TIME   = customList.get("CURR_TIME").toString();        /* 시스템시분 */
+			
+			logger.debug("SCR_ORD_DATE =>"  + SCR_ORD_DATE + " SYS_CURR_DATE=>" + SYS_CURR_DATE + " SYS_CURR_TIME=> "+ SYS_CURR_TIME);
+			logger.debug("GERNL_CLSE_TIME =>"  + GERNL_CLSE_TIME + " FRESH_CLSE_TIME=>" + FRESH_CLSE_TIME );
+			logger.debug("DAILY_CLSE_TIME =>"  + DAILY_CLSE_TIME + " EMERG_CLSE_TIME=>" + EMERG_CLSE_TIME );
+			logger.debug("OUTCT_CLSE_TIME =>"  + OUTCT_CLSE_TIME + " ORD_APPEND_YN=>" + ORD_APPEND_YN );
+
+			if ( Integer.parseInt(SCR_ORD_DATE)  < Integer.parseInt(SYS_CURR_DATE)  ) {
+	    		 logger.debug("전일자 발주 불가.");
+	    		 ImsiMap.put("return_code", "9");
+	    		 resultMap.put("gridDataList", ImsiMap);
+	    	     return resultMap;
+	        }
+	        		
+	        if ( Integer.parseInt(SCR_ORD_DATE) == Integer.parseInt(SYS_CURR_DATE) ) {
+	   		    logger.debug("당일 마감시간 비교");
+	        	if( ORD_TYPE.equals("1")) { /* 물류발주 */
+	                if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(GERNL_CLSE_TIME) ) {
+	           		     logger.debug("물루발주 마감시간 경과로 저장불가");
+	            		 ImsiMap.put("return_code", "1");
+	            		 resultMap.put("gridDataList", ImsiMap);
+	            	     return resultMap;
+	                }
+	        	}
+	        	
+	        	/* 직납발주 
+	        	if( ORD_TYPE.equals("2")) { 
+	                if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(OUTCT_CLSE_TIME) ) {
+	                	 return -2;
+	                }
+	        	}  */
+	        	
+	        	if( ORD_TYPE.equals("3")) { /* 신선발주 */
+	                if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(FRESH_CLSE_TIME) ) {
+	          		     logger.debug("신선발주 마감시간 경과로 저장불가");
+	            		 ImsiMap.put("return_code", "3");
+	            		 resultMap.put("gridDataList", ImsiMap);
+	            	     return resultMap;
+	                }
+	        	}
+	 
+	        	if( ORD_TYPE.equals("4")) { /* 착지변경 */
+	                if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(GERNL_CLSE_TIME) ) {
+	         		     logger.debug("착지변경 마감시간 경과로 저장불가");
+	            		 ImsiMap.put("return_code", "4");
+	            		 resultMap.put("gridDataList", ImsiMap);
+	            	     return resultMap;
+	                }
+	        	}
+	        	
+	        	if( ORD_TYPE.equals("5")) { /* 일배발주 */
+	                if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(GERNL_CLSE_TIME) ) {
+	        		     logger.debug("일배발주 마감시간 경과로 저장불가");
+	            		 ImsiMap.put("return_code", "5");
+	            		 resultMap.put("gridDataList", ImsiMap);
+	            	     return resultMap;
+	                }
+	        	}
+	        	
+	        	if( ORD_TYPE.equals("6")) { /* 긴급발주 */
+	                if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(EMERG_CLSE_TIME) ) {
+	        		     logger.debug("긴급발주 마감시간 경과로 저장불가");
+	            		 ImsiMap.put("return_code", "6");
+	            		 resultMap.put("gridDataList", ImsiMap);
+	            	     return resultMap;
+	                }
+	                
+	                if ( Integer.parseInt(SYS_CURR_TIME) <=  Integer.parseInt(GERNL_CLSE_TIME) ) {
+	        		     logger.debug("긴급주문 가능시간이 도래하지 않았습니다.");
+	            		 ImsiMap.put("return_code", "Z");
+	            		 resultMap.put("gridDataList", ImsiMap);
+	            	     return resultMap;
+	                }
+	                
+	        	}
+	       }
+	   }
+        
+       orderRequestService.saveOrdReqGoodsTmp(paramMapList, HeadMap);
+	   ImsiMap.put("return_code", "00");
+	   resultMap.put("gridDataList", ImsiMap);
+	   return resultMap;
+	}	
+	
+	/**
+	  * OrderRequestSelectInsert - 발주서요청서를  발주서마스터 및 상세로 INSERT
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@SuppressWarnings("unchecked")
+	@ResponseBody
+	@RequestMapping(value="OrderRequestSelectInsert.do", method=RequestMethod.POST)
+	public  Map<String, Object>  OrderRequestSelectInsert(HttpServletRequest request, @RequestBody Map<String,Object> paramMap) throws SQLException, Exception {
+		
+		int index        = 0;
+	    
+		Map<String, Object> HeadMap   = new HashMap<String, Object>();
+		Map<String, Object> ImsiMap   = new HashMap<String, Object>();
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		/* 발주마감시간 체크용 변수 */
+		String GERNL_CLSE_TIME  =   "";  /* 일반상품주문마감 */
+		String FRESH_CLSE_TIME  =   "";  /* 신선상품주문마감 */
+		String DAILY_CLSE_TIME  =   "";  /* 일배상품주문마감 */
+		String EMERG_CLSE_TIME  =   "";  /* 긴급발주마감시간 */
+		String OUTCT_CLSE_TIME  =   "";  /* 외부공급주문마감 */
+
+		String ORD_APPEND_YN    =   "";  /* 긴급발주가능여부 */
+		String SYS_CURR_DATE    =   "";  /* 시스템일자       */
+		String SYS_CURR_TIME    =   "";  /* 시스템시분       */
+		String SCR_ORD_DATE     =   "";  /* 발주요청일자     */
+        String ORD_TYPE         =   "";  /* 발주유형 */
+        String ORD_PATH         =   "";  /* 발주요청경로 P(포털), 1, 센터, 2직영점  */
+        String ORD_SEQ          =   "";
+        
+        EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String emp_no = empSessionDto.getEmp_no();
+        
+	    logger.debug(" 1. 넘어온 파라미터 값 확인 "); 
+	    logger.debug(  paramMap.toString()  );
+        for (String mapkey : paramMap.keySet()){
+  		    logger.debug("paramMap Key =>" + mapkey + " value =>" +paramMap.get(mapkey) );
+        }    	
+        
+        logger.debug(" 2. HEAD부분 Map To Map  변환 "); 
+        HeadMap     = (Map<String,Object>) paramMap.get("HEAD");	
+        
+        ORD_PATH    = HeadMap.get("ORD_PATH").toString();
+        
+        logger.debug(" 3. 디테일 Map To LIST<Map>  변환 "); 
+		List<Map<String, Object>> paramMapList = (List<Map<String,Object>>) paramMap.get("BODY");
+
+		/**************************************************************/
+		/*  임시저장하지 않고 바로 완료하는게 한건이라도 있으면 리턴  */
+		/**************************************************************/
+		for( Map<String, Object> temptMap2 : paramMapList){
+			ORD_SEQ   = temptMap2.get("ORD_SEQ").toString();  /* 발주유형 */
+			if ( ORD_SEQ.length() == 0) {
+	            logger.debug("변경건 임시저장후 완료처리하시기 바랍니다.");
+	            ImsiMap.put("return_code", "Y");
+	            resultMap.put("gridDataList", ImsiMap);
+	            return resultMap;
+			}
+		}
+		
+		
+        logger.debug(" 3-1. 디테일 Map To LIST<Map>  변환 "); 
+		
+		for( Map<String, Object> temptMap2 : paramMapList){
+             index++;
+             // LIST<> 의 각 칼럼들을 DISPLAY한다
+			 for(Map.Entry<String, Object> entry: temptMap2.entrySet()){
+			      String key   = entry.getKey();
+			      Object value = entry.getValue();
+			      logger.debug(" 3-2. Index => " +  index + " key => " +  key + " value => " +  value );
+			 }
+			 
+			 SCR_ORD_DATE = temptMap2.get("REQ_DATE").toString();  /* 발주일자 */
+			 ORD_TYPE     = temptMap2.get("ORD_TYPE").toString();  /* 발주유형 */
+			 
+             logger.debug("ORD_PATH =>"  + ORD_PATH );
+
+          
+             /*****************************************/
+             /* 저장전 발주 마감시간 체크             */
+             /* 센터에서의 발주시는 체크 하지 않는다  */
+             /*****************************************/
+             if( !ORD_PATH.equals("1")) { 
+                  Map<String, Object> tempMap = new HashMap<String, Object>();
+                  tempMap.put("PARAM_EMP_NO"     , emp_no);
+                  logger.debug("PARAM_EMP_NO =>"  + emp_no );
+                  Map<String, Object> customList = orderSearchService.getOrderCloseTime(tempMap);				
+
+                  GERNL_CLSE_TIME = customList.get("GERNL_CLSE_TIME").toString();  /* 일반상품주문마감 */
+                  FRESH_CLSE_TIME = customList.get("FRESH_CLSE_TIME").toString();  /* 신선상품주문마감 */
+                  DAILY_CLSE_TIME = customList.get("DAILY_CLSE_TIME").toString();  /* 일배상품주문마감 */
+                  EMERG_CLSE_TIME = customList.get("EMERG_CLSE_TIME").toString();  /* 긴급발주마감시간 */
+                  OUTCT_CLSE_TIME = customList.get("OUTCT_CLSE_TIME").toString();  /* 외부공급주문마감 */
+                
+                  ORD_APPEND_YN   = customList.get("ORD_APPEND_YN").toString();    /* 긴급발주가능여부 */
+                  SYS_CURR_DATE   = customList.get("CURR_DATE").toString();        /* 시스템일자 */
+                  SYS_CURR_TIME   = customList.get("CURR_TIME").toString();        /* 시스템시분 */
+                
+                  logger.debug("SCR_ORD_DATE =>"  + SCR_ORD_DATE + " SYS_CURR_DATE=>" + SYS_CURR_DATE + " SYS_CURR_TIME=> "+ SYS_CURR_TIME);
+                  logger.debug("GERNL_CLSE_TIME =>"  + GERNL_CLSE_TIME + " FRESH_CLSE_TIME=>" + FRESH_CLSE_TIME );
+                  logger.debug("DAILY_CLSE_TIME =>"  + DAILY_CLSE_TIME + " EMERG_CLSE_TIME=>" + EMERG_CLSE_TIME );
+                  logger.debug("OUTCT_CLSE_TIME =>"  + OUTCT_CLSE_TIME + " ORD_APPEND_YN=>" + ORD_APPEND_YN );
+
+                  if ( Integer.parseInt(SCR_ORD_DATE)  < Integer.parseInt(SYS_CURR_DATE)  ) {
+                       logger.debug("전일자 발주 불가.");
+                       ImsiMap.put("return_code", "9");
+                       resultMap.put("gridDataList", ImsiMap);
+                       return resultMap;
+                  }
+                        
+                  if ( Integer.parseInt(SCR_ORD_DATE) == Integer.parseInt(SYS_CURR_DATE) ) {
+                      logger.debug("당일 마감시간 비교");
+                      if( ORD_TYPE.equals("1")) { /* 물류발주 */
+                          if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(GERNL_CLSE_TIME) ) {
+                               logger.debug("물루발주 마감시간 경과로 저장불가");
+                               ImsiMap.put("return_code", "1");
+                               resultMap.put("gridDataList", ImsiMap);
+                               return resultMap;
+                          }
+                      }
+                    
+                      /* 직납발주 
+                      if( ORD_TYPE.equals("2")) { 
+                          if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(OUTCT_CLSE_TIME) ) {
+                               return -2;
+                          }
+                      }  */
+                    
+                      if( ORD_TYPE.equals("3")) { /* 신선발주 */
+                          if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(FRESH_CLSE_TIME) ) {
+                               logger.debug("신선발주 마감시간 경과로 저장불가");
+                               ImsiMap.put("return_code", "3");
+                               resultMap.put("gridDataList", ImsiMap);
+                               return resultMap;
+                          }
+                      }
+         
+                      if( ORD_TYPE.equals("4")) { /* 착지변경 */
+                          if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(GERNL_CLSE_TIME) ) {
+                               logger.debug("착지변경 마감시간 경과로 저장불가");
+                               ImsiMap.put("return_code", "4");
+                               resultMap.put("gridDataList", ImsiMap);
+                               return resultMap;
+                          }
+                      }
+                    
+                      if( ORD_TYPE.equals("5")) { /* 일배발주 */
+                          if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(GERNL_CLSE_TIME) ) {
+                               logger.debug("일배발주 마감시간 경과로 저장불가");
+                               ImsiMap.put("return_code", "5");
+                               resultMap.put("gridDataList", ImsiMap);
+                               return resultMap;
+                          }
+                      }
+                      
+      	        	  if( ORD_TYPE.equals("6")) { /* 긴급발주 */
+    	                if ( Integer.parseInt(SYS_CURR_TIME) > Integer.parseInt(EMERG_CLSE_TIME) ) {
+    	        		     logger.debug("긴급발주 마감시간 경과로 발주확정불가");
+    	            		 ImsiMap.put("return_code", "6");
+    	            		 resultMap.put("gridDataList", ImsiMap);
+    	            	     return resultMap;
+    	                }
+    	        	  }
+                 }
+             }
+		}		
+		
+	    logger.debug("@@@@@@@@@@@@  insertSelectTempToOrder  Calling...... "); 
+        orderRequestService.insertSelectTempToOrder(paramMapList);
+ 	    ImsiMap.put("return_code", "00");
+ 	    resultMap.put("gridDataList", ImsiMap);
+ 	    return resultMap;
+				
+	}	
+	
+	/**
+	  * UpdateOrdReqGoodsTmp - 협력사 포털 출고등록
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@SuppressWarnings("unchecked")
+	@ResponseBody
+	@RequestMapping(value="UpdateOrdReqGoodsTmp.do", method=RequestMethod.POST)
+	public int UpdateOrdReqGoodsTmp(HttpServletRequest request, @RequestBody Map<String,Object> paramMap) throws SQLException, Exception {
+		
+		int index        = 0;
+ 		Map<String, Object> HeadMap = (Map<String,Object>) paramMap.get("HEAD");
+				
+	    logger.debug(" 1. 넘어온 파라미터 값 확인 "); 
+	    logger.debug(  paramMap.toString()  );
+        for (String mapkey : paramMap.keySet()){
+  		    logger.debug("paramMap Key =>" + mapkey + " value =>" +paramMap.get(mapkey) );
+        }    	
+      
+        logger.debug(" 2. 디테일 Map To LIST<Map>  변환 "); 
+		List<Map<String, Object>> paramMapList = (List<Map<String,Object>>) paramMap.get("BODY");
+
+        logger.debug(" 2-1. 디테일 Map To LIST<Map>  변환 "); 
+		
+		for( Map<String, Object> temptMap2 : paramMapList){
+          index++;
+          // LIST<> 의 각 칼럼들을 DISPLAY한다
+			 for(Map.Entry<String, Object> entry: temptMap2.entrySet()){
+			      String key   = entry.getKey();
+			      Object value = entry.getValue();
+			      //logger.debug(" 2-2. Index => " +  index + " key => " +  key + " value => " +  value );
+			 }
+		}		
+		
+	    logger.debug("@@@@@@@@@@@@  UpdateOrdReqGoodsTmp  Calling...... "); 
+        return  orderRequestService.UpdateOrdReqGoodsTmp(paramMapList, HeadMap);
+				
+	}		
+
+	
+	/**
+	  * insertTstdMastCreditLoan - 주문요청서 확정시 여신 잔액 감액후 Update, 취소시 증액후 Update
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="insertTstdMastCreditLoan.do", method=RequestMethod.POST)
+	public int insertTstdMastCreditLoan(HttpServletRequest request ) throws SQLException, Exception {
+		logger.debug("@@@@@ orderRequestController.java insertTstdMastCreditLoan.do ");
+		
+		String PARAM_OBJ_CD   = request.getParameter("PARAM_OBJ_CD");
+		String DEAL_AMT       = request.getParameter("DEAL_AMT");
+		
+		logger.debug(" PARAM_OBJ_CD =>" + PARAM_OBJ_CD + " DEAL_AMT =>" + DEAL_AMT );
+		
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("PARAM_OBJ_CD"    ,  PARAM_OBJ_CD);
+		paramMap.put("DEAL_AMT"        ,  DEAL_AMT);
+		
+		int ll_return_value = orderRequestService.insertTstdMastCreditLoan(paramMap);				
+		
+		return ll_return_value;
+	}
+	
+	/**
+	  * getCreditLoanBAL    OBJ_CD기준  여신 잔액 및 한도 구하기
+	  * @author 손경락
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="getCreditLoanBAL.do", method=RequestMethod.POST)
+	public Map<String, Object> getCreditLoanBAL(HttpServletRequest request ) throws SQLException, Exception {
+		logger.debug("@@@@@ orderRequestController.java getCreditLoanBAL.do ");
+	    Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		String PARAM_OBJ_CD   = request.getParameter("PARAM_OBJ_CD");
+		String DEAL_AMT       = request.getParameter("DEAL_AMT");
+		
+		logger.debug(" PARAM_OBJ_CD =>" + PARAM_OBJ_CD + " DEAL_AMT =>" + DEAL_AMT );
+		
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		paramMap.put("PARAM_OBJ_CD"    ,  PARAM_OBJ_CD);
+		paramMap.put("DEAL_AMT"        ,  DEAL_AMT);
+
+		Map<String, Object> customList = orderRequestService.getCreditLoanBAL(paramMap);				
+		resultMap.put("gridDataList", customList);
+		
+		return resultMap;
+	}	
+	
+	
+}

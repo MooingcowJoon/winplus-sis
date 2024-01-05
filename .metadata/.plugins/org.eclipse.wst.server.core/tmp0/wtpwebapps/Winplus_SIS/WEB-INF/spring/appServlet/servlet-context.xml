@@ -1,0 +1,201 @@
+<beans:beans
+	xmlns="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/task
+		http://www.springframework.org/schema/task/spring-task.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+	<!-- DispatcherServlet Context: defines this servlet's request-processing 
+		infrastructure -->
+	<!-- Enables the Spring MVC @Controller programming model -->
+	<annotation-driven />
+	<tx:annotation-driven />
+
+	<!-- Handles HTTP GET requests for /resources/** by efficiently serving 
+		up static resources in the ${webappRoot}/resources directory -->
+	<resources mapping="/resources/**" location="/resources/" />
+
+	<!-- Resolves views selected for rendering by @Controllers to .jsp resources 
+		in the /WEB-INF/views directory -->
+	<beans:bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<beans:property name="prefix" value="/WEB-INF/jsp/" />
+		<beans:property name="suffix" value=".jsp" />
+		<beans:property name="order" value="99" />
+	</beans:bean>
+
+	<interceptors>
+		<interceptor>
+			<!-- 인터셉터 공통 시작 -->
+			<mapping path="/**" />
+			<exclude-mapping path="/" />
+			<exclude-mapping path="/common/system/error/*" />
+			<exclude-mapping path="/resources/*" />
+			<exclude-mapping path="/resources/**" />
+			<exclude-mapping path="/login/*" />
+			<exclude-mapping path="/login.sis" />
+			<exclude-mapping path="/login.do" />
+			<exclude-mapping path="/sis/pda/*" />
+			<exclude-mapping path="/healthcheck.do" />
+			<exclude-mapping path="/mq/sendMessage.do" />
+			<exclude-mapping path="/test/*" />
+			<exclude-mapping path="/api/*" />
+			<exclude-mapping
+				path="/common/system/message/getCommonMessage.do" />
+			<exclude-mapping
+				path="/common/system/code/getCommonCodeList.do" />
+			<exclude-mapping
+				path="/common/system/authority/noAuth.sis" />
+			<exclude-mapping
+				path="/common/system/authority/noSession.sis" />
+			<exclude-mapping
+				path="/common/system/authority/noSession.do" />
+			<exclude-mapping
+				path="/common/pos/PosVersionManagement/downloadVersionFile.do" />
+			<!-- 인터셉터 공통 끝 -->
+
+			<beans:bean
+				class="com.samyang.winplus.common.system.interceptor.SessionCheckInterceptor" />
+		</interceptor>
+		<interceptor>
+			<!-- <mapping path="/close/**" /> <mapping path="/common/**" /> <mapping 
+				path="/system/**" /> <mapping path="/close/**" /> -->
+
+			<!-- 인터셉터 공통 시작 -->
+			<mapping path="/**" />
+			<exclude-mapping path="/" />
+			<exclude-mapping path="/common/system/error/*" />
+			<exclude-mapping path="/resources/*" />
+			<exclude-mapping path="/resources/**" />
+			<exclude-mapping path="/login/*" />
+			<exclude-mapping path="/login.sis" />
+			<exclude-mapping path="/login.do" />
+			<exclude-mapping path="/sessionOut.sis" />
+			<exclude-mapping path="/sis/pda/*" />
+			<exclude-mapping path="/healthcheck.do" />
+			<exclude-mapping path="/mq/sendMessage.do" />
+			<exclude-mapping path="/test/*" />
+			<exclude-mapping path="/api/*" />
+			<exclude-mapping
+				path="/common/system/message/getCommonMessage.do" />
+			<exclude-mapping
+				path="/common/system/code/getCommonCodeList.do" />
+			<exclude-mapping
+				path="/common/system/authority/noAuth.sis" />
+			<exclude-mapping
+				path="/common/system/authority/noSession.sis" />
+			<exclude-mapping
+				path="/common/system/authority/noSession.do" />
+			<exclude-mapping
+				path="/common/pos/PosVersionManagement/downloadVersionFile.do" />
+			<exclude-mapping
+				path="/common/system/file/requestFileDownload.do" />
+			<!-- 인터셉터 공통 끝 -->
+
+			<exclude-mapping path="/index.sis" />
+
+			<exclude-mapping
+				path="/common/system/file/downloadGridExcel.do" />
+			<beans:bean
+				class="com.samyang.winplus.common.system.interceptor.AuthorityCheckInterceptor" />
+		</interceptor>
+	</interceptors>
+
+	<beans:bean
+		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<beans:property name="messageConverters">
+			<beans:list>
+				<beans:bean
+					class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+					<beans:property name="supportedMediaTypes">
+						<beans:list>
+							<beans:value>text/html;charset=UTF-8</beans:value>
+							<beans:value>application/json;charset=UTF-8</beans:value>
+						</beans:list>
+					</beans:property>
+				</beans:bean>
+				<beans:bean
+					class="org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter">
+					<beans:property name="supportedMediaTypes">
+						<beans:list>
+							<beans:value>text/xml;charset=UTF-8</beans:value>
+							<beans:value>application/xml;charset=UTF-8</beans:value>
+						</beans:list>
+					</beans:property>
+				</beans:bean>
+			</beans:list>
+		</beans:property>
+	</beans:bean>
+
+	<context:component-scan
+		base-package="com.samyang.winplus.*" />
+
+	<beans:bean id="multipartResolver"
+		class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
+
+	<beans:bean id="beanNameResolver"
+		class="org.springframework.web.servlet.view.BeanNameViewResolver">
+		<beans:property name="order" value="0" />
+	</beans:bean>
+
+	<beans:bean id="messageSource"
+		class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+		<beans:property name="basenames">
+			<beans:array>
+				<beans:value>/WEB-INF/spring/messageProperties/common_message
+				</beans:value>
+				<beans:value>/WEB-INF/spring/messageProperties/common_word
+				</beans:value>
+			</beans:array>
+		</beans:property>
+		<beans:property name="defaultEncoding" value="UTF-8" />
+		<beans:property name="cacheSeconds" value="5" />
+	</beans:bean>
+
+
+	<!-- Transaction AOP Start -->
+	<tx:advice id="mssql_TransactionAdvice"
+		transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="select*" read-only="true" />
+			<tx:method name="insert*" propagation="REQUIRED"
+				rollback-for="Exception" />
+			<tx:method name="update*" propagation="REQUIRED"
+				rollback-for="Exception" />
+			<tx:method name="delete*" propagation="REQUIRED"
+				rollback-for="Exception" />
+			<tx:method name="multi*" propagation="REQUIRED"
+				rollback-for="Exception" />
+			<tx:method name="save*" propagation="REQUIRED"
+				rollback-for="Exception" />
+			<tx:method name="set*" propagation="REQUIRED"
+				rollback-for="Exception" />
+			<tx:method name="exec*" propagation="REQUIRED"
+				rollback-for="Exception" />
+			<tx:method name="if*" propagation="REQUIRED"
+				rollback-for="Exception" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<!-- || => &#124;&#124; -->
+		<!-- && => &amp;&amp; -->
+		<aop:pointcut id="mssql_TransactionPoincut"
+			expression="within(com.samyang.winplus.common..*.*Impl) &amp;&amp; !within(com.samyang.winplus.common.system.property.PropertyManagementImpl)" />
+		<aop:advisor advice-ref="mssql_TransactionAdvice"
+			pointcut-ref="mssql_TransactionPoincut" />
+	</aop:config>
+	<!-- Transaction AOP End -->
+
+</beans:beans>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.terminal.dao.TerminalManagementDao">
+
+	<select id="getTerminalList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getTerminalList */
+		SELECT 
+				ORGN_NM
+				,ORGN_CD
+				,TRML_TYPE
+				,TRML_SERIAL
+				,USE_YN
+				,VER
+				,TRML_NO
+				,ORGN_CD + '_' + TRML_NO AS UNIQUE_KEY
+		FROM
+		(SELECT 
+				CI.ORGN_NM
+				,TT.ORGN_CD
+				,TT.TRML_TYPE
+				,TT.TRML_SERIAL
+				,TT.USE_YN
+				,TT.VER
+				,REPLICATE('0', 2-LEN(CONVERT(NVARCHAR(2),TT.TRML_NO))) + CONVERT(NVARCHAR(2),TT.TRML_NO) AS TRML_NO
+	
+			FROM T_STD_TRML AS TT
+			INNER JOIN COM_ORGN_INFO AS CI
+			ON TT.ORGN_CD = CI.ORGN_CD
+			WHERE 1=1 
+				<if test ='ORGN_CD != ""'>
+					AND TT.ORGN_CD = #{ORGN_CD}
+				</if>
+				<if test ='ORGN_CD == ""'>
+					AND TT.ORGN_CD IS NOT NULL
+				</if>
+				<if test = 'TRML_TYPE != ""'>
+					AND TT.TRML_TYPE = #{TRML_TYPE}
+				</if>
+		) A
+		ORDER BY A.ORGN_CD
+	</select>
+	
+	<insert id = "addTerminalList" parameterType="java.util.Map">
+		/* addTerminalList */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+		
+		INSERT INTO T_STD_TRML
+			(ORGN_DIV_CD, ORGN_CD, TRML_NO, TRML_TYPE, TRML_SERIAL, USE_YN, MEMO, VER, CPROGRM, CUSER, CDATE)
+		VALUES (@ORGN_DIV_CD, #{ORGN_CD}
+		<if test='TRML_TYPE != "1"'>
+			, (SELECT ISNULL(MAX(TRML_NO), 0) +1 FROM T_STD_TRML WHERE ORGN_CD = #{ORGN_CD})
+		</if>
+		<if test='TRML_TYPE == "1"'>
+			, #{TRML_NO}
+		</if>
+			, #{TRML_TYPE}, #{TRML_SERIAL}, #{USE_YN}, #{MEMO}, #{VER}, #{CPROGRM}, #{CUSER}, GETDATE())
+	</insert>
+	
+	<delete id = "deleteTerminalList" parameterType="java.util.Map">
+		/* deleteTerminalList */
+			DELETE FROM T_STD_TRML 
+			WHERE TRML_NO = #{TRML_NO}
+					AND ORGN_CD = #{ORGN_CD}
+	</delete>
+	
+	<update id = "updateTerminalList" parameterType="java.util.Map">
+		/* updateTerminalList */
+			UPDATE T_STD_TRML
+			SET TRML_TYPE = #{TRML_TYPE}
+				,TRML_SERIAL = #{TRML_SERIAL}
+				,USE_YN = #{USE_YN}
+				,MUSER = #{MUSER}
+				,MPROGRM = #{MPROGRM}
+				,MDATE = GETDATE()
+			WHERE TRML_NO = #{TRML_NO}
+					AND ORGN_CD = #{ORGN_CD}
+	</update>
+</mapper>

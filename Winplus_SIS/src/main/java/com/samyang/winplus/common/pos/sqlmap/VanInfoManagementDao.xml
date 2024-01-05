@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.pos.dao.VanInfoManagementDao">
+	<select id="getVanInfoManagementList" parameterType="java.util.Map" resultType="java.util.Map">
+	/*	getVanInfoManagementList 밴사 정보 조회	*/
+	
+		SELECT
+			 VAN_CD
+			,VAN_NM
+			,VAN_SEQ
+			,VAN_IP
+			,VAN_PORT
+			,USE_YN
+		FROM T_STD_VAN_INFO
+		WHERE 1=1
+			<if test='VAN_CD != ""'>
+			AND VAN_CD = #{VAN_CD}
+			</if>
+		ORDER BY VAN_CD
+	</select>
+	<select id="getVanDetailInfo" parameterType="java.util.Map" resultType="java.util.Map">
+	/*	getVanDetailInfo 밴사 정보 조회	*/
+		SELECT
+			 VAN_CD
+			,VAN_NM
+			,VAN_SEQ
+			,(SELECT VAL1 FROM
+				(SELECT POS,VAL1 FROM FN_SPLIT(VAN_IP, '.') WHERE POS = '1') T
+			 ) AS IP1
+			,(SELECT VAL1 FROM
+				(SELECT POS,VAL1 FROM FN_SPLIT(VAN_IP, '.') WHERE POS = '2') T
+			 ) AS IP2
+			,(SELECT VAL1 FROM
+				(SELECT POS,VAL1 FROM FN_SPLIT(VAN_IP, '.') WHERE POS = '3') T
+			 ) AS IP3
+			,(SELECT VAL1 FROM
+				(SELECT POS,VAL1 FROM FN_SPLIT(VAN_IP, '.') WHERE POS = '4') T
+			 ) AS IP4
+			,VAN_PORT
+			,USE_YN
+			,VAN_SEQ
+		FROM T_STD_VAN_INFO
+		WHERE 1=1
+			AND VAN_CD = #{VAN_CD}
+			AND VAN_SEQ = #{VAN_SEQ}
+	</select>
+	<select id="crudVanInfo" parameterType="Map" resultType="CMap">
+		/* crudVanInfo */
+		EXEC SP_CRUD_VAN_INFO
+				#{CRUD}					/*플래그*/
+				, #{VAN_CD}				/*밴코드*/
+				, #{VAN_SEQ}			/*시퀀스*/
+				, #{VAN_NM}				/*밴명*/
+				
+				, #{IP1}				/*아이피1*/
+				, #{IP2}				/*아이피2*/
+				, #{IP3}				/*아이피3*/
+				, #{IP4}				/*아이피4*/
+				
+				, #{PORT}				/*포트*/
+				, #{USE_YN}				/*사용유무*/
+				, #{USER}				/*사용자*/
+	</select>
+</mapper>

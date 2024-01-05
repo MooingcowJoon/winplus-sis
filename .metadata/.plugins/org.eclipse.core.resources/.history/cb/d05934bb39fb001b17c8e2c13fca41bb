@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.system.menu.dao.SystemMenuDao">
+	<select id="getMenuList" resultType="java.util.Map">
+		/* getMenuList */
+		SELECT A.MENU_CD
+				, A.MENU_NM
+				, A.MENU_ORDR
+				, A.UPPER_MENU_CD
+				, A.MENU_STEP
+				, A.FOLDER_YN
+				, A.USE_YN
+				, A.REG_PROGRM
+				, A.REG_ID
+				, A.REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, A.UPD_DT
+		FROM COM_MENU A
+		ORDER BY A.MENU_STEP, A.MENU_ORDR
+	</select>
+	
+	<select id="getMenuMap" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMenuMap */
+		SELECT A.MENU_CD
+			, A.MENU_NM
+			, A.MENU_ORDR
+			, A.UPPER_MENU_CD
+			, B.MENU_NM AS UPPER_MENU_NM
+			, A.MENU_STEP
+			, A.FOLDER_YN
+			, A.USE_YN
+			, D.SCRIN_CD AS MAIN_SCRIN_CD
+			, D.SCRIN_NM AS MAIN_SCRIN_NM
+			, D.SCRIN_PATH	AS MAIN_SCRIN_PATH
+			, A.REG_PROGRM
+			, A.REG_ID
+			, A.REG_DT
+			, A.UPD_PROGRM
+			, A.UPD_ID
+			, A.UPD_DT
+		FROM COM_MENU A
+		LEFT JOIN COM_MENU B
+		ON A.UPPER_MENU_CD=B.MENU_CD
+		LEFT JOIN COM_MENU_BY_SCRIN C
+		ON A.MENU_CD=C.MENU_CD
+		AND C.MAIN_YN='Y'
+		LEFT JOIN COM_SCRIN D
+		ON C.SCRIN_CD=D.SCRIN_CD
+		WHERE A.MENU_CD=#{MENU_CD}
+		ORDER BY A.MENU_STEP, A.MENU_ORDR
+	</select>
+	
+	<insert id="insertMenu" parameterType="java.util.Map">
+		/* insertMenu */
+		<selectKey keyProperty="MENU_CD" resultType="String" order="BEFORE">
+			SELECT LPAD('', 5 - LENGTH(MAX(MENU_CD)+1),  '0') + CAST(MAX(MENU_CD)+1 AS CHAR) MENU_CD
+			  FROM COM_MENU
+		</selectKey>		
+		/* insertMenu */
+		INSERT INTO COM_MENU (
+			  MENU_CD
+			, MENU_NM
+			, MENU_ORDR
+			<if test='UPPER_MENU_CD != null and UPPER_MENU_CD != ""'>
+			, UPPER_MENU_CD
+			</if>
+			, MENU_STEP
+			, FOLDER_YN
+			, USE_YN
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			  #{MENU_CD} 
+			, #{MENU_NM}
+			, #{MENU_ORDR}
+			<if test='UPPER_MENU_CD != null and UPPER_MENU_CD != ""'>
+			, #{UPPER_MENU_CD}
+			</if>
+			<choose>
+				<when test='UPPER_MENU_CD != null and UPPER_MENU_CD != ""'>
+				, (SELECT	MENU_STEP 
+				  FROM 		(SELECT 	IFNULL(MENU_STEP, 0)+1 AS MENU_STEP
+							 FROM  		COM_MENU
+							 WHERE  	MENU_CD= #{UPPER_MENU_CD}
+					) tmp)
+				</when>
+				<otherwise>
+				, 0
+				</otherwise>
+			</choose>
+			, #{FOLDER_YN}
+			, #{USE_YN}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()			
+		)		
+	</insert>
+	
+	<update id="updateMenu" parameterType="java.util.Map">
+		/* updateMenu */
+		UPDATE COM_MENU
+		SET MENU_NM			= #{MENU_NM}
+			, MENU_ORDR		= #{MENU_ORDR}
+			, FOLDER_YN		= #{FOLDER_YN}
+			, USE_YN		= #{USE_YN}
+			, UPD_PROGRM	= #{REG_PROGRM}
+			, UPD_ID		= #{REG_ID}
+			, UPD_DT		= NOW()
+		WHERE MENU_CD		= #{MENU_CD}
+		
+	</update>
+	
+	<select id="chkChildMenu" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* chkChildMenu */
+		SELECT COUNT(*) 
+		FROM COM_MENU 
+		WHERE UPPER_MENU_CD = #{MENU_CD}
+	</select>
+	
+	<delete id="deleteAuthorByMenu" parameterType="java.util.Map">
+		/* deleteAuthorByMenu */
+		DELETE FROM COM_AUTHOR_BY_MENU WHERE MENU_CD=#{MENU_CD}
+	</delete>
+	
+	<delete id="deleteMenuByScrin" parameterType="java.util.Map">
+		/* deleteMenuByScrin */
+		DELETE FROM COM_MENU_BY_SCRIN WHERE MENU_CD=#{MENU_CD}
+	</delete>	
+	
+	<delete id="deleteMenu" parameterType="java.util.Map">
+		/* deleteMenu */
+		DELETE FROM COM_MENU WHERE MENU_CD=#{MENU_CD}
+	</delete>	
+	
+	
+	<select id="getScreenList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getScreenList */
+		SELECT A.SCRIN_CD
+				, A.SCRIN_NM
+				, A.SCRIN_PATH
+				, A.USE_YN
+				, A.CMMN_YN
+				, A.REG_PROGRM
+				, A.REG_ID
+				, DATE_FORMAT(A.REG_DT, '%Y-%m-%d %T') AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, DATE_FORMAT(A.UPD_DT, '%Y-%m-%d %T') AS UPD_DT
+		FROM COM_SCRIN A
+		<trim prefix="WHERE" prefixOverrides="AND |OR ">				
+			<if test="SCRIN_CD != null and SCRIN_CD != ''">
+				(A.SCRIN_CD LIKE CONCAT('%',#{SCRIN_CD},'%') OR A.SCRIN_NM LIKE CONCAT('%',#{SCRIN_CD},'%'))
+			</if>
+			<if test="USE_YN != null and USE_YN != ''">
+				 AND A.USE_YN LIKE  CONCAT(#{USE_YN},'%')
+			</if>		
+			<if test="CMMN_YN != null and CMMN_YN != ''">		
+				 AND A.CMMN_YN LIKE  CONCAT(#{CMMN_YN},'%')
+			</if>
+		</trim>
+	</select>
+	
+	<insert id="insertScreen" parameterType="java.util.Map">
+		<selectKey keyProperty="SCRIN_CD" resultType="String" order="BEFORE">
+			SELECT REPLICATE('0',5 - LEN(MAX(SCRIN_CD)+1)) + CAST(MAX(SCRIN_CD)+1 AS VARCHAR) MENU_CD 
+			FROM COM_SCRIN 
+		</selectKey>
+		/* insertScreen */
+		INSERT INTO COM_SCRIN (
+			SCRIN_CD
+			, SCRIN_NM
+			, SCRIN_PATH
+			, USE_YN
+			, CMMN_YN
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		 ) VALUES (
+			  #{SCRIN_CD} 
+			, #{SCRIN_NM}
+			, #{SCRIN_PATH}
+			, #{USE_YN}
+			, #{CMMN_YN}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()
+		)
+	</insert>
+	
+	<update id="updateScreen" parameterType="java.util.Map">
+		/* updateScreen */
+		UPDATE COM_SCRIN
+		SET 	  SCRIN_NM		= #{SCRIN_NM}
+				, SCRIN_PATH	= #{SCRIN_PATH}
+				, USE_YN		= #{USE_YN}
+				, CMMN_YN		= #{CMMN_YN}
+				, UPD_PROGRM	= #{REG_PROGRM}
+				, UPD_ID		= #{REG_ID}
+				, UPD_DT		= NOW()
+		WHERE 	  SCRIN_CD		= #{SCRIN_CD}		
+	</update>
+	
+	<delete id="deleteScrinFirst" parameterType="java.util.Map">
+		/* deleteScrinFirst */
+		DELETE 	FROM COM_MENU_BY_SCRIN 
+		WHERE 	SCRIN_CD=#{SCRIN_CD}
+		
+	</delete>
+	
+	<delete id="deleteScrinSecond" parameterType="java.util.Map">
+		/* deleteScrinSecond */		
+		DELETE 	FROM COM_SCRIN 
+		WHERE 	SCRIN_CD=#{SCRIN_CD}		
+	</delete>
+	
+	<select id="getMenuByScreenList"  resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMenuByScreenList */
+		SELECT A.MENU_CD 
+			, C.SCRIN_CD
+			, C.SCRIN_NM
+			, C.SCRIN_PATH
+			, B.MAIN_YN
+			, B.USE_YN
+			, C.USE_YN AS SCRIN_USE_YN
+			, B.REG_PROGRM
+			, B.REG_ID
+			, DATE_FORMAT(A.REG_DT, '%Y-%m-%d %T') AS REG_DT
+			, B.UPD_PROGRM
+			, B.UPD_ID
+			, DATE_FORMAT(A.UPD_DT, '%Y-%m-%d %T') AS UPD_DT
+		FROM COM_MENU A
+		JOIN COM_MENU_BY_SCRIN B
+		ON A.MENU_CD=B.MENU_CD
+		JOIN COM_SCRIN C
+		ON B.SCRIN_CD=C.SCRIN_CD
+		WHERE A.MENU_CD=#{MENU_CD}
+	</select>
+	
+	<insert id="insertMenuByScreen" parameterType="java.util.Map">
+		/* insertMenuByScreen */
+		INSERT INTO COM_MENU_BY_SCRIN (
+			MENU_CD
+			, SCRIN_CD
+			, MAIN_YN
+			, USE_YN
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			#{MENU_CD}
+			, #{SCRIN_CD}
+			, #{MAIN_YN}
+			, #{USE_YN}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()
+		)
+	</insert>
+	
+	<update id="updateMenuByScreen" parameterType="java.util.Map">
+		/* updateMenuByScreen */
+		UPDATE COM_MENU_BY_SCRIN
+		SET MAIN_YN=#{MAIN_YN}
+			, USE_YN=#{USE_YN}
+			, UPD_PROGRM=#{REG_PROGRM}
+			, UPD_ID=#{REG_ID}
+			, UPD_DT=NOW()
+		WHERE MENU_CD=#{MENU_CD}
+		AND SCRIN_CD=#{SCRIN_CD}
+	</update>
+	
+	<delete id="deleteMenuByScreen" parameterType="java.util.Map">
+		/* deleteMenuByScreen */
+		DELETE FROM COM_MENU_BY_SCRIN
+		WHERE MENU_CD=#{MENU_CD}
+		AND SCRIN_CD=#{SCRIN_CD}
+	</delete>
+</mapper>

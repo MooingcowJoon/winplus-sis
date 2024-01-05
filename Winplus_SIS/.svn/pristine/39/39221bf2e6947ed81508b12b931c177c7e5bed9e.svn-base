@@ -1,0 +1,243 @@
+package com.samyang.winplus.sis.report.controller;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.samyang.winplus.common.system.base.controller.BaseController;
+import com.samyang.winplus.sis.report.service.MonByReportService;
+
+@RequestMapping("sis/report/MonByReport")
+@RestController
+public class MonByReportController extends BaseController{
+	
+	private final static String DEFAULT_PATH = "sis/report/MonByReportManagement";
+	
+	@Autowired
+	MonByReportService monByReportService;
+
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
+	
+	/**
+	  * 레포트관리 - 월-레포트작성
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="MonByReport.sis", method=RequestMethod.POST)
+	public ModelAndView MonByReport(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "MonByReport");
+		return mav;
+	}
+	
+	
+	/**
+	  * 레포트관리 - 월-월별종합
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="MonByTotal.sis", method=RequestMethod.POST)
+	public ModelAndView MonByTotal(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "MonByTotal");
+		return mav;
+	}
+	
+	/**
+	  * 레포트관리 - 월-분류내월별
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="MonInGroup.sis", method=RequestMethod.POST)
+	public ModelAndView MonInGroup(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "MonInGroup");
+		return mav;
+	}
+	
+	/**
+	  * 레포트관리 - 월-분류별월별
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="MonByGroup.sis", method=RequestMethod.POST)
+	public ModelAndView MonByGroup(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "MonByGroup");
+		return mav;
+	}
+	
+	/**
+	  * 레포트관리 - 월-분류별(점포)
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="MonByCategory.sis", method=RequestMethod.POST)
+	public ModelAndView MonByCategory(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "MonByCategory");
+		return mav;
+	}
+	
+	/**
+	  * 레포트관리 - 월-단품별(점포)
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="MonByGoods.sis", method=RequestMethod.POST)
+	public ModelAndView MonByGoods(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "MonByGoods");
+		return mav;
+	}
+	
+	/**
+	  * 레포트관리 - 월-공급사별(점포)
+	  * @author 정혜원
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="MonByCustmr.sis", method=RequestMethod.POST)
+	public ModelAndView MonByCustmr(HttpServletRequest request) {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "MonByCustmr");
+		return mav;
+	}
+	
+	/**
+	  * getMonByGoodsList - 월_단품별 조회
+	  * @author 정혜원
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value = "getMonByGoodsList.do", method = RequestMethod.POST)
+	public Map<String, Object> getMonByGoodsList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		//logger.debug("getMonByGoodsLIst paramMap >>> " + paramMap);
+		List<Map<String, Object>> gridDataList = new ArrayList<Map<String, Object>>();
+		
+		try {
+			gridDataList = monByReportService.getMonByGoodsList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * getMonByCustmrList - 월_협력사별 조회
+	  * @author 정혜원
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value = "getMonByCustmrList.do", method = RequestMethod.POST)
+	public Map<String, Object> getMonByCustmrList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> gridDataList = new ArrayList<Map<String, Object>>();
+		//logger.debug("getMonByCustmrList.do");
+		try {
+			gridDataList = monByReportService.getMonByCustmrList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * getMonByCustmrDetailList - 월_협력사별 상세 조회
+	  * @author 정혜원
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value = "getMonByCustmrDetailList.do", method = RequestMethod.POST)
+	public Map<String, Object> getMonByCustmrDetailList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> gridDataList = new ArrayList<Map<String, Object>>();
+		
+		try {
+			gridDataList = monByReportService.getMonByCustrmrDetailList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		} catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		} catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * getMonByCategoryList - 월_분류별조회
+	  * @author 정혜원
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value = "getMonByCategoryList.do", method = RequestMethod.POST)
+	public Map<String, Object> getMonByCategoryList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> gridDataList = new ArrayList<Map<String, Object>>();
+		
+		try {
+			gridDataList = monByReportService.getMonByCategoryList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * getMonByTotalList - 월레포트 - 월별종합
+	  * @author 정혜원
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value = "getMonByTotalList.do", method = RequestMethod.POST)
+	public Map<String, Object> getMonByTotalList(HttpServletRequest request, @RequestParam Map<String, Object> paramMap) {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+
+		List<Map<String, Object>> gridDataList = new ArrayList<Map<String, Object>>();
+		
+		try {
+			gridDataList = monByReportService.getMonByTotalList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		} catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		} catch(Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+
+	<!-- index 화면 -->
+	<entry key="word.common.menuList"><![CDATA[메뉴 목록]]></entry>
+	<entry key="word.common.expands"><![CDATA[펼침]]></entry>
+	<entry key="word.common.collapse"><![CDATA[접기]]></entry>
+	<entry key="word.common.closeAllTabs"><![CDATA[모든 탭 닫기]]></entry>
+
+	<!-- 리본 -->
+	<entry key="ribbon.search"><![CDATA[조회]]></entry>
+	<entry key="ribbon.loadPurchase"><![CDATA[구매불러오기]]></entry>
+	<entry key="ribbon.loadOrder"><![CDATA[발주불러오기]]></entry>
+	<entry key="ribbon.add"><![CDATA[추가]]></entry>
+	<entry key="ribbon.addGoods"><![CDATA[상품추가]]></entry>
+	<entry key="ribbon.update"><![CDATA[수정]]></entry>
+	<entry key="ribbon.save"><![CDATA[저장]]></entry>
+	<entry key="ribbon.delete"><![CDATA[삭제]]></entry>
+	<entry key="ribbon.excel"><![CDATA[엑셀]]></entry>
+	<entry key="ribbon.print"><![CDATA[출력]]></entry>
+	<entry key="ribbon.apply"><![CDATA[승인]]></entry>
+	<entry key="ribbon.loginChange"><![CDATA[로그인 변경]]></entry>
+	<entry key="ribbon.excelForm"><![CDATA[엑셀양식]]></entry>
+	<entry key="ribbon.upload"><![CDATA[업로드]]></entry>
+	<entry key="ribbon.reload"><![CDATA[새로고침]]></entry>
+	<entry key="ribbon.deleteSelect"><![CDATA[선택삭제]]></entry>
+	<entry key="ribbon.deleteAll"><![CDATA[전체삭제]]></entry>
+	<entry key="ribbon.saveTemp"><![CDATA[임시저장]]></entry>
+	<entry key="ribbon.selectUse"><![CDATA[선택사용]]></entry>
+	<entry key="ribbon.allUse"><![CDATA[전체사용]]></entry>
+	<entry key="ribbon.selectUnuse"><![CDATA[선택미사용]]></entry>
+	<entry key="ribbon.allUnuse"><![CDATA[전체미사용]]></entry>
+	<entry key="ribbon.redo"><![CDATA[되돌리기]]></entry>
+
+	<!-- 그리드 -->
+	<entry key="grid.allRowCount"><![CDATA[전체 행 수]]></entry>
+	<entry key="grid.noSearchData"><![CDATA[검색 결과 데이터가 없습니다.]]></entry>
+
+	<!-- 공통 단어 -->
+	<entry key="word.common.alert"><![CDATA[경고]]></entry>
+	<entry key="word.common.notice"><![CDATA[알림]]></entry>
+	<entry key="word.common.info"><![CDATA[정보]]></entry>
+	<entry key="word.common.error"><![CDATA[오류]]></entry>
+	<entry key="word.common.ok"><![CDATA[확인]]></entry>
+	<entry key="word.common.cancel"><![CDATA[취소]]></entry>
+	<entry key="word.common.close"><![CDATA[닫기]]></entry>
+
+	<!-- SIS 단어 -->
+
+</properties>

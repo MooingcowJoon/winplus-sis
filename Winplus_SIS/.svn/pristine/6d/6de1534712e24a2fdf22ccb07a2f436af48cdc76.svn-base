@@ -1,0 +1,134 @@
+package com.samyang.winplus.sis.sales.service;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+@Service("OnlineManagementService")
+public interface OnlineManagementService {
+	/**
+	 * @author 한정훈
+	 * @param paramMap
+	 * @return List<Map<String, String>>
+	 * @description 주문서 리스트 조회
+	 */
+	List<Map<String, Object>> getOnlineOrderList(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	 * @author 한정훈
+	 * @param paramMap
+	 * @return List<Map<String, String>>
+	 * @description 주문서 상세리스트 조회
+	 */
+	List<Map<String, Object>> getopenOnlineOrderDetail(Map<String, String> paramMap) throws SQLException, Exception;
+	
+	/**
+	 * @author 한정훈
+	 * @param paramMap
+	 * @return List<Map<String, String>>
+	 * @description 주문서 엑셀 업로드 조회
+	 */
+	List<Map<String, Object>> getOnlineOrdersInfo(Map<String, Object> paramMap);
+
+	/**
+	 * @author 한정훈
+	 * @param paramMap
+	 * @return List<Map<String, String>>
+	 * @description 주문서 엑셀 양식 리스트 조회
+	 */
+	List<Map<String, Object>> getOnlineOrderExcelList(Map<String, Object> paramMap);
+
+	/**
+	 * @author 한정훈
+	 * @param paramMap
+	 * @return List<Map<String, String>>
+	 * @description 판매관리 - 판매관리(온라인) - 판매내역(온라인) 조회
+	 */
+	List<Map<String, Object>> getOSHistoryList(Map<String, Object> paramMap);
+
+	/**
+	  * 판매관리 - 판매관리(온라인) - 판매내역(온라인) 저장
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, String>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	Map<String, Object> saveOnlineOrderList(List<Map<String, Object>> paramMapList);
+
+	/**
+	  * 판매관리 - 판매관리(온라인) - 주문서등록(온라인) 엑셀 업로드  B2C
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, String>>
+	  */
+	List<Map<String, Object>> getOnlineSalesB2CInfo(Map<String, Object> paramMap);
+
+	/**
+	  * 판매관리 - 판매관리(온라인) - 주문서등록(온라인) 엑셀 업로드  B2B
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, String>>
+	  */
+	List<Map<String, Object>> getOnlineSalesB2BInfo(Map<String, Object> paramMap);
+
+	/**
+	 * 판매관리 - 판매관리(온라인) - 판매내역(온라인) 엑셀업로드
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, String>>
+	  */
+	List<Map<String, Object>> getPurFixInfo(Map<String, Object> paramMap);
+
+	/**
+	 * 판매관리 - 판매관리(온라인) - 판매내역(온라인) 저장
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, String>>
+	  */
+
+	List<Map<String, Object>> saveOnlineHistoryList(Map<String, Object> paramMap);
+
+	/**
+	 * 판매관리 - 판매관리(온라인) - 판매확정(온라인) 헤더 조회
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, String>>
+	  */
+	List<Map<String, Object>> getOnlineFixList(Map<String, Object> paramMap);
+
+	/**
+	 * 판매관리 - 판매관리(온라인) - 판매확정(온라인) 디테일 조회
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, String>>
+	  */
+	List<Map<String, Object>> getOnlineFixDetailList(Map<String, Object> paramMap);
+	
+	/**
+	  * 판매관리 - 판매관리(온라인) - 판매확정(온라인) 저장
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  */
+	List<Map<String, Object>> saveOnlineFixList(Map<String, String> paramMap);
+
+	/**
+	  * 판매관리 - 판매관리(온라인) - 판매확정(온라인) 디테일 저장(U)
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  */
+	int saveOSFDList(List<Map<String, Object>> paramMapList);
+
+	/**
+	  * 판매관리 - 판매관리(온라인) - 주문서 등록(온라인) - WMS전송
+	  * @author 한정훈
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  */
+	List<Map<String, Object>> TransmissionToWMS(Map<String, Object> paramMap);
+
+}

@@ -1,0 +1,892 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.order.dao.OrderRequestDao">
+
+    <insert id="insertReqGoodsTmp" parameterType="java.util.Map">
+        /* insertReqGoodsTmp [ OrderRequest.xml 주문요청서 등록 ] */
+        INSERT INTO T_REQ_GOODS_TMP (
+            ORD_NO                                /* 주문번호       */
+           ,ORD_SEQ                               /* 번호           */
+           ,REQ_CUSTMR_CD                         /* 요청거래처코드 */
+           ,BCD_CD                                /* 바코드         */
+           ,SUPR_CUSTMR_CD                        /* 공급거래처코드 */
+           ,REQ_DATE                              /* 요청일자       */
+           ,RESP_USER                             /* 사원번호       */
+           ,REQ_QTY                               /* 요청수량       */
+           ,DIMEN_NM                              /* 단위           */
+           ,GOODS_PRICE                           /* 단가           */
+           ,SUPR_AMT                              /* 공급가액       */
+           ,VAT_AMT                               /* 부가세         */
+           ,TOT_AMT                               /* 합계금액       */
+           ,RESV_DATE                             /* 납기예정일자   */
+           ,LAND_CHG_TYPE                         /* 착지변경여부   */
+           ,MEMO                                  /* 메모           */
+           ,ORD_CUSTMR_TYPE                       /* 발행구분       */
+           ,ORD_TRANS_TYPE                        /* 발주확정구분   */
+           ,FLAG                                  /* 요청상태       */
+           ,USE_YN                                /* 사용여부       */
+           ,WARE_CD                               /* 물류창고코드   */
+           ,ORD_TYPE                              /* 발주유형       */
+           ,RESN_CD                               /* 사유코드       */
+           ,ORI_ORD_NO                            /* 원요청서번호(착지변경,일배,신선) */
+           ,ORI_CUSTMER_CD                        /* 배송지(요청고객사) 취급점이면 거래처코드, 직영점이면 조직코드  */
+           ,CPROGRM                               /* 프로그램       */
+           ,CUSER                                 /* 작업자         */
+           ,CDATE                                 /* 일시           */
+        ) VALUES (
+            #{ORD_NO         }                    /* 주문번호       */
+           ,NEXT VALUE FOR SEQ_T_REQ_GOODS_TMP    /* 번호           */
+           ,#{REQ_CUSTMR_CD  }                    /* 요청거래처코드 */
+           ,#{BCD_CD         }                    /* 바코드         */
+           ,#{SUPR_CUSTMR_CD }                    /* 공급거래처코드 */
+           ,#{REQ_DATE       }                    /* 요청일자       */
+           ,#{RESP_USER      }                    /* 사원번호       */
+           ,#{REQ_QTY        }                    /* 요청수량       */
+           ,#{DIMEN_NM       }                    /* 단위           */
+           ,#{GOODS_PRICE    }                    /* 단가           */
+           ,#{SUPR_AMT       }                    /* 공급가액       */
+           ,#{VAT_AMT        }                    /* 부가세         */
+           ,#{TOT_AMT        }                    /* 합계금액       */
+           ,#{RESV_DATE      }                    /* 납기예정일자   */
+           ,#{LAND_CHG_TYPE  }                    /* 착지변경여부   */
+           ,#{MEMO           }                    /* 메모           */
+           ,#{ORD_CUSTMR_TYPE}                    /* 발행구분       */
+           ,#{ORD_TRANS_TYPE }                    /* 발주확정구분   */
+           ,#{FLAG           }                    /* 요청상태       */
+           ,#{USE_YN         }                    /* 사용여부       */
+           ,#{WARE_CD        }                    /* 물류창고코드   */
+           ,#{ORD_TYPE       }                    /* 물류유형       */
+           ,#{RESN_CD        }                    /* 사유코드       */
+           ,#{ORI_ORD_NO     }                    /* 원요청서번호(착지변경,일배,신선) */
+           ,#{ORI_CUSTMER_CD }                    /* 배송지(요청고객사) 취급점이면 거래처코드, 직영점이면 조직코드  */
+           ,#{PARAM_PROGRM   }                    /* 프로그램       */
+           ,#{REG_ID}                             /* 작업자         */
+           ,GETDATE()                             /* 일시           */
+        )
+    </insert>
+
+    <update id="updateReqGoodsTmp" parameterType="java.util.Map">
+        /* updateReqGoodsTmp [ OrderRequest.xml 주문요청서 수정 ] */
+        UPDATE T_REQ_GOODS_TMP
+           <if test='PROCESS_MODE == "REQ"'>
+           SET REQ_CUSTMR_CD   =  #{REQ_CUSTMR_CD  }  /* 요청거래처코드 */
+              ,BCD_CD          =  #{BCD_CD         }  /* 바코드         */
+              ,SUPR_CUSTMR_CD  =  #{SUPR_CUSTMR_CD }  /* 공급거래처코드 */
+              ,REQ_DATE        =  #{REQ_DATE       }  /* 요청일자       */
+              ,RESP_USER       =  #{RESP_USER      }  /* 사원번호       */
+              ,REQ_QTY         =  #{REQ_QTY        }  /* 요청수량       */
+              ,DIMEN_NM        =  #{DIMEN_NM       }  /* 단위           */
+              ,GOODS_PRICE     =  #{GOODS_PRICE    }  /* 단가           */
+              ,SUPR_AMT        =  #{SUPR_AMT       }  /* 공급가액       */
+              ,VAT_AMT         =  #{VAT_AMT        }  /* 부가세         */
+              ,TOT_AMT         =  #{TOT_AMT        }  /* 합계금액       */
+              /* RESV_DATE     =  {RESV_DATE       }     납기예정일자   */
+              ,LAND_CHG_TYPE   =  #{LAND_CHG_TYPE  }  /* 착지변경여부   */
+              ,MEMO            =  #{MEMO           }  /* 메모           */
+              ,ORD_CUSTMR_TYPE =  #{ORD_CUSTMR_TYPE}  /* 발행구분       */
+              ,ORD_TRANS_TYPE  =  #{ORD_TRANS_TYPE }  /* 발주확정구분   */
+              ,FLAG            =  #{FLAG           }  /* 요청상태       */
+              ,USE_YN          =  #{USE_YN         }  /* 사용여부       */
+              ,WARE_CD         =  #{WARE_CD        }  /* 물류창고       */
+              ,ORD_TYPE        =  #{ORD_TYPE       }  /* 물류유형       */
+              ,RESN_CD         =  #{RESN_CD        }  /* 사유코드       */
+              ,MPROGRM         =  #{PARAM_PROGRM   }  /* 프로그램       */
+              ,MUSER           =  #{REG_ID         }  /* 작업자         */
+              ,MDATE           =  GETDATE()           /* 일시           */
+           </if>
+           <if test='PROCESS_MODE == "OUT"'>
+           SET OUT_QTY         =  #{OUT_QTY        }  /* 출고수량       */
+              ,OUT_DATE        =  #{OUT_DATE       }  /* 출고일자       */
+              ,MPROGRM         =  #{PARAM_PROGRM   }  /* 프로그램       */
+              ,MUSER           =  #{REG_ID         }  /* 작업자         */
+              ,MDATE           =  GETDATE()           /* 일시           */
+           </if>
+         WHERE ORD_NO          =  #{ORD_NO}
+           AND ORD_SEQ         =  #{ORD_SEQ}
+    </update>
+
+    <update id="updateTpdaTempStatus" parameterType="java.util.Map">
+        /* updateTpdaTempStatus [ OrderRequest.xml PDA 처리상태 수정 ] */
+        UPDATE T_PDA_TEMP
+           SET FLAG_YN         =  #{FLAG }         /* 요청상태       */
+         WHERE ORGN_DIV_CD     =  #{ORGN_DIV_CD}
+           AND ORGN_CD         =  #{ORGN_CD}
+           AND BCD_CD          =  #{BCD_CD}
+           AND DATA_TYPE       =  '2'              /* 발주  */
+    </update>
+
+    <update id="updateReqGoodsTmpStatus" parameterType="java.util.Map">
+        /* updateReqGoodsTmpStatus [ OrderRequest.xml 주문요청서 처리상태 수정 ] */
+        UPDATE T_REQ_GOODS_TMP
+           SET FLAG            =  #{FLAG           }               /* 요청상태       */
+              ,OUT_DATE        =  #{PARAM_OUT_DATE }               /* 출고일자       */
+              ,OUT_QTY         =  #{PARAM_OUT_QTY  }               /* 출고수량       */
+              ,MPROGRM         =  #{PARAM_PROGRM   }               /* 프로그램       */
+              ,RESV_DATE       =  ISNULL(#{RESV_DATE},RESV_DATE)   /* 납기예정일자   */
+              ,MUSER           =  #{REG_ID         }               /* 작업자         */
+              ,MDATE           =  GETDATE()                        /* 일시           */
+         WHERE ORD_NO          =  #{PARAM_ORD_NO}
+           AND ORD_SEQ         =  #{ORD_SEQ}
+    </update>
+
+    <update id="deleteReqGoodsTmp" parameterType="java.util.Map">
+        /* deleteReqGoodsTmp [ OrderRequest.xml 주문요청서 삭제 ] */
+        DELETE T_REQ_GOODS_TMP
+         WHERE ORD_NO          =  #{ORD_NO}
+           AND ORD_SEQ         =  #{ORD_SEQ}
+    </update>
+
+    <select id="getReservDateWinplus" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getReservDateWinplus  [ OrderRequest.xml 센터로의 발주에 대한 납기예정일자를 구한다(포털->센터, 직영점->센터) ] */
+		SELECT   MIN(BASIC_DATE)  OUT_PLN_DT  /* 출고예정일 */
+		         /* 출고예정에서LEAD TIME적용된 입고예정일자 */
+		       , CONVERT(CHAR(8), DATEADD(DAY, (LEAD_TIME  -1) , ISNULL(MIN(BASIC_DATE), CONVERT(CHAR(8), DATEADD(DAY,  1,#{PARAM_ORD_DT}),112))), 112)  RESV_DATE   /* 납기예정일 */
+		  FROM  (
+		        SELECT  ROWNUM, OBJ_WEEK, LEAD_TIME, CLSE_TIME, CURR_TIME, DELI_YOIL, ORD_REQ_DATE , SYS_CUR_DATE,  BASIC_DATE,
+		                CASE WHEN SYS_CUR_DATE  <![CDATA[ > ]]>  ORD_REQ_DATE THEN SYS_CUR_DATE
+                             ELSE  CASE  WHEN CURR_TIME  <![CDATA[  <=  ]]>  CLSE_TIME THEN CONVERT(CHAR(8), DATEADD(DAY, LEAD_TIME,#{PARAM_ORD_DT}),112)
+                                   ELSE  CONVERT(CHAR(8), DATEADD(DAY, LEAD_TIME + 1,#{PARAM_ORD_DT}),112)
+                             END
+		                END  COMP_DATE,
+		                CASE WEEK1
+                             WHEN '월' THEN   CASE SUBSTRING(B.DELI_YOIL,1,1) WHEN '1' THEN '1' ELSE NULL END
+                             WHEN '화' THEN   CASE SUBSTRING(B.DELI_YOIL,2,1) WHEN '1' THEN '1' ELSE NULL END
+                             WHEN '수' THEN   CASE SUBSTRING(B.DELI_YOIL,3,1) WHEN '1' THEN '1' ELSE NULL END
+                             WHEN '목' THEN   CASE SUBSTRING(B.DELI_YOIL,4,1) WHEN '1' THEN '1' ELSE NULL END
+                             WHEN '금' THEN   CASE SUBSTRING(B.DELI_YOIL,5,1) WHEN '1' THEN '1' ELSE NULL END
+                             WHEN '토' THEN   CASE SUBSTRING(B.DELI_YOIL,6,1) WHEN '1' THEN '1' ELSE NULL END
+                             ELSE             CASE SUBSTRING(B.DELI_YOIL,7,1) WHEN '1' THEN '1' ELSE NULL END
+		                END  YOIL
+		          FROM ( /*  발주일( 마감시간경과시 + 1) 부터 7일에 해당하는 일자 및 요일을 구한다 */
+		                 SELECT TOP 7  REPLACE( CONVERT(CHAR(5), GETDATE(), 108),':','') CURR_TIME
+		                        , CONVERT(CHAR(8), GETDATE(), 112)  SYS_CUR_DATE
+		                        , #{PARAM_ORD_DT}                   ORD_REQ_DATE
+		                        ,CONVERT(NVARCHAR(8),      DATEADD(DAY,(ROW_NUMBER() OVER (ORDER BY Y.CMMN_CD) - 1),#{PARAM_ORD_DT}), 112) BASIC_DATE
+		                        ,LEFT(DATENAME (WEEKDAY,   CONVERT(DATE,#{PARAM_ORD_DT}) ),1)  OBJ_WEEK
+		                        ,LEFT(DATENAME (WEEKDAY,   CONVERT(NVARCHAR(8),  DATEADD(DAY,(ROW_NUMBER() OVER (ORDER BY Y.CMMN_CD) - 1),#{PARAM_ORD_DT}), 112) ),1) WEEK1
+		                        ,ROW_NUMBER() OVER (ORDER BY Y.CMMN_CD) ROWNUM
+                                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+                                       WHEN 'Z' THEN  E.CUSTMR_CD       /* 취급점 */
+                                       WHEN 'Y' THEN  E.CUSTMR_CD       /* 전문점 */
+                                       WHEN 'A' THEN  F.WIN_CUSTMR_CD   /* 본사   */
+                                       ELSE           I.CUSTMR_CD       /* 직영점 */
+                                  END  CUSTMR_CD                        /* CUSTMR_CD */
+		                        , SUBSTRING(C.ORGN_DIV_CD,1,1) ORGN_DIV_TYPE
+                                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+                                       WHEN 'Z' THEN  E.LEAD_TIME       /* 취급점 */
+                                       WHEN 'Y' THEN  E.LEAD_TIME       /* 전문점 */
+                                       WHEN 'A' THEN  1                 /* 본사   */
+                                       ELSE           I.LEAD_TIME       /* 직영점 */
+                                  END  LEAD_TIME                        /* LEAD_TIME */
+		                          /* 마감시간 가져오기 */
+		                        <if test='PARAM_ORD_PATH != "6"'>
+                                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+                                       WHEN 'Z' THEN  E.CLSE_TIME       /* 취급점 */
+                                       WHEN 'Y' THEN  E.CLSE_TIME       /* 전문점 */
+                                       WHEN 'A' THEN  '1830'            /* 본사   */
+                                       ELSE           I.CLSE_TIME       /* 직영점 */
+                                  END  CLSE_TIME                        /* 일반상품주문마감 */
+		                        </if>
+		                        <if test='PARAM_ORD_PATH == "6"'>
+		                        , ISNULL(K.DIV3,'1900')  CLSE_TIME /* 긴급발주마감 */
+		                        </if>
+                                , CASE SUBSTRING(C.ORGN_DIV_CD,1,1) 
+                                       WHEN 'Z' THEN  E.DELI_YOIL       /* 취급점 */
+                                       WHEN 'Y' THEN  E.DELI_YOIL       /* 전문점 */
+                                       WHEN 'A' THEN  '1111100'         /* 본사   */
+                                       ELSE           I.DELI_YOIL       /* 직영점 */
+                                  END  DELI_YOIL                        /* 배송요일 */
+		                   FROM COM_CMMN_CODE Y
+		                        JOIN COM_EMP_INFO  A ON A.EMP_NO  = #{PARAM_EMP_NO}
+		                        JOIN COM_ORGN_INFO B ON A.DEPT_CD = B.ORGN_CD
+		                        JOIN COM_ORGN_INFO C ON B.ORGN_DELEGATE_CD = C.ORGN_CD
+		                        LEFT OUTER JOIN T_STD_MAST_CUSTMR    E ON E.CUSTMR_CD = A.EMP_NO
+		                        /* 직영점  조직 */
+		                        LEFT OUTER JOIN (
+		                                 SELECT A.CUSTMR_CD, A.CUSTMR_NM, F.CMMN_CD, F.CMMN_DETAIL_CD ORGN_CD, A.LEAD_TIME, A.CLSE_TIME, A.DELI_YOIL
+		                                   FROM T_STD_MAST_CUSTMR A
+		                                   JOIN COM_CMMN_CODE_DETAIL F ON F.CMMN_CD = 'ORGN_CD' AND F.DIV1 IN ('MK','CT') AND A.CUSTMR_CD = F.RM
+		                                 ) I ON  I.ORGN_CD  = C.ORGN_CD
+                                LEFT OUTER JOIN COM_CMMN_CODE_DETAIL K ON K.CMMN_CD = 'ORGN_CD2' AND K.CMMN_DETAIL_CD = A.DEPT_CD
+                                /* WINPLUS 본사 거래처코드 및 상호 구하기 */
+                                LEFT OUTER JOIN (
+                                         SELECT A.CUSTMR_CD WIN_CUSTMR_CD, A.CUSTMR_NM WIN_CUSTMR_NM, F.CMMN_CD
+                                           FROM T_STD_MAST_CUSTMR A
+                                           JOIN COM_CMMN_CODE_DETAIL F ON F.CMMN_CD = 'WINPLUS' AND F.DIV1 = A.CUSTMR_CD
+                                     ) F ON F.CMMN_CD = 'WINPLUS'
+		                ) B
+		        ) C
+		  WHERE YOIL IS NOT NULL
+		   AND  BASIC_DATE  >=   COMP_DATE
+		   GROUP BY LEAD_TIME        
+    </select>
+
+    <select id="getReservDateSuply" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getReservDateSuply  [ OrderRequest.xml 직납발주(외부업체)에 대한 납기예정일자를 구한다. ] */
+        SELECT  TOP 1 OUT_PLN_DT, RESV_DATE
+          FROM  (
+                SELECT   1 CHK, MIN(BASIC_DATE)  OUT_PLN_DT  /* 출고예정일 */
+                       , CONVERT(CHAR(8), DATEADD(DAY, (LEAD_TIME  -1) , ISNULL(MIN(BASIC_DATE), CONVERT(CHAR(8), DATEADD(DAY,  1,#{PARAM_ORD_DT}),112))), 112)  RESV_DATE   /* 납기예정일 */
+                  FROM  (
+                        SELECT  ROWNUM, OBJ_WEEK, LEAD_TIME, CLSE_TIME, CURR_TIME, DELI_YOIL, ORD_REQ_DATE , SYS_CUR_DATE,  BASIC_DATE,
+                                CASE WHEN SYS_CUR_DATE  <![CDATA[  >  ]]>  ORD_REQ_DATE THEN SYS_CUR_DATE
+                                     ELSE  CASE  WHEN CURR_TIME  <![CDATA[  <=  ]]>  CLSE_TIME THEN CONVERT(CHAR(8), DATEADD(DAY, LEAD_TIME,#{PARAM_ORD_DT}),112)
+                                           ELSE  CONVERT(CHAR(8), DATEADD(DAY, LEAD_TIME + 1,#{PARAM_ORD_DT}),112)
+                                     END
+                                END  COMP_DATE, 
+                                CASE WEEK1 
+		                             WHEN '월' THEN   CASE SUBSTRING(B.DELI_YOIL,1,1) WHEN '1' THEN '1' ELSE NULL END
+		                             WHEN '화' THEN   CASE SUBSTRING(B.DELI_YOIL,2,1) WHEN '1' THEN '1' ELSE NULL END
+		                             WHEN '수' THEN   CASE SUBSTRING(B.DELI_YOIL,3,1) WHEN '1' THEN '1' ELSE NULL END
+		                             WHEN '목' THEN   CASE SUBSTRING(B.DELI_YOIL,4,1) WHEN '1' THEN '1' ELSE NULL END
+		                             WHEN '금' THEN   CASE SUBSTRING(B.DELI_YOIL,5,1) WHEN '1' THEN '1' ELSE NULL END
+		                             WHEN '토' THEN   CASE SUBSTRING(B.DELI_YOIL,6,1) WHEN '1' THEN '1' ELSE NULL END
+		                             ELSE             CASE SUBSTRING(B.DELI_YOIL,7,1) WHEN '1' THEN '1' ELSE NULL END
+                                END  YOIL
+                          FROM ( 
+                                 SELECT CURR_TIME, SYS_CUR_DATE, ORD_REQ_DATE, BASIC_DATE, OBJ_WEEK, WEEK1, ROWNUM, LEAD_TIME,  CLSE_TIME, DELI_YOIL
+                                  FROM  (
+                                         /*  발주일( 마감시간경과시 + 1) 부터 7일에 해당하는 일자 및 요일을 구한다 */
+                                         SELECT TOP 30  REPLACE( CONVERT(CHAR(5), GETDATE(), 108),':','') CURR_TIME
+                                                , CONVERT(CHAR(8), GETDATE(), 112)  SYS_CUR_DATE
+                                                , #{PARAM_ORD_DT}                   ORD_REQ_DATE
+                                                ,CONVERT(NVARCHAR(8),      DATEADD(DAY,(ROW_NUMBER() OVER (ORDER BY Y.CMMN_CD) - 1),#{PARAM_ORD_DT}), 112) BASIC_DATE
+                                                ,LEFT(DATENAME (WEEKDAY,   CONVERT(DATE,#{PARAM_ORD_DT}) ),1)  OBJ_WEEK
+                                                ,LEFT(DATENAME (WEEKDAY,   CONVERT(NVARCHAR(8),  DATEADD(DAY,(ROW_NUMBER() OVER (ORDER BY Y.CMMN_CD) - 1),#{PARAM_ORD_DT}), 112) ),1) WEEK1
+                                                ,ROW_NUMBER() OVER (ORDER BY Y.CMMN_CD) ROWNUM
+                                                , A.LEAD_TIME
+                                                , A.CLSE_TIME 
+                                                , A.DELI_YOIL 
+                                           FROM COM_CMMN_CODE Y
+                                                JOIN T_STD_MAST_CUSTMR A ON A.CUSTMR_CD = #{PARAM_CUST_CD}
+                                       ) OBJ
+                                       JOIN  (
+                                                SELECT YYYYMMDD, YYYY_MM_DD, SUBSTRING(DAY_WEEK,1,1) DAY_WEEK
+                                                FROM (
+                                                        SELECT  CONVERT(CHAR(8),  NEXT_DATE, 112) YYYYMMDD,
+                                                                CONVERT(CHAR(10), NEXT_DATE, 23) YYYY_MM_DD,
+                                                                DAY_WEEK,
+                                                                ROW_NUMBER() OVER ( ORDER BY NEXT_DATE) AS ROWNUM
+                                                        FROM (
+                                                                /* 30일 연속 휴일은 없으므로 */
+                                                                SELECT GETDATE() CURR_DATE, DATEADD(DD, AA.ROWNUM, GETDATE()) NEXT_DATE,
+                                                                    DATENAME(WEEKDAY, DATEADD(DD, AA.ROWNUM, GETDATE())) DAY_WEEK
+                                                                FROM  (
+                                                                        SELECT ROW_NUMBER() OVER ( ORDER BY CMMN_CD) AS ROWNUM FROM COM_CMMN_CODE
+                                                                    )  AA
+                                                            ) BB
+                                                        WHERE CONVERT(CHAR(8), NEXT_DATE, 112) NOT IN
+                                                              (
+                                                                   SELECT CMMN_DETAIL_CD_NM
+                                                                     FROM COM_CMMN_CODE_DETAIL
+                                                                    WHERE CMMN_CD = 'NONHOLIDAY'
+                                                                      AND USE_YN = 'Y'
+                                                                      AND CONVERT(CHAR(8),GETDATE(), 112) BETWEEN BEGIN_DATE AND END_DATE
+                                                                )
+                                                            AND DAY_WEEK NOT IN ('토요일','일요일')
+                                                    ) J
+                                        ) CC ON CC.YYYYMMDD = OBJ.BASIC_DATE
+                                ) B
+                        ) C
+                  WHERE YOIL IS NOT NULL
+                   AND  BASIC_DATE  >=   COMP_DATE 
+                   GROUP BY LEAD_TIME 
+                  UNION ALL
+                  SELECT 2 CHK, CONVERT(CHAR(8), DATEADD(DAY, 1, #{PARAM_ORD_DT}),112) OUT_PLN_DT,
+                                CONVERT(CHAR(8), DATEADD(DAY, 1, #{PARAM_ORD_DT}),112) RESV_DATE
+                ) OBJ
+         ORDER BY CHK
+    </select>
+
+
+    <select id="getSearchReqGoodsTmp" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchReqGoodsTmp  [ OrderRequest.xml 주문요청서 조회 ] */
+        SELECT  A.ORD_NO                                /* 주문번호       */
+               ,A.BCD_CD+A.SUPR_CUSTMR_CD OBJKEY        /* 그리드이동시사용  */
+               ,A.ORD_SEQ                               /* 번호           */
+               ,A.REQ_CUSTMR_CD                         /* 요청거래처코드(고객사) */
+               ,B.CUSTMR_NM CUST_NM                     /* 요청거래처명(고객사)   */
+               ,A.BCD_CD                                /* 바코드         */
+               ,F.BCD_NM                                /* 상품명         */
+               ,A.SUPR_CUSTMR_CD                        /* 공급거래처코드 */
+               ,C.CUSTMR_NM  SUPR_NM                    /* 공급거래처명   */
+               ,A.REQ_DATE                              /* 요청일자       */
+               ,A.RESP_USER                             /* 처리자사원번호 */
+               ,A.ORD_TYPE                              /* 발주유형CD     */
+               ,O.CMMN_DETAIL_CD_NM ORD_TYPE_NM         /* 발주유형명     */
+               ,A.WARE_CD                               /* 창고코드       */
+               ,P.CMMN_DETAIL_CD_NM WARE_NM             /* 창고이름       */
+               ,D.EMP_NM                                /* 발주요청자     */
+               ,A.REQ_QTY                               /* 요청수량       */
+               ,A.DIMEN_NM                              /* 단위           */
+               ,F.UNIT_QTY                              /* 입수량         */
+               ,Q.TAX_TYPE                              /* 과세대상       */
+               ,K.STOCK_QTY                             /* 전산재고       */
+               ,A.GOODS_PRICE                           /* 단가           */
+               ,A.SUPR_AMT                              /* 공급가액       */
+               ,A.VAT_AMT                               /* 부가세         */
+               ,A.TOT_AMT                               /* 합계금액       */
+               ,A.TOT_AMT  COMP_TOT_AMT                 /* 합계금액(비교) */
+               ,CASE A.RESV_DATE WHEN NULL THEN NULL
+                     ELSE SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                          SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                          SUBSTRING(A.RESV_DATE, 7, 2) 
+                END  RESV_DATE                          /* 납기예정일자   */
+               ,A.LAND_CHG_TYPE                         /* 착지변경여부   */
+               ,A.MEMO                                  /* 메모           */
+               ,A.ORD_CUSTMR_TYPE                       /* 발행구분       */
+               ,G.CMMN_DETAIL_CD_NM ORD_CUSTMR_TYPE_NM  /* 발주유형명     */
+               ,A.ORD_TRANS_TYPE                        /* 발주확정구분   */
+               ,A.FLAG                                  /* 요청상태       */
+               ,CASE #{PARAM_ORD_PATH}                  /* 발주를 조회하는 경로 1센터, 2직영점, 3포털발주,   6긴급발주  */
+                     WHEN  '3' THEN 
+                           CASE #{PARAM_RET_YN}         
+                                 WHEN  'Y'  THEN E.RM   /* 반품인경우      */
+                                 ELSE       E.DIV4      /* 주문서 조회에서 */
+                           END                     
+                     ELSE  CASE #{PARAM_RET_YN}         
+                           WHEN  'Y'  THEN E.RM         /* 반품인경우      */
+                                 ELSE      E.DIV5       /* 발주서 조회에서 */
+                           END
+                END  FLAG_NM                            /* 처리상태명     */
+               ,A.USE_YN                                /* 사용여부       */
+               
+               , MP.MIN_ORGN_CD                         /* 최저매입매장   */
+               , MP.MIN_ORGN_NM                         /* 최저매입매장명 */
+               , MP.MIN_PUR_DATE                        /* 최저매입일자   */
+               , MP.MIN_PUR_PRICE                       /* 최저매입단가   */
+               , MP.MIN_PUR_CUSTMR_CD                   /* 최저매입업체   */
+               , MP.MIN_PUR_CUSTMR_NM                   /* 최저매입업체명 */               
+               , J.CUSTMR_CD
+               , J.ROWNUM
+               , W.ORGN_DIV_CD
+               , W.ORGN_CD
+               , ( SELECT CMMN_DETAIL_CD_NM 
+                     FROM COM_CMMN_CODE_DETAIL
+                    WHERE CMMN_CD = 'UNIT_CD' AND CMMN_DETAIL_CD = F.UNIT_CD
+                  )  UNIT_NM                            /* 단위명         */  
+               , Q.MIN_PUR_QTY                          /* CS최소주문수량  */
+               , Z.CMMN_DETAIL_CD_NM MIN_PUR_UNIT       /* CS최소주문단위  */
+               , Q.MIN_ORD_QTY MIN_LMT_QTY              /* MOQ주문제한수량 */
+               , A.RESN_CD                              /* 사유코드        */
+               , A.ORI_CUSTMER_CD CHG_WARE_CD           /* 배송지          */
+               , ( SELECT CMMN_DETAIL_CD_NM  FROM COM_CMMN_CODE_DETAIL
+                     WHERE CMMN_CD= 'ORGN_CD'
+                       AND CMMN_DETAIL_CD = A.ORI_CUSTMER_CD
+                   UNION 
+                    SELECT CUSTMR_NM FROM T_STD_MAST_CUSTMR 
+                     WHERE CUSTMR_CD = A.ORI_CUSTMER_CD
+                 ) CHG_WARE_NM                          /* 입고할 창고명*/
+               , A.ORI_ORD_NO
+          FROM T_REQ_GOODS_TMP A
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    B ON  B.CUSTMR_CD  = A.REQ_CUSTMR_CD   /* 요청거래처코드 */
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    C ON  C.CUSTMR_CD  = A.SUPR_CUSTMR_CD  /* 공급거래처코드 */
+               LEFT OUTER JOIN COM_EMP_INFO         D ON  D.EMP_NO     = A.RESP_USER
+               LEFT OUTER JOIN COM_ORGN_INFO        V ON  V.ORGN_CD    = D.DEPT_CD
+               LEFT OUTER JOIN COM_ORGN_INFO        W ON  W.ORGN_CD    = V.ORGN_DELEGATE_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD    = 'ORD_STATE' 
+			               AND E.CMMN_DETAIL_CD = CASE A.FLAG  WHEN '1' THEN '1'           /* 승인이후부터 완료로 표시 */
+                                                               WHEN '2' THEN '2'           /* 영업승인대기 */
+                                                               WHEN '4' THEN '4'           /* 물류승인대기 */
+                                                               WHEN '3' THEN '3'           /* 완료         */
+															   ELSE '5' END                /* 물류승인완료(완료) */
+               LEFT OUTER JOIN T_STD_MAST_BCD       F ON  F.BCD_CD     = A.BCD_CD
+               LEFT OUTER JOIN T_STD_MAST_GOODS     Q ON  Q.GOODS_NO   = F.GOODS_NO
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD    = 'ORD_CUSTMR_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_CUSTMR_TYPE
+               /* 동일상품에 대해 취급하는 공급사가 N개인경우 발주하는 공급사를 제외후 임의의 한개 업체를 가져온다  */
+               LEFT OUTER JOIN (
+                                 SELECT A.BCD_CD, B.CUSTMR_CD,A.SUPR_CUSTMR_CD,  ROW_NUMBER() OVER (PARTITION BY A.BCD_CD ORDER BY B.CUSTMR_CD) AS ROWNUM
+                                   FROM T_REQ_GOODS_TMP A
+                                        JOIN T_STD_MAST_PUR_PRICE B ON A.BCD_CD = B.BCD_CD AND A.SUPR_CUSTMR_CD != B.CUSTMR_CD
+                                  WHERE A.REQ_DATE  = #{PARAM_REQ_DATE}
+                                ) J ON J.BCD_CD = A.BCD_CD
+               /* 로그인 센타, 직영점, 취급점의 재고 취급점은 재고 없음 */
+               LEFT OUTER JOIN V_T_STD_MAST_STOCK_QTY K ON K.ORGN_CD = #{PARAM_ORGN_CD} AND K.BCD_CD = A.BCD_CD
+               /* 최근3개월 최저매입 직영점의 공급사-일자-단가   */
+               LEFT OUTER JOIN (
+                              SELECT    BCD_CD
+                                      , LP.ORGN_CD   AS MIN_ORGN_CD
+                                      , H.ORGN_NM    AS MIN_ORGN_NM
+                                      , SUPR_CD      AS MIN_PUR_CUSTMR_CD
+                                      , I.CUSTMR_NM  AS MIN_PUR_CUSTMR_NM
+                                      , PUR_DATE     AS MIN_PUR_DATE
+                                      , PUR_PRICE    AS MIN_PUR_PRICE
+                              FROM (
+                                      SELECT * FROM (
+                                               SELECT  PM.ORGN_CD
+                                                     , PM.SUPR_CD
+                                                     , PM.PUR_DATE
+                                                     , PD.BCD_CD
+                                                     , PD.PUR_PRICE
+                                                     , RANK() OVER (PARTITION BY BCD_CD ORDER BY PM.PUR_DATE DESC, PM.ORGN_CD, PUR_PRICE) AS ASC_RM
+                                              FROM T_PUR_MAST PM
+                                              INNER JOIN T_PUR_DETL PD ON PM.ORGN_CD = PD.ORGN_CD AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+                                              GROUP BY PM.ORGN_DIV_CD, PM.ORGN_CD, PM.SUPR_CD, PM.PUR_DATE, PD.BCD_CD, PD.PUR_PRICE
+                                              HAVING PM.PUR_DATE  BETWEEN CONVERT(NVARCHAR(8), DATEADD(MONTH, -3, GETDATE()), 112 ) AND CONVERT(CHAR(8), GETDATE(), 112)
+                                              AND LEFT(PM.ORGN_DIV_CD, 1) = 'C'
+                                      ) LP1
+                                      WHERE ASC_RM = 1
+                              ) LP
+                              INNER JOIN COM_ORGN_INFO        H ON  H.ORGN_CD    = LP.ORGN_CD    /* 최저매입조직 */
+                              INNER JOIN T_STD_MAST_CUSTMR    I ON  I.CUSTMR_CD  = LP.SUPR_CD    /* 최저매입업체 */
+                          ) MP ON A.BCD_CD = MP.BCD_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL O ON  O.CMMN_CD    = 'ORD_TYPE' AND O.CMMN_DETAIL_CD = A.ORD_TYPE /* 발주유형 */
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL P ON  P.CMMN_CD    = 'ORGN_CD'  AND P.CMMN_DETAIL_CD = A.WARE_CD  /* 창고코드 */
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL Z ON  Z.CMMN_CD    = 'UNIT_CD'  AND Z.CMMN_DETAIL_CD = Q.MIN_PUR_UNIT  /* CS최소주문단위  */
+         WHERE A.REQ_DATE       = #{PARAM_REQ_DATE}
+           <if test='PARAM_REQ_CUSTMR_CD != null and PARAM_REQ_CUSTMR_CD != ""'>
+           AND A.REQ_CUSTMR_CD  = #{PARAM_REQ_CUSTMR_CD}
+           </if>
+           <if test='PARAM_SUPR_CUSTMR_CD != null and PARAM_SUPR_CUSTMR_CD != ""'>
+           AND A.SUPR_CUSTMR_CD = #{PARAM_SUPR_CUSTMR_CD}
+           </if>
+           <if test='PARAM_RESP_USER != null and PARAM_RESP_USER != ""'>
+           AND A.RESP_USER      = #{PARAM_RESP_USER}
+           </if>
+           <if test='PARAM_RESV_DATE != null and PARAM_RESV_DATE != ""'>
+           AND A.RESV_DATE      = #{PARAM_RESV_DATE}
+           </if>
+           <if test='PARAM_FLAG != null and PARAM_FLAG != ""'>
+           AND A.FLAG           = #{PARAM_FLAG}
+           </if>
+           <if test='PARAM_MKT_TYPE != null and PARAM_MKT_TYPE != ""'>
+           AND A.ORD_CUSTMR_TYPE    = #{PARAM_MKT_TYPE}
+           </if>
+           <if test='PARAM_EME_YN == "Y"'>
+           AND A.ORD_TYPE    = #{PARAM_ORD_TYPE}
+           </if>
+           <if test='PARAM_EME_YN != "Y" and PARAM_RET_YN != "Y"'>
+           AND A.ORD_TYPE  <![CDATA[ <> ]]> '6'
+	           <if test='PARAM_ORD_TYPE != "7"'>
+	           AND A.ORD_TYPE  IN ( '1','2','3','4','5')
+	           </if>
+	           <if test='PARAM_ORD_TYPE != null and PARAM_ORD_TYPE != ""'>
+	                AND A.ORD_TYPE    = #{PARAM_ORD_TYPE}    
+	           </if>
+           </if>
+           <if test='PARAM_RET_YN == "Y"'>
+	           <if test='PARAM_ORD_PATH == "2"'>
+	           AND A.ORD_TYPE  IN ( 'B','C')  /* 직영점 반품건만 조회 */
+	           </if>
+	           <if test='PARAM_ORD_PATH == "3"'>
+	           AND A.ORD_TYPE  IN ( 'D','E')  /* 포털 반품건만 조회 */ 
+	           </if>
+	           <if test='PARAM_ORD_PATH == "1"'>
+	           AND A.ORD_TYPE  =   'A'       /*  센터구매반품 조회 */ 
+	           </if>
+           </if>
+           AND ISNULL(J.ROWNUM,1)   = 1
+        ORDER  BY A.ORD_TYPE,  A.BCD_CD, A.ORI_CUSTMER_CD,  A.SUPR_CUSTMR_CD
+    </select>
+
+    <select id="getSearchReqGoodsCSportal" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchReqGoodsCSportal  [ OrderRequest.xml CS포털 팝업 주문요청서 조회 ] */
+        SELECT  A.ORD_NO                                /* 주문번호       */
+               ,A.ORD_SEQ                               /* 번호           */
+               ,A.REQ_CUSTMR_CD                         /* 요청거래처코드(고객사) */
+               ,B.CUSTMR_NM CUST_NM                     /* 요청거래처명(고객사)   */
+               ,A.BCD_CD                                /* 바코드         */
+               ,F.BCD_NM                                /* 상품명         */
+               ,A.SUPR_CUSTMR_CD                        /* 공급거래처코드 */
+               ,C.CUSTMR_NM  SUPR_NM                    /* 공급거래처명   */
+               ,A.REQ_DATE                              /* 요청일자       */
+               ,A.RESP_USER                             /* 처리자사원번호 */
+               ,A.ORD_TYPE                              /* 발주유형CD     */
+               ,O.CMMN_DETAIL_CD_NM ORD_TYPE_NM         /* 발주유형명     */
+               ,A.WARE_CD                               /* 창고코드       */
+               ,P.CMMN_DETAIL_CD_NM WARE_NM             /* 창고이름       */
+               ,D.EMP_NM                                /* 발주요청자     */
+               ,A.REQ_QTY                               /* 요청수량       */
+               ,A.DIMEN_NM                              /* 단위           */
+               ,F.UNIT_QTY                              /* 입수량         */
+               ,Q.TAX_TYPE                              /* 과세대상       */
+               ,K.STOCK_QTY                             /* 전산재고       */
+               ,A.GOODS_PRICE                           /* 단가           */
+               ,A.SUPR_AMT                              /* 공급가액       */
+               ,A.VAT_AMT                               /* 부가세         */
+               ,A.TOT_AMT                               /* 합계금액       */
+               ,A.TOT_AMT  COMP_TOT_AMT                 /* 합계금액(비교) */
+               ,CASE A.RESV_DATE WHEN NULL THEN NULL
+                     ELSE SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                          SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                          SUBSTRING(A.RESV_DATE, 7, 2) 
+                END  RESV_DATE                          /* 납기예정일자   */
+               ,A.LAND_CHG_TYPE                         /* 착지변경여부   */
+               ,A.MEMO                                  /* 메모           */
+               ,A.ORD_CUSTMR_TYPE                       /* 발행구분       */
+               ,G.CMMN_DETAIL_CD_NM ORD_CUSTMR_TYPE_NM  /* 발주유형명     */
+               ,A.ORD_TRANS_TYPE                        /* 발주확정구분   */
+               ,A.FLAG                                  /* 요청상태       */
+               ,CASE #{PARAM_ORD_PATH}                  /* 발주를 조회하는 경로 1센터, 2직영점, 3포털발주,   6긴급발주  */
+                     WHEN  '3' THEN 
+                           CASE #{PARAM_RET_YN}         
+                                 WHEN  'Y'  THEN E.RM   /* 반품인경우      */
+                                 ELSE       E.DIV4      /* 주문서 조회에서 */
+                           END                     
+                     ELSE  CASE #{PARAM_RET_YN}         
+                           WHEN  'Y'  THEN E.RM         /* 반품인경우      */
+                                 ELSE      E.DIV5       /* 발주서 조회에서 */
+                           END
+                END  FLAG_NM                            /* 처리상태명     */
+               , A.USE_YN                               /* 사용여부       */
+               , W.ORGN_DIV_CD
+               , W.ORGN_CD
+               , ( SELECT CMMN_DETAIL_CD_NM 
+                     FROM COM_CMMN_CODE_DETAIL
+                    WHERE CMMN_CD = 'UNIT_CD' AND CMMN_DETAIL_CD = F.UNIT_CD
+                  )  UNIT_NM                            /* 단위명         */  
+               , A.RESN_CD                              /* 사유코드        */
+               , A.ORI_CUSTMER_CD CHG_WARE_CD           /* 배송지          */
+               , ( SELECT CMMN_DETAIL_CD_NM  FROM COM_CMMN_CODE_DETAIL
+                     WHERE CMMN_CD= 'ORGN_CD'
+                       AND CMMN_DETAIL_CD = A.ORI_CUSTMER_CD
+                   UNION 
+                    SELECT CUSTMR_NM FROM T_STD_MAST_CUSTMR 
+                     WHERE CUSTMR_CD = A.ORI_CUSTMER_CD
+                 ) CHG_WARE_NM                          /* 입고할 창고명*/
+               , A.ORI_ORD_NO
+          FROM T_REQ_GOODS_TMP A
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    B ON  B.CUSTMR_CD  = A.REQ_CUSTMR_CD   /* 요청거래처코드 */
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    C ON  C.CUSTMR_CD  = A.SUPR_CUSTMR_CD  /* 공급거래처코드 */
+               LEFT OUTER JOIN COM_EMP_INFO         D ON  D.EMP_NO     = A.RESP_USER
+               LEFT OUTER JOIN COM_ORGN_INFO        V ON  V.ORGN_CD    = D.DEPT_CD
+               LEFT OUTER JOIN COM_ORGN_INFO        W ON  W.ORGN_CD    = V.ORGN_DELEGATE_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD    = 'ORD_STATE' 
+			               AND E.CMMN_DETAIL_CD = CASE A.FLAG  WHEN '1' THEN '1'           /* 승인이후부터 완료로 표시 */
+                                                               WHEN '2' THEN '2' 
+															   ELSE '5' END
+               LEFT OUTER JOIN T_STD_MAST_BCD       F ON  F.BCD_CD     = A.BCD_CD
+               LEFT OUTER JOIN T_STD_MAST_GOODS     Q ON  Q.GOODS_NO   = F.GOODS_NO
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD    = 'ORD_CUSTMR_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_CUSTMR_TYPE
+               /* 로그인 센타, 직영점, 취급점의 재고 취급점은 재고 없음 */
+               LEFT OUTER JOIN V_T_STD_MAST_STOCK_QTY K ON K.ORGN_CD = #{PARAM_ORGN_CD} AND K.BCD_CD = A.BCD_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL O ON  O.CMMN_CD    = 'ORD_TYPE' AND O.CMMN_DETAIL_CD = A.ORD_TYPE /* 발주유형 */
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL P ON  P.CMMN_CD    = 'ORGN_CD'  AND P.CMMN_DETAIL_CD = A.WARE_CD  /* 창고코드 */
+         WHERE A.ORD_NO    = #{PARAM_ORD_NO}
+           AND A.ORD_TYPE  = #{PARAM_ORD_TYPE}
+        ORDER  BY A.ORD_TYPE,  A.BCD_CD, A.ORI_CUSTMER_CD,  A.SUPR_CUSTMR_CD
+    </select>
+
+    <select id="getSearchReqFreshGoodsTmp" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchReqFreshGoodsTmp  [ OrderRequest.xml 팜센터-신선발주 주문요청서 조회 ] */
+        SELECT  A.ORD_NO                                /* 주문번호       */
+               ,A.BCD_CD+A.SUPR_CUSTMR_CD OBJKEY        /* 그리드이동시사용  */
+               ,A.ORD_SEQ                               /* 번호           */
+               ,A.REQ_CUSTMR_CD                         /* 요청거래처코드(고객사) */
+               ,B.CUSTMR_NM CUST_NM                     /* 요청거래처명(고객사)   */
+               ,A.BCD_CD                                /* 바코드         */
+               ,F.BCD_NM                                /* 상품명         */
+               ,A.SUPR_CUSTMR_CD                        /* 공급거래처코드 */
+               ,C.CUSTMR_NM  SUPR_NM                    /* 공급거래처명   */
+               ,A.REQ_DATE                              /* 요청일자       */
+               ,A.RESP_USER                             /* 처리자사원번호 */
+               ,A.ORD_TYPE                              /* 발주유형CD     */
+               ,O.CMMN_DETAIL_CD_NM ORD_TYPE_NM         /* 발주유형명     */
+               ,A.WARE_CD                               /* 창고코드       */
+               ,P.CMMN_DETAIL_CD_NM WARE_NM             /* 창고이름       */
+               ,D.EMP_NM                                /* 발주요청자     */
+			   ,X.ORD_QTY                               /* 원요청수량     */
+               ,A.REQ_QTY                               /* 요청수량       */
+			   ,X.ORD_QTY -  A.REQ_QTY CURR_QTY         /* 증감수량       */
+               ,A.DIMEN_NM                              /* 단위           */
+               ,F.UNIT_QTY                              /* 입수량         */
+               ,Q.TAX_TYPE                              /* 과세대상       */
+               ,K.STOCK_QTY                             /* 전산재고       */
+               ,A.GOODS_PRICE                           /* 단가           */
+               ,A.SUPR_AMT                              /* 공급가액       */
+               ,A.VAT_AMT                               /* 부가세         */
+               ,A.TOT_AMT                               /* 합계금액       */
+               ,A.TOT_AMT  COMP_TOT_AMT                 /* 합계금액(비교) */
+               ,CASE A.RESV_DATE WHEN NULL THEN NULL
+                     ELSE SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                          SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                          SUBSTRING(A.RESV_DATE, 7, 2) 
+                END  RESV_DATE                          /* 납기예정일자   */
+               ,A.LAND_CHG_TYPE                         /* 착지변경여부   */
+               ,A.MEMO                                  /* 메모           */
+               ,A.ORD_CUSTMR_TYPE                       /* 발행구분       */
+               ,G.CMMN_DETAIL_CD_NM ORD_CUSTMR_TYPE_NM  /* 발주유형명     */
+               ,A.ORD_TRANS_TYPE                        /* 발주확정구분   */
+               ,A.FLAG                                  /* 요청상태       */
+               ,CASE #{PARAM_ORD_PATH}                  /* 발주를 조회하는 경로 1센터, 2직영점, 3포털발주,   6긴급발주  */
+                     WHEN  '3' THEN 
+                           CASE #{PARAM_RET_YN}         
+                                 WHEN  'Y'  THEN E.RM   /* 반품인경우      */
+                                 ELSE       E.DIV4      /* 주문서 조회에서 */
+                           END                     
+                     ELSE  CASE #{PARAM_RET_YN}         
+                           WHEN  'Y'  THEN E.RM         /* 반품인경우      */
+                                 ELSE      E.DIV5       /* 발주서 조회에서 */
+                           END
+                END  FLAG_NM                            /* 처리상태명     */
+               , A.USE_YN                               /* 사용여부       */
+               , J.CUSTMR_CD
+               , J.ROWNUM
+               , W.ORGN_DIV_CD
+               , W.ORGN_CD
+               , ( SELECT CMMN_DETAIL_CD_NM 
+                     FROM COM_CMMN_CODE_DETAIL
+                    WHERE CMMN_CD = 'UNIT_CD' AND CMMN_DETAIL_CD = F.UNIT_CD
+                  )  UNIT_NM                            /* 단위명         */  
+               , Q.MIN_PUR_QTY                          /* CS최소주문수량  */
+               , Z.CMMN_DETAIL_CD_NM MIN_PUR_UNIT       /* CS최소주문단위  */
+               , Q.MIN_ORD_QTY MIN_LMT_QTY              /* MOQ주문제한수량 */
+               , A.RESN_CD                              /* 사유코드        */
+               , A.ORI_CUSTMER_CD CHG_WARE_CD           /* 배송지          */
+               , ( SELECT CMMN_DETAIL_CD_NM  FROM COM_CMMN_CODE_DETAIL
+                     WHERE CMMN_CD= 'ORGN_CD'
+                       AND CMMN_DETAIL_CD = A.ORI_CUSTMER_CD
+                   UNION 
+                    SELECT CUSTMR_NM FROM T_STD_MAST_CUSTMR 
+                     WHERE CUSTMR_CD = A.ORI_CUSTMER_CD
+                 ) CHG_WARE_NM                          /* 입고할 창고명*/
+               , A.ORI_ORD_NO
+          FROM T_REQ_GOODS_TMP A
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    B ON  B.CUSTMR_CD  = A.REQ_CUSTMR_CD   /* 요청거래처코드 */
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    C ON  C.CUSTMR_CD  = A.SUPR_CUSTMR_CD  /* 공급거래처코드 */
+               LEFT OUTER JOIN COM_EMP_INFO         D ON  D.EMP_NO     = A.RESP_USER
+               LEFT OUTER JOIN COM_ORGN_INFO        V ON  V.ORGN_CD    = D.DEPT_CD
+               LEFT OUTER JOIN COM_ORGN_INFO        W ON  W.ORGN_CD    = V.ORGN_DELEGATE_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD    = 'ORD_STATE' 
+			               AND E.CMMN_DETAIL_CD = CASE A.FLAG  WHEN '1' THEN '1'           /* 승인이후부터 완료로 표시 */
+                                                               WHEN '2' THEN '2' 
+															   ELSE '5' END
+               LEFT OUTER JOIN T_STD_MAST_BCD       F ON  F.BCD_CD     = A.BCD_CD
+               LEFT OUTER JOIN T_STD_MAST_GOODS     Q ON  Q.GOODS_NO   = F.GOODS_NO
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD    = 'ORD_CUSTMR_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_CUSTMR_TYPE
+               /* 동일상품에 대해 취급하는 공급사가 N개인경우 발주하는 공급사를 제외후 임의의 한개 업체를 가져온다  */
+               LEFT OUTER JOIN (
+                                 SELECT A.BCD_CD, B.CUSTMR_CD,A.SUPR_CUSTMR_CD,  ROW_NUMBER() OVER (PARTITION BY A.BCD_CD ORDER BY B.CUSTMR_CD) AS ROWNUM
+                                   FROM T_REQ_GOODS_TMP A
+                                        JOIN T_STD_MAST_PUR_PRICE B ON A.BCD_CD = B.BCD_CD AND A.SUPR_CUSTMR_CD != B.CUSTMR_CD
+                                  WHERE A.REQ_DATE  = #{PARAM_REQ_DATE}
+                                ) J ON J.BCD_CD = A.BCD_CD
+               /* 로그인 센타, 직영점, 취급점의 재고 취급점은 재고 없음 */
+               LEFT OUTER JOIN V_T_STD_MAST_STOCK_QTY K ON K.ORGN_CD = #{PARAM_ORGN_CD} AND K.BCD_CD = A.BCD_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL O ON  O.CMMN_CD    = 'ORD_TYPE' AND O.CMMN_DETAIL_CD = A.ORD_TYPE /* 발주유형 */
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL P ON  P.CMMN_CD    = 'ORGN_CD'  AND P.CMMN_DETAIL_CD = A.WARE_CD  /* 창고코드 */
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL Z ON  Z.CMMN_CD    = 'UNIT_CD'  AND Z.CMMN_DETAIL_CD = Q.MIN_PUR_UNIT  /* CS최소주문단위  */
+               LEFT OUTER JOIN T_PUR_ORD_GOODS      X ON  X.ORD_NO     = A.ORI_ORD_NO AND X.BCD_CD = A.BCD_CD
+         WHERE A.REQ_DATE       = #{PARAM_REQ_DATE}
+           <if test='PARAM_REQ_CUSTMR_CD != null and PARAM_REQ_CUSTMR_CD != ""'>
+           AND A.REQ_CUSTMR_CD  = #{PARAM_REQ_CUSTMR_CD}
+           </if>
+           <if test='PARAM_SUPR_CUSTMR_CD != null and PARAM_SUPR_CUSTMR_CD != ""'>
+           AND A.SUPR_CUSTMR_CD = #{PARAM_SUPR_CUSTMR_CD}
+           </if>
+           <if test='PARAM_RESP_USER != null and PARAM_RESP_USER != ""'>
+           AND A.RESP_USER      = #{PARAM_RESP_USER}
+           </if>
+           <if test='PARAM_FLAG != null and PARAM_FLAG != ""'>
+           AND A.FLAG           = #{PARAM_FLAG}
+           </if>
+	       <if test='PARAM_ORD_TYPE != null and PARAM_ORD_TYPE != ""'>
+	       AND A.ORD_TYPE       = #{PARAM_ORD_TYPE}    
+	       </if>
+           AND ISNULL(J.ROWNUM,1)   = 1
+        ORDER  BY A.ORD_TYPE,  A.BCD_CD, A.ORI_CUSTMER_CD,  A.SUPR_CUSTMR_CD
+    </select>
+
+    <select id="getSearchReqGoodsTmpOnly" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchReqGoodsTmpOnly  [ OrderRequest.xml 공급사 포털 주문요청서 조회 ] */
+        SELECT  A.ORD_NO                                /* 주문번호       */
+               ,A.BCD_CD+A.SUPR_CUSTMR_CD OBJKEY        /* 그리드이동시사용  */
+               ,A.ORD_SEQ                               /* 번호           */
+               ,A.REQ_CUSTMR_CD                         /* 요청거래처코드(고객사) */
+               ,B.CUSTMR_NM CUST_NM                     /* 요청거래처명(고객사)   */
+               ,A.BCD_CD                                /* 바코드         */
+               ,F.BCD_NM                                /* 상품명         */
+               ,A.SUPR_CUSTMR_CD                        /* 공급거래처코드 */
+               ,C.CUSTMR_NM  SUPR_NM                    /* 공급거래처명   */
+               ,A.REQ_DATE                              /* 요청일자       */
+               ,A.RESP_USER                             /* 처리자사원번호 */
+               ,A.ORD_TYPE                              /* 발주유형CD     */
+               ,O.CMMN_DETAIL_CD_NM ORD_TYPE_NM         /* 발주유형명     */
+               ,A.WARE_CD                               /* 창고코드       */
+               ,P.CMMN_DETAIL_CD_NM WARE_NM             /* 창고이름       */
+               ,D.EMP_NM                                /* 발주요청자     */
+               ,A.REQ_QTY                               /* 요청수량       */
+               ,A.OUT_QTY                               /* 출고수량       */
+               ,A.DIMEN_NM                              /* 단위           */
+               ,F.UNIT_QTY                              /* 입수량         */
+               ,Q.TAX_TYPE                              /* 과세대상       */
+               ,K.STOCK_QTY                             /* 전산재고       */
+               ,A.GOODS_PRICE                           /* 단가           */
+               ,A.SUPR_AMT                              /* 공급가액       */
+               ,A.VAT_AMT                               /* 부가세         */
+               ,A.TOT_AMT                               /* 합계금액       */
+               ,SUBSTRING(A.RESV_DATE, 1, 4)+'-'+
+                SUBSTRING(A.RESV_DATE, 5, 2)+'-' +
+                SUBSTRING(A.RESV_DATE, 7, 2) RESV_DATE  /* 납기예정일자   */
+               ,SUBSTRING(A.OUT_DATE, 1, 4)+'-'+
+                SUBSTRING(A.OUT_DATE, 5, 2)+'-' +
+                SUBSTRING(A.OUT_DATE, 7, 2) OUT_DATE    /* 출고일자       */
+               ,A.LAND_CHG_TYPE                         /* 착지변경여부   */
+               ,A.MEMO                                  /* 메모           */
+               ,A.ORD_CUSTMR_TYPE                       /* 발행구분       */
+               ,G.CMMN_DETAIL_CD_NM ORD_CUSTMR_TYPE_NM  /* 발주유형명     */
+               ,A.ORD_TRANS_TYPE                        /* 발주확정구분   */
+               ,A.FLAG                                  /* 요청상태       */
+               ,E.CMMN_DETAIL_CD_NM FLAG_NM             /* 처리상태명     */
+               ,A.USE_YN                                /* 사용여부       */
+              , W.ORGN_DIV_CD
+              , W.ORGN_CD
+          FROM T_REQ_GOODS_TMP A
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    B ON  B.CUSTMR_CD  = A.REQ_CUSTMR_CD   /* 요청거래처코드 */
+               LEFT OUTER JOIN T_STD_MAST_CUSTMR    C ON  C.CUSTMR_CD  = A.SUPR_CUSTMR_CD  /* 공급거래처코드 */
+               LEFT OUTER JOIN COM_EMP_INFO         D ON  D.EMP_NO     = A.RESP_USER
+               LEFT OUTER JOIN COM_ORGN_INFO        V ON  V.ORGN_CD    = D.DEPT_CD
+               LEFT OUTER JOIN COM_ORGN_INFO        W ON  W.ORGN_CD    = V.ORGN_DELEGATE_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL E ON  E.CMMN_CD    = 'ORD_STATE' AND E.CMMN_DETAIL_CD = A.FLAG
+               LEFT OUTER JOIN T_STD_MAST_BCD       F ON  F.BCD_CD     = A.BCD_CD
+               LEFT OUTER JOIN T_STD_MAST_GOODS     Q ON  Q.GOODS_NO   = F.GOODS_NO
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL G ON  G.CMMN_CD    = 'ORD_CUSTMR_TYPE'  AND G.CMMN_DETAIL_CD = A.ORD_CUSTMR_TYPE
+               /* 로그인 센타, 직영점, 취급점의 재고 취급점은 재고 없음 */
+               LEFT OUTER JOIN V_T_STD_MAST_STOCK_QTY K ON K.ORGN_CD = #{PARAM_ORGN_CD} AND K.BCD_CD = A.BCD_CD
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL O ON  O.CMMN_CD    = 'ORD_TYPE' AND O.CMMN_DETAIL_CD = A.ORD_TYPE /* 발주유형 */
+               LEFT OUTER JOIN COM_CMMN_CODE_DETAIL P ON  P.CMMN_CD    = 'ORGN_CD'  AND P.CMMN_DETAIL_CD = A.WARE_CD  /* 창고코드 */
+         WHERE A.REQ_DATE       = #{PARAM_REQ_DATE}  /* 요청일자  */
+           AND A.SUPR_CUSTMR_CD = #{PARAM_SUPR_CD}   /* 공급사    */
+           AND A.ORD_TYPE       = #{PARAM_ORD_TYPE}  /* 발주유형  */
+           AND A.ORD_NO         = #{PARAM_ORD_NO}
+         ORDER BY A.ORD_TYPE, A.SUPR_CUSTMR_CD, A.BCD_CD,  A.ORD_SEQ
+    </select>
+    
+    <select id="getPurExtractOrdSeq" resultType="java.lang.String" parameterType="java.util.Map">
+        /* getPurExtractOrdSeq  [ OrderRequest.xml 발주마스터 ORD_SEQ(NEXT VALUE) ] */
+        SELECT REPLICATE('0', 10 - LEN(CONVERT(NVARCHAR(10), NEXT VALUE FOR SEQ_T_PUR_ORD))) +  CONVERT(NVARCHAR(10) , NEXT VALUE FOR SEQ_T_PUR_ORD) ORD_NO
+    </select>
+
+    <select id="getPurCurrentOrdSeq" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getPurCurrentOrdSeq  [ OrderRequest.xml 발주마스터에 기존 ORD_NO구하기 ] */
+        SELECT  ORD_NO, ORD_STATE
+         FROM   T_PUR_ORD
+        WHERE   ORGN_DIV_CD =  #{ORGN_DIV_CD}
+          AND   ORGN_CD     =  #{ORGN_CD}
+          AND   ORD_NO      =  ( 
+                SELECT  MAX(ORD_NO) ORD_NO
+                  FROM  T_PUR_ORD
+                 WHERE  ORGN_DIV_CD   =     #{ORGN_DIV_CD}
+                   AND  ORGN_CD       =     #{ORGN_CD}   
+                   AND  CUSTMR_CD     =     #{SUPR_CD}   /* 협력사코드 */
+                   AND  ORD_TYPE      =     #{ORD_TYPE}  /* 발주유형(2019-11-03 착지변경 추가로 인하여) */
+                   AND  ORD_NO        LIKE  #{PARAM_ORD_NO}+'%'
+                )           
+    </select>
+
+    <insert id="insertSelectTMPtoPurOrd" parameterType="java.util.Map">
+        /* insertSelectTMPtoPurOrd  [ OrderRequest.xml 발주마스터insert( T_REQ_GOODS_TMP ->T_PUR_ORD ) ] */
+        /* ORD_CUSTMR_CD 발주 주체가 윈플러스이면  조직코드  전문점및 취급점은 거래처코드로 INSERT       */
+        INSERT  T_PUR_ORD (
+                 ORGN_DIV_CD          , ORGN_CD          , ORD_NO          , OUT_DATE
+               , RESV_DATE            , REQ_DATE         , RESP_USER       , ORD_CUSTMR_CD     , CUSTMR_CD   
+               , OUT_WARE_CD          , IN_WARE_CD
+               , MEMO                 , ORD_TYPE    
+               , ORD_STATE            , RETN_YN          , RESN_CD         , SEND_FAX_STATE    , SEND_EMAIL_STATE
+               , PRINT_STATE          , SUPR_AMT         , VAT_AMT         , TOT_AMT           , ORD_CUSTMR_TYPE
+               , SEC_ORD_YN           , CPROGRM  		 , CUSER            , CDATE
+              )
+        SELECT  #{ORGN_DIV_CD}        , #{ORGN_CD}       , #{ORD_NO}       , #{OUT_DATE}
+               ,#{RESV_DATE}          , #{REQ_DATE}      , A.RESP_USER     , #{ORD_CUSTMR_CD}  , #{SUPR_CD}
+               , B.ORGN_CD            , #{ORD_CUSTMR_CD}  
+               , NULL                 , #{ORD_TYPE}    
+               ,#{ORD_STATE}          , #{RETN_YN}       , #{RESN_CD}      , NULL              , NULL
+               , NULL                 , D.SUPR_AMT       , D.VAT_AMT       , D.TOT_AMT         , A.ORD_CUSTMR_TYPE
+               ,'N'                   , A.CPROGRM        , A.RESP_USER      , GETDATE()
+          FROM T_REQ_GOODS_TMP A
+               LEFT OUTER JOIN (
+                    SELECT CMMN_DETAIL_CD ORGN_CD, ISNULL(RM, CMMN_DETAIL_CD) CUSTMR_CD
+                      FROM COM_CMMN_CODE_DETAIL
+                     WHERE CMMN_CD='ORGN_CD'
+                       AND DIV1 IN ('CT','PM')
+                    ) B ON B.CUSTMR_CD = A.SUPR_CUSTMR_CD
+               /* 상세를 SUM하여 마스터로 update한다 */
+               LEFT OUTER JOIN (
+                    SELECT ORD_CUSTMR_CD, LEFT(ORD_NO,19) ORD_NO,
+                           SUM(SUPR_AMT) SUPR_AMT, SUM(VAT_AMT) VAT_AMT, SUM(SUPR_AMT) + SUM(VAT_AMT) TOT_AMT
+                      FROM T_PUR_ORD_GOODS
+                    WHERE  ORD_NO = #{ORD_NO}
+                     GROUP BY ORD_CUSTMR_CD, ORD_NO
+                )  D ON D.ORD_NO = A.ORD_NO
+        WHERE   A.ORD_NO   = #{PARAM_ORD_NO}
+          AND   A.ORD_SEQ  = #{ORD_SEQ}
+    </insert>
+
+    <insert id="insertSelectTMPtoPurOrdGoods" parameterType="java.util.Map">
+        /* insertSelectTMPtoPurOrdGoods  [ OrderRequest.xml 발주마스터insert( T_REQ_GOODS_TMP ->T_PUR_ORD_GOODS ) ] */
+        INSERT T_PUR_ORD_GOODS (
+                 ORD_CUSTMR_CD    , ORD_NO            , BCD_CD       , ORD_QTY       , DIMEN_NM 
+               , PUR_PRICE        , SUPR_AMT          , VAT_AMT      , TOT_AMT       , LAND_CHG_TYPE  , ORD_SEQ
+               , ORI_ORD_NO       , ORI_CUSTMER_CD    , CPROGRM  	 , CUSER         , CDATE
+              )
+        SELECT  #{ORD_CUSTMR_CD}  , #{ORD_NO}         , A.BCD_CD     , A.REQ_QTY     , A.DIMEN_NM
+               , A.GOODS_PRICE    , A.SUPR_AMT        , A.VAT_AMT    , A.TOT_AMT     , NULL           , NEXT VALUE FOR SEQ_T_REQ_GOODS_TMP
+               , A.ORI_ORD_NO     , A.ORI_CUSTMER_CD  , A.CPROGRM    , A.RESP_USER   , GETDATE()
+          FROM T_REQ_GOODS_TMP A
+                JOIN T_STD_MAST_BCD C ON C.BCD_CD = A.BCD_CD
+        WHERE   A.ORD_NO        = #{PARAM_ORD_NO}
+          AND   A.FLAG          = '1'    /* 저장 */
+          AND   A.ORD_SEQ       = #{ORD_SEQ}
+    </insert>
+
+    <update id="updatePurordAmount" parameterType="java.util.Map">
+        /* updatePurordAmount [ OrderRequest.xml 발주마스터 금액 update ] */
+         WITH OBJ AS (
+             SELECT  ORD_CUSTMR_CD,  ORD_NO,
+                     SUM(SUPR_AMT) SUPR_AMT,        /* 공급가액  */
+                     SUM(VAT_AMT)  VAT_AMT,         /* 부가세    */
+                     SUM(TOT_AMT)  TOT_AMT          /* 합계금액  */
+               FROM  T_PUR_ORD_GOODS
+              WHERE  ORD_CUSTMR_CD = #{SUPR_CD}
+                AND  ORD_NO        = #{ORD_NO}
+              GROUP  BY ORD_CUSTMR_CD, ORD_NO
+         )
+         UPDATE T_PUR_ORD  SET
+                SUPR_AMT = OBJ.SUPR_AMT
+              , VAT_AMT  = OBJ.VAT_AMT
+              , TOT_AMT  = OBJ.TOT_AMT
+         FROM   OBJ
+         WHERE  OBJ.ORD_CUSTMR_CD = T_PUR_ORD.ORD_CUSTMR_CD
+           AND  OBJ.ORD_NO        = T_PUR_ORD.ORD_NO           
+    </update>
+
+    <insert id="insertTstdMastCreditLoan" parameterType="java.util.Map">
+        /* insertTstdMastCreditLoan  [ OrderRequest.xml  발주요청서 확정/취소 여신잔액 차감후insert  ] */
+        INSERT T_STD_MAST_CREDITLOAN
+               ( LOAN_CD,           LOAN_SEQ                 , INDE_AMT	    , BAL_AMT
+                ,LOAN_AMT          ,CPROGRM                  , CUSER        , CDATE
+                ,LOAN_APPLY_TYPE   ,LOCK_FLAG
+                )
+        SELECT   A.LOAN_CD         ,A.LOAN_SEQ + 1 LOAN_SEQ  , #{INDE_AMT}  , A.BAL_AMT - #{DEAL_AMT} BAL_AMT
+               , A.LOAN_AMT        ,'OrderRequest'		     , 'USER_ID'    , GETDATE()
+               , A.LOAN_APPLY_TYPE ,LOCK_FLAG
+         FROM  T_STD_MAST_CREDITLOAN A
+               JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+        WHERE  B.OBJ_CD =
+		       ( SELECT CUSTMR_CD
+			       FROM T_STD_MAST_CUSTMR
+				   WHERE CUSTMR_CD =  #{PARAM_OBJ_CD}  AND LOAN_YN = 'Y'  /* 여신관리대상만 */
+			    )
+          AND  A.LOAN_SEQ = (
+                 SELECT MAX(A.LOAN_SEQ)
+                   FROM T_STD_MAST_CREDITLOAN A
+                        JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+                  WHERE B.OBJ_CD = #{PARAM_OBJ_CD}
+                )
+    </insert>
+
+    <select id="getCreditLoanBAL" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getCreditLoanBAL  [ OrderRequest.xml 여신관리 잔액 및 한도구하기 ] */
+		SELECT A.BAL_AMT, A.LOAN_AMT
+		 FROM  T_STD_MAST_CREDITLOAN A
+		       JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+		WHERE  B.OBJ_CD = #{PARAM_OBJ_CD}
+		  AND  A.LOAN_SEQ = (
+		         SELECT MAX(A.LOAN_SEQ)
+		           FROM T_STD_MAST_CREDITLOAN A
+		                JOIN T_STD_MAST_CREDITLOAN_DETL B ON A.LOAN_CD = B.LOAN_CD
+		          WHERE B.OBJ_CD = #{PARAM_OBJ_CD}
+		        ) 
+    </select>
+
+</mapper>

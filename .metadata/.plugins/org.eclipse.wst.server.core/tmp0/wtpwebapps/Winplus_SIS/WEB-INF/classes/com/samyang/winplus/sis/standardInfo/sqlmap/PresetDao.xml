@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.standardInfo.dao.PresetDao">
+	
+	<select id="getPresetGroupList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPresetGroupList */
+		SELECT ORGN_DIV_CD
+			, ORGN_CD
+			, ORDR
+			, PRST_NM
+			, PRST_CD
+			, RESP_USER
+			, USE_YN
+		FROM T_STD_PRESET
+		WHERE 1=1
+		<if test='ORGN_CD != "200000" and ORGN_CD != ""'>
+		AND ORGN_CD = #{ORGN_CD}
+		</if>
+		ORDER BY ORGN_CD, T_STD_PRESET.ORDR ASC
+	</select>
+	
+	<select id="getPresetDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPresetDetailList */
+		SELECT	TSPD.PRST_CD
+			, TSPD.ORGN_DIV_CD
+			, TSPD.ORGN_CD
+			, TSPD.USE_YN
+			, TSPD.CUSER
+			, CONVERT(NVARCHAR(16),TSPD.CDATE,120) AS CDATE
+			, GB.BCD_NM
+			, GB.GOODS_NO
+			, GB.BCD_CD
+			, GB.DIMEN_NM
+			, GB.SALE_PRICE
+			, EG.EVENT_GOODS_CD
+			, EG.EVENT_GOODS_PRICE
+			, EG.EVENT_APPLY_FROM
+			, EG.EVENT_APPLY_TO
+			, EG.PRICE_NO
+		FROM T_STD_PRESET_DETL AS TSPD
+		INNER JOIN (
+				SELECT * 
+				FROM (
+						SELECT TSMSP.ORGN_CD 
+							, TSMB.GOODS_NO
+							, TSMB.BCD_NM
+							, TSMB.BCD_M_CD
+							, TSMB.BCD_CD
+							, TSMB.DIMEN_NM
+							, TSMSP.SALE_PRICE
+						FROM T_STD_MAST_BCD AS TSMB
+						JOIN T_STD_MAST_SALE_PRICE AS TSMSP ON TSMB.BCD_CD = TSMSP.BCD_CD
+						WHERE TSMSP.ORGN_CD = #{ORGN_CD}
+					) AS MGMB
+				) AS GB 
+		ON TSPD.BCD_CD = GB.BCD_CD
+		LEFT OUTER JOIN ( 
+							SELECT *
+							FROM (
+									SELECT TEG.EVENT_GOODS_PRICE
+											, TEG.EVENT_GOODS_CD
+											, TEG.EVENT_APPLY_FROM
+											, TEG.EVENT_APPLY_TO
+											, ROW_NUMBER() OVER(PARTITION BY TEG.EVENT_GOODS_CD ORDER BY TEG.EVENT_GOODS_PRICE asc) AS PRICE_NO
+									FROM T_EVENT_GOODS AS TEG
+									WHERE CONVERT(NVARCHAR(8),NOW(),112) BETWEEN TEG.EVENT_APPLY_FROM AND TEG.EVENT_APPLY_TO
+							) AS EGOODS WHERE EGOODS.PRICE_NO = 1
+		) AS EG 
+		ON TSPD.BCD_CD = EG.EVENT_GOODS_CD
+		WHERE TSPD.ORGN_CD = #{ORGN_CD} AND TSPD.PRST_CD = #{PRST_CD}
+		ORDER BY TSPD.ORDR ASC	
+	</select>
+	
+	<select id="getDetailGoodsList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getDetailGoodsList */
+		SELECT		
+			TSMSP.ORGN_DIV_CD
+			, TSMSP.ORGN_CD
+			,TSMB.GOODS_NO
+			, TSMB.DIMEN_NM
+			, TSMB.BCD_CD
+			, TSMSP.SALE_PRICE
+			, TSMB.BCD_NM
+			, EVENT_PRICE.EVENT_GOODS_PRICE
+			, EVENT_PRICE.EVENT_APPLY_FROM
+			, EVENT_PRICE.EVENT_APPLY_TO
+		FROM T_STD_MAST_BCD AS TSMB
+		JOIN T_STD_MAST_SALE_PRICE AS TSMSP 
+		ON TSMB.BCD_CD = TSMSP.BCD_CD AND TSMSP.ORGN_CD = #{ORGN_CD}
+		LEFT OUTER JOIN (
+			  SELECT * FROM
+			(SELECT TEG.ORGN_CD 
+				, TEG.EVENT_GOODS_CD
+				, TEG.EVENT_GOODS_PRICE
+				, TEG.EVENT_APPLY_FROM
+				, TEG.EVENT_APPLY_TO
+				, ROW_NUMBER() OVER(PARTITION BY TEG.EVENT_GOODS_CD ORDER BY TEG.EVENT_GOODS_PRICE ASC) AS EVENT_SPRICE 
+			FROM T_EVENT_GOODS AS TEG
+			WHERE ORGN_CD = #{ORGN_CD}
+			AND CONVERT(NVARCHAR(8), NOW(), 112) BETWEEN EVENT_APPLY_FROM AND EVENT_APPLY_TO) AS A
+			WHERE A.EVENT_SPRICE = '1'
+		) AS EVENT_PRICE 
+		ON TSMB.BCD_CD = EVENT_PRICE.EVENT_GOODS_CD AND EVENT_PRICE.ORGN_CD = #{ORGN_CD}
+		WHERE TSMB.BCD_CD = #{BCD_CD}
+	</select>
+	
+	<select id="getPasteDetailGoodsList" parameterType="Map" resultType="CMap">
+		/* getPasteDetailGoodsList */
+		<if test='list.size > 0'>
+		SELECT		
+			TSMSP.ORGN_DIV_CD
+			, TSMSP.ORGN_CD
+			,TSMB.GOODS_NO
+			, TSMB.DIMEN_NM
+			, TSMB.BCD_CD
+			, TSMSP.SALE_PRICE
+			, TSMB.BCD_NM
+			, EVENT_PRICE.EVENT_GOODS_PRICE
+			, EVENT_PRICE.EVENT_APPLY_FROM
+			, EVENT_PRICE.EVENT_APPLY_TO
+		FROM T_STD_MAST_BCD AS TSMB
+		JOIN T_STD_MAST_SALE_PRICE AS TSMSP 
+		ON TSMB.BCD_CD = TSMSP.BCD_CD AND TSMSP.ORGN_CD = #{list[0].ORGN_CD}
+		LEFT OUTER JOIN (
+			  SELECT * FROM
+			(SELECT TEG.ORGN_CD 
+				, TEG.EVENT_GOODS_CD
+				, TEG.EVENT_GOODS_PRICE
+				, TEG.EVENT_APPLY_FROM
+				, TEG.EVENT_APPLY_TO
+				, ROW_NUMBER() OVER(PARTITION BY TEG.EVENT_GOODS_CD ORDER BY TEG.EVENT_GOODS_PRICE ASC) AS EVENT_SPRICE 
+			FROM T_EVENT_GOODS AS TEG
+			WHERE ORGN_CD = #{list[0].ORGN_CD}
+			AND CONVERT(NVARCHAR(8), NOW(), 112) BETWEEN EVENT_APPLY_FROM AND EVENT_APPLY_TO) AS A
+			WHERE A.EVENT_SPRICE = '1'
+		) AS EVENT_PRICE 
+		ON TSMB.BCD_CD = EVENT_PRICE.EVENT_GOODS_CD AND EVENT_PRICE.ORGN_CD = #{list[0].ORGN_CD}
+		WHERE TSMB.BCD_CD IN 
+				<foreach collection="list" item="item" open="(" separator="," close=")">
+					#{item.BCD_CD}
+				</foreach>
+		</if>
+	</select>
+	
+	<select id="getPresetinfoCheck" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPresetinfoCheck */
+		SELECT TOP 1
+		  ORDR
+		, ORGN_CD
+		, ORGN_DIV_CD
+		, PRST_CD
+		, PRST_NM
+		, RESP_USER
+		, MUSER
+		, USE_YN
+		FROM T_STD_PRESET 
+		WHERE ORGN_CD = #{ORGN_CD}
+		ORDER BY PRST_CD DESC
+	</select>
+	
+	<select id="getPresetDetailinfoCheck" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getPresetDetailinfoCheck */
+		SELECT TOP 1 
+			ORDR
+		FROM T_STD_PRESET_DETL
+		WHERE ORGN_CD = #{ORGN_CD} AND PRST_CD = #{PRST_CD}
+		ORDER BY ORDR DESC		
+	</select>
+	
+	<insert id="AddPresetMaster"  parameterType="java.util.Map">
+		/* AddPresetMaster */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD 
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+		
+		INSERT INTO T_STD_PRESET 
+			(ORGN_DIV_CD, ORGN_CD, PRST_CD, PRST_NM, ORDR, RESP_USER, USE_YN, CPROGRM, CUSER, CDATE) 
+		VALUES (@ORGN_DIV_CD, #{ORGN_CD}, #{PRST_CD}, #{PRST_NM}, #{ORDR}, #{RESP_USER}, #{USE_YN}, #{CPROGRM}, #{CUSER}, NOW())
+	</insert>
+	
+	<delete id="deletePresetMaster" parameterType="java.util.Map">
+		/* deletePresetMaster */
+		DELETE FROM T_STD_PRESET WHERE PRST_CD = #{PRST_CD}
+		
+		DELETE FROM T_STD_PRESET_DETL WHERE PRST_CD = #{PRST_CD} AND ORGN_CD = #{ORGN_CD}
+	</delete>
+	
+	<update id="updatePresetMaster" parameterType="java.util.Map">
+		/* updatePresetMaster */
+		UPDATE T_STD_PRESET 
+		SET  PRST_NM = #{PRST_NM}
+		  , USE_YN = #{USE_YN}
+		  , MUSER = #{MUSER}
+		  , MPROGRM = #{MPROGRM}
+		  , MDATE = NOW()
+		 WHERE PRST_CD = #{PRST_CD} AND ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<insert id="AddPresetDetailGoods" parameterType="java.util.Map">
+		/* AddPresetDetailGoods  */
+		INSERT INTO T_STD_PRESET_DETL
+			(ORGN_DIV_CD, ORGN_CD, PRST_CD, BCD_CD, GOODS_CD, ORDR, USE_YN, CUSER, CDATE, CPROGRM)
+		VALUES (#{ORGN_DIV_CD}, #{ORGN_CD}, #{PRST_CD}, #{BCD_CD}, #{GOODS_CD}, #{ORDR}, #{USE_YN}, #{CUSER}, NOW(), #{CPROGRM})
+	</insert>
+	
+	<delete id="deletePresetDetailGoods" parameterType="java.util.Map">
+		/* deletePresetDetailGoods */
+		DELETE FROM T_STD_PRESET_DETL 
+		WHERE PRST_CD = #{PRST_CD} AND BCD_CD = #{BCD_CD}
+	</delete>
+	
+	<update id="updatePresetDetailGoods" parameterType="java.util.Map">
+		/* updatePresetDetailGoods */
+		UPDATE T_STD_PRESET_DETL
+		SET USE_YN = #{USE_YN}
+		  , MUSER = #{MUSER}
+		  , MPROGRM = #{MPROGRM}
+		  , MDATE = NOW()
+		 WHERE BCD_CD = #{BCD_CD}
+		 	   AND PRST_CD = #{PRST_CD}
+	</update>
+	
+	<select id="getSearchMarketCD" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT ORGN_DELEGATE_CD
+		FROM COM_ORGN_INFO
+		WHERE ORGN_CD = #{ORGN_CD}
+	</select>
+</mapper>

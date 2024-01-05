@@ -1,0 +1,918 @@
+package com.samyang.winplus.sis.market.controller;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.samyang.winplus.common.system.base.controller.BaseController;
+import com.samyang.winplus.common.system.model.EmpSessionDto;
+import com.samyang.winplus.sis.market.service.MarketSevice;
+
+@RestController
+@RequestMapping("/sis/market")
+public class MarketController extends BaseController{
+	
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
+	private final String DEFAULT_PATH = getDefaultPath(getClass());
+	
+	@Autowired
+	private MarketSevice marketSevice;
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @param mav
+	 * @return mav
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 승인요청내역 페이지 리턴
+	 */
+	@RequestMapping(value="paymentApproval.sis", method=RequestMethod.POST)
+	public ModelAndView paymentApproval(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+		mav.setViewName(DEFAULT_PATH + "paymentApproval");
+		return mav;
+	}
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @return Map<String,Object>
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 결제승인내역 조회
+	 */
+	@ResponseBody
+	@RequestMapping(value="getPaymentApprovalHistory.do", method=RequestMethod.POST)
+	public Map<String,Object> getPaymentApprovalHistory(HttpServletRequest request, @RequestBody Map<String, String> paramMap) throws SQLException, Exception {
+		Map<String,Object> resultMap = new HashMap<String,Object>();
+		resultMap.put("gridDataList", marketSevice.getPaymentApprovalHistory(paramMap));
+		return resultMap;
+	}
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @param mav
+	 * @return mav
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 카드매입사별통계 페이지 리턴
+	 */
+	@RequestMapping(value="statisticsByCardAcquirer.sis", method=RequestMethod.POST)
+	public ModelAndView statisticsByCardAcquirer(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+		mav.setViewName(DEFAULT_PATH + "statisticsByCardAcquirer");
+		return mav;
+	}
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @return Map<String,Object>
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 카드매입사별통계리스트 조회
+	 */
+	@ResponseBody
+	@RequestMapping(value="getStatisticsByCardAcquirerList.do", method=RequestMethod.POST)
+	public Map<String,Object> getStatisticsByCardAcquirerList(HttpServletRequest request, @RequestBody Map<String, String> paramMap) throws SQLException, Exception {
+		Map<String,Object> resultMap = new HashMap<String,Object>();
+		resultMap.put("gridDataList", marketSevice.getStatisticsByCardAcquirerList(paramMap));
+		return resultMap;
+	}
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @param mav
+	 * @return mav
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 점간이동입력 페이지 리턴
+	 */
+	@RequestMapping(value="addMoveBetweenMarkets.sis", method=RequestMethod.POST)
+	public ModelAndView addMoveBetweenMarkets(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+		mav.setViewName(DEFAULT_PATH + "addMoveBetweenMarkets");
+		return mav;
+	}
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @param mav
+	 * @return
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 점간이동 조회 페이지 리턴
+	 */
+	@RequestMapping(value="searchMoveBetweenMarkets.sis", method=RequestMethod.POST)
+	public ModelAndView searchMoveBetweenMarkets(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+		mav.setViewName(DEFAULT_PATH + "searchMoveBetweenMarkets");
+		return mav;
+	}
+	
+	/**
+	 * @author 조승현
+	 * @param request
+	 * @param paramMap
+	 * @return 
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 점간이동 데이터 조회
+	 */
+	@ResponseBody
+	@RequestMapping(value="getMoveBetweenMarkets.do", method=RequestMethod.POST)
+	public Map<String,Object> getMoveBetweenMarkets(HttpServletRequest request, @RequestBody Map<String, String> paramMap) throws SQLException, Exception {
+		Map<String,Object> resultMap = new HashMap<String,Object>();
+		resultMap.put("gridDataList", marketSevice.getMoveBetweenMarkets(paramMap));
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매관리
+	  * @author 최지민
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="bargainManagement.sis", method=RequestMethod.POST)
+	public ModelAndView bargainManagement(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "bargainManagement");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매관리 - 특매그룹 조회(Head)
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getBargainManagementList.do", method=RequestMethod.POST)
+	public Map<String, Object> getBargainManagementList(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		String SEARCH_FROM_DATE = request.getParameter("SEARCH_FROM_DATE");
+		String SEARCH_TYPE = request.getParameter("SEARCH_TYPE");
+		String USE_YN = request.getParameter("USE_YN");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		
+		paramMap.put("SEARCH_FROM_DATE", SEARCH_FROM_DATE);
+		paramMap.put("SEARCH_TYPE", SEARCH_TYPE);
+		paramMap.put("USE_YN", USE_YN);
+		paramMap.put("ORGN_CD",ORGN_CD);
+		
+		try {
+			List<Map<String, Object>> gridDataList = marketSevice.getBargainManagementList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매관리 - 특매그룹 조회(Detail)
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getBargainManagementSubList.do", method=RequestMethod.POST)
+	public Map<String, Object> getBargainManagementSubList(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		String EVENT_CD = request.getParameter("EVENT_CD");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		String ORGN_DIV_CD = request.getParameter("ORGN_DIV_CD");
+		String EVENT_GOODS_STATE = request.getParameter("EVENT_GOODS_STATE");
+		String ORGN_APPLY_YN = request.getParameter("ORGN_APPLY_YN");
+		
+		paramMap.put("EVENT_CD", EVENT_CD);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		paramMap.put("ORGN_DIV_CD", ORGN_DIV_CD);
+		paramMap.put("EVENT_GOODS_STATE", EVENT_GOODS_STATE);
+		paramMap.put("ORGN_APPLY_YN", ORGN_APPLY_YN);
+		
+		try {
+			List<Map<String, Object>> gridDataList = marketSevice.getBargainManagementSubList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매관리 - 특매그룹 저장(Head)
+	  * @author 최지민
+	  * @param request
+	  * @return Map<String, Object>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="saveBargainManagementList.do", method=RequestMethod.POST)
+	public Map<String, Object> saveBargainManagementList(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> dhtmlxParamMapList = commonUtil.getDhtmlXParamMapList(request);
+		Map<String, Object> detailInfoParam = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String ORGN_DIV_CD = empSessionDto.getOrgn_div_cd();
+		String ORGN_CD = empSessionDto.getOrgn_cd();
+		String CUSER = empSessionDto.getEmp_no();
+		String MUSER = empSessionDto.getEmp_no();
+		String CPROGRM="saveBargainManagementList";
+		String MPROGRM = "saveBargainManagementList";
+		String EVENT_CD = "";
+		String EVENT_NM = "";
+		String EVENT_STRT_DATE = "";
+		String EVENT_END_DATE ="";
+		String EVENT_TYPE="";
+		String USE_YN="";
+		String MEMO="";
+		String EVENT_EVAL="";
+		
+		Map<String, Object> LastBargainManagementInfo = new HashMap<String, Object>();
+		
+		int insertResult = 0;
+		int deleteResult = 0;
+		int updateResult = 0;
+		
+		for(int i = 0 ; i < dhtmlxParamMapList.size(); i++) {
+			ORGN_CD = dhtmlxParamMapList.get(i).get("ORGN_CD").toString();
+			EVENT_NM = dhtmlxParamMapList.get(i).get("EVENT_NM").toString();
+			EVENT_STRT_DATE = dhtmlxParamMapList.get(i).get("EVENT_STRT_DATE").toString();
+			EVENT_END_DATE = dhtmlxParamMapList.get(i).get("EVENT_END_DATE").toString();
+			EVENT_TYPE = dhtmlxParamMapList.get(i).get("EVENT_TYPE").toString();
+			USE_YN = dhtmlxParamMapList.get(i).get("USE_YN").toString();
+			
+			paramMap.put("ORGN_CD", ORGN_CD);
+			paramMap.put("ORGN_DIV_CD", ORGN_DIV_CD);
+			paramMap.put("EVENT_NM", EVENT_NM);
+			paramMap.put("EVENT_STRT_DATE", EVENT_STRT_DATE);
+			paramMap.put("EVENT_END_DATE", EVENT_END_DATE);
+			paramMap.put("EVENT_TYPE", EVENT_TYPE);
+			paramMap.put("USE_YN", USE_YN);
+			paramMap.put("MEMO", MEMO);
+			paramMap.put("EVENT_EVAL", EVENT_EVAL);
+			paramMap.put("CUSER", CUSER);
+			paramMap.put("CPROGRM", CPROGRM);
+			
+			if(dhtmlxParamMapList.get(i).get("CRUD").equals("C")){
+				detailInfoParam.put("ORGN_DIV_CD", ORGN_DIV_CD);
+				detailInfoParam.put("ORGN_CD", ORGN_CD);
+				
+				LastBargainManagementInfo = marketSevice.getBargainManagementInfoCheck(detailInfoParam);
+				if(LastBargainManagementInfo == null) {
+					EVENT_CD = "0000000001";
+				} else {
+					EVENT_CD = LastBargainManagementInfo.get("EVENT_CD").toString();
+				}
+				paramMap.put("EVENT_CD", EVENT_CD);
+				insertResult = marketSevice.addBargainManagementGoods(paramMap);
+			
+			} else if (dhtmlxParamMapList.get(i).get("CRUD").equals("D")) {
+				EVENT_CD = (dhtmlxParamMapList.get(i).get("EVENT_CD")).toString();
+				paramMap.put("EVENT_CD", EVENT_CD);
+					
+				deleteResult = marketSevice.deleteBargainManagementGoods(paramMap);
+					
+			} else if (dhtmlxParamMapList.get(i).get("CRUD").equals("U")) {
+				EVENT_CD = dhtmlxParamMapList.get(i).get("EVENT_CD").toString();
+				USE_YN = dhtmlxParamMapList.get(i).get("USE_YN").toString();
+				
+				paramMap.put("EVENT_CD", EVENT_CD);
+				paramMap.put("USE_YN", USE_YN);
+				paramMap.put("MUSER", MUSER);
+				paramMap.put("MPROGRM", MPROGRM);
+				
+				updateResult = marketSevice.updateBargainManagementGoods(paramMap);
+			}
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매관리 - 특매상품 저장(Detail)
+	  * @author 최지민
+	  * @param request
+	  * @return Map<String, Object>
+	  * @throws SQLException
+	  * @throws Exception
+	  */	
+	@RequestMapping(value = "saveBargainSubList.do", method = RequestMethod.POST)
+	public Map<String, Object> saveBargainSubList(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String CUSER = empSessionDto.getEmp_no();
+		String ORGN_APPLY_YN ="";
+		int resultRowCnt = 0;
+		
+		List<Map<String, Object>> dhtmlxParamMapList = commonUtil.getDhtmlXParamMapList(request);
+		ORGN_APPLY_YN = dhtmlxParamMapList.get(0).get("ORGN_APPLY_YN").toString();
+		if(ORGN_APPLY_YN.equals("true")) {
+			ORGN_APPLY_YN ="Y";
+		}else {
+			ORGN_APPLY_YN="N";
+		}
+		
+		for(Map<String, Object> dhtmlxParamMap : dhtmlxParamMapList){
+			dhtmlxParamMap.put("CUSER", CUSER);
+			dhtmlxParamMap.put("ORGN_APPLY_YN", ORGN_APPLY_YN);
+		}
+		int resultTempCnt  = marketSevice.bargainSubList(dhtmlxParamMapList);
+		
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		paramMap.put("EVENT_CD",  dhtmlxParamMapList.get(0).get("EVENT_CD").toString());
+		paramMap.put("CUSER", CUSER);
+		paramMap.put("ORGN_APPLY_YN", ORGN_APPLY_YN);
+		paramMap.put("ORGN_DIV_CD", dhtmlxParamMapList.get(0).get("ORGN_DIV_CD").toString());
+		paramMap.put("ORGN_CD",  dhtmlxParamMapList.get(0).get("ORGN_CD").toString());
+		resultRowCnt = marketSevice.saveBargainSubList(paramMap);
+		resultMap.put("resultRowCnt", resultRowCnt);
+		
+		return resultMap;
+	}
+	
+	/** 
+	  * 점포업무관리 - 특매관리 - 특매상품 업로드한 엑셀 상품 가져오기(Detail)
+	  * @author 최지민
+	  * @param request
+	  * @return Map<String,Object>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@ResponseBody
+	@RequestMapping(value="getBargainGoodsInfo.do", method=RequestMethod.POST)
+	public Map<String,Object> bargainManagement(HttpServletRequest request, @RequestBody Map<String, Object> paramMap) throws SQLException, Exception {
+		Map<String,Object> resultMap = new HashMap<String,Object>();
+		resultMap.put("gridDataList", marketSevice.getBargainGoodsInfo(paramMap));
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매상품검색
+	  * @author 최지민
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="bargainGoodsSearch.sis", method=RequestMethod.POST)
+	public ModelAndView bargainGoodsSearch(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "bargainGoodsSearch");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매상품검색
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getBargainGoodsSearch.do", method=RequestMethod.POST)
+	public Map<String, Object> getBargainGoodsSearch(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		Map<String, Object> categoryMap = new HashMap<String, Object>();
+		
+		String SEARCH_DATE_FROM = request.getParameter("SEARCH_DATE_FROM");
+		String SEARCH_DATE_TO = request.getParameter("SEARCH_DATE_TO");
+		String KEY_WORD = request.getParameter("KEY_WORD");
+		String CUSTMR_CD = request.getParameter("CUSTMR_CD");
+		String GRUP_CD = request.getParameter("GRUP_CD");
+		String EVENT_TYPE = request.getParameter("EVENT_TYPE");
+		String EVENT_GOODS_STATE = request.getParameter("EVENT_GOODS_STATE");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		String GRUP_TOP_CD = "";
+		String GRUP_MID_CD = "";
+		String GRUP_BOT_CD = "";
+		
+		paramMap.put("SEARCH_DATE_FROM", SEARCH_DATE_FROM);
+		paramMap.put("SEARCH_DATE_TO", SEARCH_DATE_TO);
+		paramMap.put("KEY_WORD", KEY_WORD);
+		paramMap.put("CUSTMR_CD", CUSTMR_CD);
+		paramMap.put("GRUP_CD", GRUP_CD);
+		paramMap.put("EVENT_TYPE", EVENT_TYPE);
+		paramMap.put("EVENT_GOODS_STATE", EVENT_GOODS_STATE);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		
+		categoryMap = marketSevice.getBargainGoodsSearchTMB(paramMap);
+		if(categoryMap != null) {
+			GRUP_TOP_CD = categoryMap.get("GRUP_TOP_CD").toString();
+			GRUP_MID_CD = categoryMap.get("GRUP_MID_CD").toString();
+			GRUP_BOT_CD = categoryMap.get("GRUP_BOT_CD").toString();
+		}
+		else {
+			GRUP_TOP_CD = "ALL";
+			GRUP_MID_CD = "0";
+			GRUP_BOT_CD = "0";
+		}
+		
+		paramMap.put("GRUP_TOP_CD", GRUP_TOP_CD);
+		paramMap.put("GRUP_MID_CD", GRUP_MID_CD);
+		paramMap.put("GRUP_BOT_CD", GRUP_BOT_CD);
+		
+		List<Map<String, Object>> getBargainGoodsSearch = new ArrayList<Map<String, Object>>();
+		
+		try {
+			getBargainGoodsSearch = marketSevice.getBargainGoodsSearch(paramMap);
+			resultMap.put("gridDataList", getBargainGoodsSearch);
+		} catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		} catch (Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매판매내역
+	  * @author 최지민
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="bargainSalesHistory.sis", method=RequestMethod.POST)
+	public ModelAndView bargainSalesHistory(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "bargainSalesHistory");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매판매내역
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getBargainSalesHistory.do", method=RequestMethod.POST)
+	public Map<String, Object> getBargainSalesHistory(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		Map<String, Object> categoryMap = new HashMap<String, Object>();
+		
+		String SEARCH_DATE_FROM = request.getParameter("SEARCH_DATE_FROM");
+		String SEARCH_DATE_TO = request.getParameter("SEARCH_DATE_TO");
+		String CUSTMR_CD = request.getParameter("CUSTMR_CD");
+		String GRUP_CD = request.getParameter("GRUP_CD");
+		String EVENT_NM = request.getParameter("EVENT_NM");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		String GRUP_TOP_CD = "";
+		String GRUP_MID_CD = "";
+		String GRUP_BOT_CD = "";
+		
+		paramMap.put("SEARCH_DATE_FROM", SEARCH_DATE_FROM);
+		paramMap.put("SEARCH_DATE_TO", SEARCH_DATE_TO);
+		paramMap.put("CUSTMR_CD", CUSTMR_CD);
+		paramMap.put("GRUP_CD", GRUP_CD);
+		paramMap.put("EVENT_NM", EVENT_NM);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		
+		categoryMap = marketSevice.getBargainSalesHistoryTMB(paramMap);
+		if(categoryMap != null) {
+			GRUP_TOP_CD = categoryMap.get("GRUP_TOP_CD").toString();
+			GRUP_MID_CD = categoryMap.get("GRUP_MID_CD").toString();
+			GRUP_BOT_CD = categoryMap.get("GRUP_BOT_CD").toString();
+		}
+		else {
+			GRUP_TOP_CD = "ALL";
+			GRUP_MID_CD = "0";
+			GRUP_BOT_CD = "0";
+		}
+		
+		paramMap.put("GRUP_TOP_CD", GRUP_TOP_CD);
+		paramMap.put("GRUP_MID_CD", GRUP_MID_CD);
+		paramMap.put("GRUP_BOT_CD", GRUP_BOT_CD);
+		
+		List<Map<String, Object>> getBargainSalesHistory = new ArrayList<Map<String, Object>>();
+		
+		try {
+			getBargainSalesHistory = marketSevice.getBargainSalesHistory(paramMap);
+			resultMap.put("gridDataList", getBargainSalesHistory);
+		} catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		} catch (Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매변경이력
+	  * @author 최지민
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="bargainChangeHistory.sis", method=RequestMethod.POST)
+	public ModelAndView bargainChangeHistory(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "bargainChangeHistory");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 특매변경이력
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getBargainChangeHistory.do", method=RequestMethod.POST)
+	public Map<String, Object> getBargainChangeHistory(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		Map<String, Object> categoryMap = new HashMap<String, Object>();
+		
+		String SEARCH_DATE_FROM = request.getParameter("SEARCH_DATE_FROM");
+		String SEARCH_DATE_TO = request.getParameter("SEARCH_DATE_TO");
+		String CUSTMR_CD = request.getParameter("CUSTMR_CD");
+		String KEY_WORD = request.getParameter("KEY_WORD");
+		String BCD_CD = request.getParameter("BCD_CD");
+		String EVENT_TYPE = request.getParameter("EVENT_TYPE");
+		String MODI_TYPE = request.getParameter("MODI_TYPE");
+		String GOODS_STATE = request.getParameter("GOODS_STATE");
+		String GRUP_CD = request.getParameter("GRUP_CD");
+		String EVENT_NM = request.getParameter("EVENT_NM");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		String GRUP_TOP_CD = "";
+		String GRUP_MID_CD = "";
+		String GRUP_BOT_CD = "";
+		
+		paramMap.put("SEARCH_DATE_FROM", SEARCH_DATE_FROM);
+		paramMap.put("SEARCH_DATE_TO", SEARCH_DATE_TO);
+		paramMap.put("CUSTMR_CD", CUSTMR_CD);
+		paramMap.put("GRUP_CD", GRUP_CD);
+		paramMap.put("KEY_WORD", KEY_WORD);
+		paramMap.put("BCD_CD",BCD_CD);
+		paramMap.put("EVENT_TYPE", EVENT_TYPE);
+		paramMap.put("MODI_TYPE", MODI_TYPE);
+		paramMap.put("GOODS_STATE", GOODS_STATE);
+		paramMap.put("EVENT_NM", EVENT_NM);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		
+		categoryMap = marketSevice.getBargainChangeHistoryTMB(paramMap);
+		if(categoryMap != null) {
+			GRUP_TOP_CD = categoryMap.get("GRUP_TOP_CD").toString();
+			GRUP_MID_CD = categoryMap.get("GRUP_MID_CD").toString();
+			GRUP_BOT_CD = categoryMap.get("GRUP_BOT_CD").toString();
+		}
+		else {
+			GRUP_TOP_CD = "ALL";
+			GRUP_MID_CD = "0";
+			GRUP_BOT_CD = "0";
+		}
+		
+		paramMap.put("GRUP_TOP_CD", GRUP_TOP_CD);
+		paramMap.put("GRUP_MID_CD", GRUP_MID_CD);
+		paramMap.put("GRUP_BOT_CD", GRUP_BOT_CD);
+		
+		List<Map<String, Object>> getBargainChangeHistory = new ArrayList<Map<String, Object>>();
+		
+		try {
+			getBargainChangeHistory = marketSevice.getBargainChangeHistory(paramMap);
+			resultMap.put("gridDataList", getBargainChangeHistory);
+		} catch(SQLException e) {
+			resultMap = commonUtil.getErrorMap(e);
+		} catch (Exception e) {
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 이종상품묶음할인
+	  * @author 최지민
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="doubleManagement.sis", method=RequestMethod.POST)
+	public ModelAndView doubleManagement(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "doubleManagement");
+		return mav;
+	}
+	
+	/**
+	  * 점포업무관리 - 이종상품묶음할인 Head 조회
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getDoubleMainList.do", method=RequestMethod.POST)
+	public Map<String, Object> getDoubleMainList(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		String SEARCH_FROM_DATE = request.getParameter("SEARCH_FROM_DATE");
+		String USE_YN = request.getParameter("USE_YN");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		
+		paramMap.put("SEARCH_FROM_DATE", SEARCH_FROM_DATE);
+		paramMap.put("USE_YN", USE_YN);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		
+		try {
+			List<Map<String, Object>> gridDataList = marketSevice.getDoubleMainList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 이종상품묶음할인 Detail 조회
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="getDoubleSubList.do", method=RequestMethod.POST)
+	public Map<String, Object> getDoubleSubList(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		String BUDL_CD = request.getParameter("BUDL_CD");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		
+		paramMap.put("BUDL_CD", BUDL_CD);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		
+		try {
+			List<Map<String, Object>> gridDataList = marketSevice.getDoubleSubList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 이종상품묶음할인 Head 저장
+	  * @author 최지민
+	  * @param request
+	  * @return Map<String, Object>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="saveDoubleList.do", method=RequestMethod.POST)
+	public Map<String, Object> saveDoubleList(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> dhtmlxParamMapList = commonUtil.getDhtmlXParamMapList(request);
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		Map<String, Object> LastBargainManagementInfo = new HashMap<String, Object>();
+		Map<String, Object> infoParam = new HashMap<String, Object>();
+		
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String CUSER = empSessionDto.getEmp_no();
+		String MUSER = empSessionDto.getEmp_no();
+		String CPROGRM = "saveDoubleList";
+		String MPROGRM = "saveDoubleList";
+		String BUDL_CD = "";
+		String ORGN_CD ="";
+		String MEMO ="";
+		
+		int insertResult = 0;
+		int deleteResult = 0;
+		int updateResult = 0;
+		
+		for(int i = 0 ; i < dhtmlxParamMapList.size() ; i++) {
+			paramMap = dhtmlxParamMapList.get(i);
+			ORGN_CD = dhtmlxParamMapList.get(i).get("ORGN_CD").toString();
+			MEMO = dhtmlxParamMapList.get(i).get("MEMO").toString();
+			if(paramMap.get("CRUD").equals("C")) {
+				infoParam.put("ORGN_CD", ORGN_CD);
+				LastBargainManagementInfo = marketSevice.getInfoCheck(infoParam);
+				
+				if(LastBargainManagementInfo == null) {
+					BUDL_CD = "1";
+				} else {
+					BUDL_CD = LastBargainManagementInfo.get("BUDL_CD").toString();
+				}
+				if(MEMO.equals(null)) {
+					MEMO = "";
+				}
+				paramMap.put("CPROGRM", CPROGRM);
+				paramMap.put("CUSER", CUSER);
+				paramMap.put("BUDL_CD", BUDL_CD);
+				paramMap.put("MEMO", MEMO);
+				insertResult = marketSevice.saveAddDoubleList(paramMap);
+				
+			}else if(paramMap.get("CRUD").equals("D")) {
+				deleteResult = marketSevice.saveDeleteDoubleList(paramMap);
+				
+			}else if(paramMap.get("CRUD").equals("U")) {
+				paramMap.put("MPROGRM", MPROGRM);
+				paramMap.put("MUSER", MUSER);
+				
+				updateResult = marketSevice.saveUpdateDoubleList(paramMap);
+			}
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 이종상품묶음할인 Detail 상품추가
+	  * @author 최지민
+	  * @param request
+	  * @return List<Map<String, Object>>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="addDoubleSubList.do", method=RequestMethod.POST)
+	public Map<String, Object> addDoubleSubList(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		
+		String BCD_CD = request.getParameter("BCD_CD");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		
+		paramMap.put("BCD_CD", BCD_CD);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		
+		try {
+			List<Map<String, Object>> gridDataList = marketSevice.addDoubleSubList(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		}catch(SQLException e){
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}catch(Exception e) {
+			logger.error(e.toString());
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 이종상품묶음할인 Detail 저장
+	  * @author 최지민
+	  * @param request
+	  * @return Map<String, Object>
+	  * @throws SQLException
+	  * @throws Exception
+	  */
+	@RequestMapping(value="saveDoubleSubList.do", method=RequestMethod.POST)
+	public Map<String, Object> saveDoubleSubList(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		List<Map<String, Object>> dhtmlxParamMapList = commonUtil.getDhtmlXParamMapList(request);
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		//logger.debug("dhtmlxParamMapList >>" + dhtmlxParamMapList);
+		
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String CUSER = empSessionDto.getEmp_no();
+		String MUSER = empSessionDto.getEmp_no();
+		String CPROGRM = "saveDoubleList";
+		String MPROGRM = "saveDoubleList";
+		
+		int insertResult = 0;
+		int deleteResult = 0;
+		int updateResult = 0;
+		
+		for(int i = 0 ; i < dhtmlxParamMapList.size() ; i++) {
+			paramMap = dhtmlxParamMapList.get(i);
+			if(paramMap.get("CRUD").equals("C")) {
+				paramMap.put("CPROGRM", CPROGRM);
+				paramMap.put("CUSER", CUSER);
+				
+				insertResult = marketSevice.saveAddDoubleSubList(paramMap);
+			}else if(paramMap.get("CRUD").equals("D")) {
+				deleteResult = marketSevice.saveDeleteDoubleSubList(paramMap);
+			}else if(paramMap.get("CRUD").equals("U")) {
+				paramMap.put("MPROGRM", MPROGRM);
+				paramMap.put("MUSER", MUSER);
+				
+				updateResult = marketSevice.saveUpdateDoubleSubList(paramMap);
+			}
+		}
+		return resultMap;
+	}
+	
+	/**
+	  * 점포업무관리 - 이종상품묶음판매내역
+	  * @author 최지민
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="doubleSalesHistory.sis", method=RequestMethod.POST)
+	public ModelAndView doubleSalesHistory(HttpServletRequest request){
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "doubleSalesHistory");
+		return mav;
+	}
+	
+	/**
+	 * 점포업무관리 - 이종상품묶음판매내역 -조회
+	 * @author 최지민
+	 * @param request
+	 * @return List<Map<String, Object>>
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@RequestMapping(value="getDoubleSalesHistory.do", method=RequestMethod.POST)
+	public Map<String, Object> getDoubleSalesHistory(HttpServletRequest request) throws SQLException, Exception{
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		Map<String, Object> paramMap = new HashMap<String, Object>();
+		Map<String, Object> categoryMap = new HashMap<String, Object>();
+		
+		String SEARCH_DATE_FROM = request.getParameter("SEARCH_DATE_FROM");
+		String SEARCH_DATE_TO = request.getParameter("SEARCH_DATE_TO");
+		String CUSTMR_CD = request.getParameter("CUSTMR_CD");
+		String GRUP_CD = request.getParameter("GRUP_CD");
+		String BUDL_NM = request.getParameter("BUDL_NM");
+		String ORGN_CD = request.getParameter("ORGN_CD");
+		String GRUP_TOP_CD = "";
+		String GRUP_MID_CD = "";
+		String GRUP_BOT_CD = "";
+		
+		paramMap.put("SEARCH_DATE_FROM", SEARCH_DATE_FROM);
+		paramMap.put("SEARCH_DATE_TO", SEARCH_DATE_TO);
+		paramMap.put("CUSTMR_CD", CUSTMR_CD);
+		paramMap.put("GRUP_CD", GRUP_CD);
+		paramMap.put("BUDL_NM", BUDL_NM);
+		paramMap.put("ORGN_CD", ORGN_CD);
+		
+		categoryMap = marketSevice.getDoubleSalesHistoryTMB(paramMap);
+		if(categoryMap != null) {
+			GRUP_TOP_CD = categoryMap.get("GRUP_TOP_CD").toString();
+			GRUP_MID_CD = categoryMap.get("GRUP_MID_CD").toString();
+			GRUP_BOT_CD = categoryMap.get("GRUP_BOT_CD").toString();
+		}
+		else {
+			GRUP_TOP_CD = "ALL";
+			GRUP_MID_CD = "0";
+			GRUP_BOT_CD = "0";
+		}
+		
+		paramMap.put("GRUP_TOP_CD", GRUP_TOP_CD);
+		paramMap.put("GRUP_MID_CD", GRUP_MID_CD);
+		paramMap.put("GRUP_BOT_CD", GRUP_BOT_CD);
+		
+		try{
+			List<Map<String, Object>> gridDataList = marketSevice.getDoubleSalesHistory(paramMap);
+			resultMap.put("gridDataList", gridDataList);
+		} catch(SQLException e){
+			resultMap = commonUtil.getErrorMap(e);
+		} catch(Exception e){
+			resultMap = commonUtil.getErrorMap(e);
+		}
+		
+		return resultMap;
+	}	
+}

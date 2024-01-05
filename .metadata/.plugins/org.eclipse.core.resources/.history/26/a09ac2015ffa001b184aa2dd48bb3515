@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.common.system.authority.dao.SystemAuthorityDao">
+	<select id="getAuthorList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getAuthorList */
+		SELECT A.AUTHOR_CD
+			, A.AUTHOR_NM
+			, A.AUTHOR_DESC
+			, DATE_FORMAT(A.BEGIN_DATE, '%Y-%m-%d %T') AS BEGIN_DATE_TEXT
+			, DATE_FORMAT(A.END_DATE  , '%Y-%m-%d %T') AS END_DATE_TEXT
+			, A.BEGIN_DATE
+			, A.END_DATE
+			, A.USE_YN
+			, A.REG_PROGRM
+			, A.UPD_ID
+			, DATE_FORMAT(A.REG_DT  , '%Y-%m-%d %T') AS REG_DT
+			, A.REG_ID
+			, A.UPD_PROGRM
+			, A.UPD_ID
+			, DATE_FORMAT(A.UPD_DT  , '%Y-%m-%d %T') AS UPD_DT
+		FROM COM_AUTHOR A
+		WHERE (A.AUTHOR_CD LIKE CONCAT('%',#{AUTHOR_CD},'%') OR A.AUTHOR_NM LIKE CONCAT('%',#{AUTHOR_CD},'%'))
+		AND USE_YN LIKE CONCAT(#{USE_YN},'%')
+		ORDER BY A.AUTHOR_CD
+	</select>
+	
+	<insert id="insertAuthor" parameterType="java.util.Map">
+		/* insertAuthor */
+		INSERT INTO COM_AUTHOR (
+			  AUTHOR_CD
+			, AUTHOR_NM
+			, AUTHOR_DESC
+			, BEGIN_DATE
+			, END_DATE
+			, USE_YN
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			  #{AUTHOR_CD}
+			, #{AUTHOR_NM}
+			, #{AUTHOR_DESC}
+			, #{BEGIN_DATE}
+			, #{END_DATE}
+			, #{USE_YN}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()
+		)
+	</insert>
+	
+	<update id="updateAuthor" parameterType="java.util.Map">
+		/* updateAuthor */
+		UPDATE COM_AUTHOR
+			SET   AUTHOR_NM 	= #{AUTHOR_NM}
+				, AUTHOR_DESC	= #{AUTHOR_DESC}
+				, BEGIN_DATE 	= #{BEGIN_DATE}
+				, END_DATE 		= #{END_DATE}
+				, USE_YN 		= #{USE_YN}
+				, UPD_PROGRM 	= #{REG_PROGRM}
+				, UPD_ID		= #{REG_ID} 
+				, UPD_DT		= NOW()
+		WHERE 	AUTHOR_CD		= #{AUTHOR_CD}
+	</update>
+	
+	<delete id="deleteAuthor" parameterType="java.util.Map">
+		/* deleteAuthor */
+		DELETE FROM COM_AUTHOR WHERE AUTHOR_CD=#{AUTHOR_CD}
+	</delete>		
+	
+	<select id="getAuthorByMenuList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getAuthorByMenuList */
+		SELECT #{AUTHOR_CD} AS AUTHOR_CD 
+			, A.MENU_CD
+			, A.MENU_NM
+			, A.UPPER_MENU_CD
+			, A.MENU_STEP
+			, A.USE_YN AS MENU_USE_YN
+			, A.FOLDER_YN
+			, (CASE WHEN B.USE_YN='Y' THEN '1' ELSE '0' END) AS USE_YN
+			, (CASE WHEN B.STRE_YN='Y' THEN '1' ELSE '0' END) AS STRE_YN
+			, (CASE WHEN B.ADIT_YN='Y' THEN '1' ELSE '0' END) AS ADIT_YN
+			, (CASE WHEN B.DELETE_YN='Y' THEN '1' ELSE '0' END) AS DELETE_YN
+			, (CASE WHEN B.EXCEL_YN='Y' THEN '1' ELSE '0' END) AS EXCEL_YN
+			, (CASE WHEN B.PRINT_YN='Y' THEN '1' ELSE '0' END) AS PRINT_YN
+			, B.REG_PROGRM	
+			, B.REG_ID
+			, DATE_FORMAT(B.REG_DT  , '%Y-%m-%d %T') AS REG_DT
+			, B.UPD_PROGRM	
+			, B.UPD_ID
+			, DATE_FORMAT(B.UPD_DT  , '%Y-%m-%d %T') AS UPD_DT
+		FROM COM_MENU A
+		LEFT JOIN COM_AUTHOR_BY_MENU B
+		ON A.MENU_CD=B.MENU_CD
+		AND B.AUTHOR_CD=#{AUTHOR_CD}
+		ORDER BY MENU_STEP, MENU_ORDR, MENU_NM
+	</select>
+		
+	<update id="saveAuthorByMenu" parameterType="java.util.Map">		
+		/* saveAuthorByMenu */
+			INSERT INTO COM_AUTHOR_BY_MENU (
+				AUTHOR_CD
+				, MENU_CD
+				, USE_YN
+				, STRE_YN
+				, ADIT_YN
+				, DELETE_YN
+				, EXCEL_YN
+				, PRINT_YN
+				, REG_PROGRM
+				, REG_ID
+				, REG_DT
+			) VALUES (
+				  #{AUTHOR_CD}
+				, #{MENU_CD}
+				, CASE WHEN #{USE_YN} = '1' THEN 'Y' ELSE 'N' END
+				, CASE WHEN #{STRE_YN} = '1' THEN 'Y' ELSE 'N' END
+				, CASE WHEN #{ADIT_YN} = '1' THEN 'Y' ELSE 'N' END
+				, CASE WHEN #{DELETE_YN} = '1' THEN 'Y' ELSE 'N' END
+				, CASE WHEN #{EXCEL_YN} = '1' THEN 'Y' ELSE 'N' END
+				, CASE WHEN #{PRINT_YN} = '1' THEN 'Y' ELSE 'N' END
+				, #{REG_PROGRM}
+				, #{REG_ID}
+				, NOW()
+			)
+​		    ON DUPLICATE KEY
+			UPDATE USE_YN	    = CASE WHEN #{USE_YN} = '1' THEN 'Y' ELSE 'N' END    
+				 , STRE_YN		= CASE WHEN #{STRE_YN} = '1' THEN 'Y' ELSE 'N' END   
+				 , ADIT_YN		= CASE WHEN #{ADIT_YN} = '1' THEN 'Y' ELSE 'N' END   
+				 , DELETE_YN	= CASE WHEN #{DELETE_YN} = '1' THEN 'Y' ELSE 'N' END 
+				 , EXCEL_YN		= CASE WHEN #{EXCEL_YN} = '1' THEN 'Y' ELSE 'N' END  
+				 , PRINT_YN		= CASE WHEN #{PRINT_YN} = '1' THEN 'Y' ELSE 'N' END  
+				 , UPD_PROGRM	= #{REG_PROGRM}
+				 , UPD_ID		= #{REG_ID}    
+				 , UPD_DT		= NOW();
+	</update>
+		
+	<select id="getAuthorByEmpList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getAuthorByEmpList */
+		SELECT A.AUTHOR_CD
+			, B.USER_CD
+			, C.EMP_NM AS USER_NM
+			, D.ORGN_DIV_CD USER_DIV_CD	
+			,  (SELECT 	CMMN_DETAIL_CD_NM
+	          	FROM 	COM_CMMN_CODE_DETAIL    	
+	          	WHERE 	CMMN_CD='ORGN_DIV_CD'
+	          	AND 	CMMN_DETAIL_CD=D.ORGN_DIV_CD) AS USER_DIV_CD_NM
+			, B.BEGIN_DATE
+			, B.END_DATE
+			, B.USE_YN
+			
+			, B.REG_PROGRM
+			, B.REG_ID
+			, B.REG_DT
+			, B.UPD_PROGRM
+			, B.UPD_ID
+			, B.UPD_DT
+		FROM COM_AUTHOR A
+		JOIN COM_AUTHOR_BY_USER B
+		ON A.AUTHOR_CD=B.AUTHOR_CD
+		LEFT JOIN COM_EMP_INFO C
+		ON B.USER_CD=C.EMP_NO
+		LEFT JOIN COM_ORGN_INFO D
+		ON C.DEPT_CD = D.ORGN_CD
+		WHERE A.AUTHOR_CD=#{AUTHOR_CD}
+	</select>
+	
+	<insert id="insertAuthorByEmp" parameterType="java.util.Map">
+		/* insertAuthorByEmp */
+		INSERT INTO COM_AUTHOR_BY_USER (
+			AUTHOR_CD
+			, USER_CD
+			, USER_DIV_CD
+			, USE_YN
+			
+			, BEGIN_DATE
+			, END_DATE
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			  #{AUTHOR_CD}
+			, #{USER_CD}
+			, #{USER_DIV_CD}
+			, #{USE_YN}
+			
+			, #{BEGIN_DATE}
+			, #{END_DATE}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()
+		)
+	</insert>
+	
+	<update id="updateAuthorByEmp" parameterType="java.util.Map">
+		/* updateAuthorByEmp */
+		UPDATE COM_AUTHOR_BY_USER
+		SET USE_YN					= #{USE_YN}
+			
+			, BEGIN_DATE			= #{BEGIN_DATE}
+			, END_DATE				= #{END_DATE}
+			, UPD_PROGRM			= #{REG_PROGRM}
+			, UPD_ID					= #{REG_ID}
+			, UPD_DT					= NOW()
+		WHERE AUTHOR_CD = #{AUTHOR_CD}
+		AND USER_CD = #{USER_CD}
+	</update>
+	
+	<delete id="deleteAuthorByEmp" parameterType="java.util.Map">
+		/* deleteAuthorByEmp */
+		DELETE FROM COM_AUTHOR_BY_USER
+		WHERE AUTHOR_CD = #{AUTHOR_CD}
+		AND USER_CD = #{USER_CD}
+	</delete>
+	
+	<select id="getAuthorTargetList"  resultType="java.util.Map" parameterType="java.util.Map">
+		/* getAuthorTargetList */
+		SELECT 
+		  A.EMP_NO AS USER_CD
+			, A.EMP_NM AS USER_NM
+			, B.ORGN_DIV_CD AS USER_DIV_CD	
+			, FN_GET_CMMN_CD_NM('ORGN_DIV_CD',B.ORGN_DIV_CD) USER_DIV_CD_NM
+			, B.ORGN_CD ORGN_CD
+			, B.ORGN_NM ORGN_NM
+			, FN_GET_ORGN_CD_NM(A.DEPT_CD) ORGN_NM_FULL
+			, IFNULL(D.AUTHOR_NM,'') AS AUTH_NM
+		FROM COM_EMP_INFO A
+		JOIN (SELECT ORGN_CD, ORGN_NM, IFNULL(ORGN_DIV_CD,'OD9999') ORGN_DIV_CD FROM COM_ORGN_INFO)B
+			ON A.DEPT_CD=B.ORGN_CD
+		LEFT JOIN COM_AUTHOR_BY_USER C
+			ON A.EMP_NO = C.USER_CD
+		LEFT JOIN COM_AUTHOR D
+			ON C.AUTHOR_CD = D.AUTHOR_CD				
+		WHERE 1=1
+			AND A.USE_YN='Y'
+			AND (A.EMP_NO LIKE CONCAT('%',#{USER_CD},'%')) OR (A.EMP_NM LIKE CONCAT('%',#{USER_CD},'%'))
+	</select>
+	
+	
+	<select id="getMenuDtoList" resultType="MenuDto" parameterType="java.util.Map">
+		/* getMenuDtoList */
+		SELECT A.MENU_CD
+			, A.MENU_NM
+			, A.MENU_STEP
+			, A.UPPER_MENU_CD
+			, A.FOLDER_YN
+			, A.MENU_ORDR
+		FROM COM_MENU A
+		WHERE A.MENU_CD IN (
+			SELECT E.MENU_CD
+			FROM COM_EMP_INFO A
+			JOIN COM_AUTHOR_BY_USER B
+			ON A.EMP_NO=B.USER_CD
+			AND B.USE_YN='Y'
+			AND DATE_FORMAT(NOW(), '%Y%m%d') BETWEEN B.BEGIN_DATE AND B.END_DATE
+			JOIN COM_AUTHOR C
+			ON B.AUTHOR_CD=C.AUTHOR_CD
+			AND C.USE_YN='Y'
+			AND DATE_FORMAT(NOW(), '%Y%m%d') BETWEEN C.BEGIN_DATE AND B.END_DATE
+			JOIN COM_AUTHOR_BY_MENU D
+			ON B.AUTHOR_CD=D.AUTHOR_CD
+			AND D.USE_YN='Y'
+			JOIN COM_MENU E
+			ON D.MENU_CD=E.MENU_CD
+			AND E.USE_YN='Y'
+			WHERE A.EMP_NO=#{EMP_NO}
+		) AND A.USE_YN='Y'
+		ORDER BY A.MENU_STEP, A.MENU_ORDR, A.MENU_NM, A.MENU_CD
+	</select>
+	
+	<select id="getMenuDto" resultType="MenuDto" parameterType="java.util.Map">
+		/* getMenuDto 메뉴 및 권한 정보 */
+		SELECT E.MENU_CD
+			, E.MENU_NM
+			, E.MENU_STEP
+			, E.UPPER_MENU_CD
+			, E.FOLDER_YN
+			, E.MENU_ORDR
+			, MAX(D.USE_YN) AS USE_YN
+			, MAX(D.STRE_YN) AS STRE_YN
+			, MAX(D.ADIT_YN) AS ADIT_YN
+			, MAX(D.DELETE_YN) AS DELETE_YN
+			, MAX(D.EXCEL_YN) AS EXCEL_YN
+			, MAX(D.PRINT_YN) AS PRINT_YN
+		FROM COM_EMP_INFO A
+		JOIN COM_AUTHOR_BY_USER B
+		ON A.EMP_NO=B.USER_CD
+		AND B.USE_YN='Y'
+		AND DATE_FORMAT(NOW(), '%Y%m%d') BETWEEN B.BEGIN_DATE AND B.END_DATE
+		JOIN COM_AUTHOR C
+		ON B.AUTHOR_CD=C.AUTHOR_CD
+		AND C.USE_YN='Y'
+		AND DATE_FORMAT(NOW(), '%Y%m%d') BETWEEN C.BEGIN_DATE AND B.END_DATE
+		JOIN COM_AUTHOR_BY_MENU D
+		ON B.AUTHOR_CD=D.AUTHOR_CD
+		AND D.USE_YN='Y'
+		JOIN COM_MENU E
+		ON D.MENU_CD=E.MENU_CD
+		AND E.USE_YN='Y'
+		WHERE A.EMP_NO=#{EMP_NO}
+		AND E.MENU_CD=#{MENU_CD}
+		GROUP BY E.MENU_CD	, E.MENU_NM, E.MENU_STEP, E.UPPER_MENU_CD, E.FOLDER_YN, E.MENU_ORDR
+	</select>
+	
+	<select id="getScreenDto" resultType="ScreenDto" parameterType="java.util.Map">
+		/* getScreenDto 화면 정보 */
+		SELECT 
+			A.MENU_CD
+			, A.MENU_NM 
+			, A.SCRIN_CD
+			, A.SCRIN_NM
+			, A.SCRIN_PATH
+			, A.USE_YN
+			, A.CMMN_YN
+			, A.AUTHOR_CD 		/* 로그인 사용자 권한코드 */
+		FROM (
+			SELECT E.MENU_CD
+				, E.MENU_NM 
+				, G.SCRIN_CD
+				, G.SCRIN_NM
+				, G.SCRIN_PATH
+				, G.USE_YN
+				, G.CMMN_YN
+				, B.AUTHOR_CD
+			FROM COM_EMP_INFO A
+			JOIN COM_AUTHOR_BY_USER B
+			ON A.EMP_NO=B.USER_CD
+			AND B.USE_YN='Y'
+			AND DATE_FORMAT(NOW(), '%Y%m%d') BETWEEN B.BEGIN_DATE AND B.END_DATE
+			JOIN COM_AUTHOR C
+			ON B.AUTHOR_CD=C.AUTHOR_CD
+			AND C.USE_YN='Y'
+			AND DATE_FORMAT(NOW(), '%Y%m%d') BETWEEN C.BEGIN_DATE AND B.END_DATE
+			JOIN COM_AUTHOR_BY_MENU D
+			ON B.AUTHOR_CD=D.AUTHOR_CD
+			AND D.USE_YN='Y'
+			JOIN COM_MENU E
+			ON D.MENU_CD=E.MENU_CD
+			AND E.USE_YN='Y'
+			JOIN COM_MENU_BY_SCRIN F
+			ON E.MENU_CD=F.MENU_CD
+			AND F.USE_YN='Y'
+			<if test='MAIN_YN != null and MAIN_YN == "Y"'>
+			AND F.MAIN_YN='Y'
+			</if>
+			<if test='MAIN_YN == null or MAIN_YN != "Y"'>
+			AND F.MAIN_YN='N'
+			</if>
+			JOIN COM_SCRIN G
+			ON F.SCRIN_CD=G.SCRIN_CD
+			AND G.USE_YN='Y'	
+			WHERE A.EMP_NO=#{EMP_NO}
+			AND F.MENU_CD=#{MENU_CD}
+			<if test="SCRIN_PATH != null and SCRIN_PATH !=''">
+			AND G.SCRIN_PATH=#{SCRIN_PATH}		
+			</if>
+		) A			
+	</select>
+		
+	<select id="getCommonScreenDto" resultType="ScreenDto" parameterType="java.util.Map">
+			/* getCommonScreenDto */
+			SELECT TOP 1
+				NULL AS MENU_CD
+				, NULL AS MENU_NM 
+				, A.SCRIN_CD
+				, A.SCRIN_NM
+				, A.SCRIN_PATH
+				, A.USE_YN
+				, A.CMMN_YN
+			FROM COM_SCRIN A
+			WHERE A.SCRIN_PATH=#{SCRIN_PATH}
+			AND A.USE_YN='Y'
+			AND A.CMMN_YN='Y'	
+	</select>
+		
+	<insert id="insertSystemConnLog" parameterType="java.util.Map">
+		/* insertSystemConnLog */
+		INSERT INTO COM_SYSTEM_CONN_LOG( 
+			EMP_NO
+			, EMP_NO_ORIZ
+			, CONN_MENU_CD
+			, CONN_IP
+			, CONN_URI
+			, CRUD
+			, REQUEST_WITH
+			, REG_DT
+			, REG_ID
+		) values (
+			#{EMP_NO}
+			, #{EMP_NO_ORIZ}
+			, #{CONN_MENU_CD}
+			, #{CONN_IP}
+			, #{CONN_URI}
+			, #{CRUD}
+			, #{REQUEST_WITH}
+			, NOW()
+			, #{EMP_NO}
+		)
+	</insert>
+	
+	<select id="getEmpAccessLogList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getEmpAccessLogList */
+		SELECT
+			EMP_NO
+			,REG_DT
+		FROM COM_SYSTEM_CONN_LOG
+		WHERE REG_DT BETWEEN DATEADD(DD,0,#{searchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDateTo}))
+	</select>
+</mapper>

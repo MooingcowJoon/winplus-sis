@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.pda.dao.PDA_Dao">
+
+	<select id="getLoginDto" resultType="LoginDto" parameterType="LoginDto">
+		/* getLoginDto */
+		EXEC UP_COM_LOGIN_HRIS #{login_id}, #{password}
+	</select>
+	
+	<insert id="insertLoginAtptLog" parameterType="LoginDto">
+		/* insertLoginAtptLog */
+		INSERT INTO COM_LOGIN_ATPT_DTLS (
+			EMP_NO
+			, LOGIN_ID
+			, LOGIN_ATPT_DT
+			, LOGIN_ATPT_IP
+			, IN_OUT
+			, SUCCES_YN
+			, RETURN_CD
+			, REG_PROGRM
+			, REG_DT
+			, REG_ID
+		) VALUES (
+			#{emp_no}
+			,#{login_id}
+			,GETDATE()
+			,#{login_atpt_ip}
+			,#{inOut}
+			<if test='return_cd.equals("0")'>
+			, 'Y'
+			</if>
+			<if test='!return_cd.equals("0")'>
+			, 'N'
+			</if>
+			, #{return_cd}
+			, 'insertLoginAtptLog'
+			, GETDATE()
+			, 'SYSTEM'
+		)			
+	</insert>
+	
+	<update id="updateLoginPasswordErrorTime" parameterType="LoginDto">
+		/* updateLoginPasswordErrorTime */
+		UPDATE COM_EMP_ACNT SET 
+			PASSWORD_ERROR_TIME=#{password_error_time}
+			, UPD_PROGRM='updateLoginPasswordErrorTime'
+			, UPD_ID=#{emp_no}
+			, UPD_DT=GETDATE()
+		WHERE EMP_NO=#{emp_no}			
+	</update>
+
+</mapper>

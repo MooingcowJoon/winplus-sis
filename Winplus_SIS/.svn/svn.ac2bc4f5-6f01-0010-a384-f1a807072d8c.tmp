@@ -1,0 +1,1317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.market.dao.MarketDao">
+	
+	<select id="getPaymentApprovalHistory" parameterType="Map" resultType="CMap">
+		/* getPaymentApprovalHistory */
+		SELECT
+			SM.ORD_CD
+			,  AC.ORGN_DIV_CD
+			, AC.ORGN_CD										
+			, CONVERT(NVARCHAR(10),CONVERT(DATETIME2,AC.APPR_DATE,120)) AS APPR_DATE		/*승인날짜*/
+			, AC.APPR_POS_NO																/*포스번호*/
+			, SM.RESP_USER																	/*담당자*/
+			, AC.APPR_TYPE					PAY_APP_TYPE									/*결제승인유형*/
+			, AC.CARD_NO																	/*카드번호*/
+			, CASE
+				WHEN AC.PII_MM = 0 THEN '일시불'
+				WHEN AC.PII_MM <![CDATA[>]]> 0 THEN CONCAT(AC.PII_MM,' 개월')
+			  END							PII_MM											/*할부개월*/
+			, AC.APPR_AMT																	/*승인금액*/
+			, AC.APPR_NO																	/*승인번호*/
+			
+			, AC.CARD_ISSUR_CORP_CD			CARD_ISSUR_CORP_CD								/*카드 발급사 코드*/
+			, AC.APPR_CARD_NM				CARD_ISSUR_CORP_NM								/*카드 발급사 명*/
+			
+			, AC.CARD_ACQUR_CORP_CD			CARD_ACQUR_CORP_CD								/*카드 매입사 코드*/
+			, SC.CARDCORP_NM				CARD_ACQUR_CORP_NM								/*카드 매입사 명*/
+			/*, AC.CARD_ACQUR_CORP_NM		CARD_ACQUR_CORP_NM								/*카드 매입사 명*/*/
+			
+			, AC.APPR_VAN_CD				APPR_VAN_CD										/*VAN사 코드*/
+			, CMMN_CD.CMMN_DETAIL_CD_NM		APPR_VAN_NM										/*VAN사 명*/
+			, SM.ORD_DATE																	/*거래일시*/
+			, SM.CLSE_DATE																	/*판매마감일시*/
+			, SM.CDATE																		/*판매생성일시*/
+			, SM.MDATE																		/*판매수정일시*/
+		FROM 
+			T_SALE_MAST SM
+
+			INNER JOIN T_APPR_CARD AC
+			ON SM.ORD_CD = AC.ORD_CD AND AC.ORGN_DIV_CD = SM.ORGN_DIV_CD AND AC.ORGN_CD = SM.ORGN_CD
+
+			INNER JOIN COM_CMMN_CODE_DETAIL CMMN_CD
+			ON AC.APPR_VAN_CD = CMMN_CD.CMMN_DETAIL_CD AND CMMN_CD.CMMN_CD ='VAN_CD'
+			
+			INNER JOIN T_STD_CARDCORP SC
+			ON AC.CARD_ACQUR_CORP_CD = SC.CARDCORP_CD AND AC.ORGN_DIV_CD = SC.ORGN_DIV_CD AND AC.ORGN_CD = SC.ORGN_CD
+		WHERE
+			1=1
+			AND AC.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			<if test='ORGN_CD != ""'>
+			AND AC.ORGN_CD = #{ORGN_CD}
+			</if>
+			<choose>
+				<when test='STD_DATE_TYPE == "APPR_DATE"'>
+					<choose>
+						<when test='DATE_FR != "" and DATE_TO != ""'>
+							AND ( REPLACE(#{DATE_FR},'-','') <![CDATA[<=]]> AC.APPR_DATE AND AC.APPR_DATE <![CDATA[<=]]> REPLACE(#{DATE_TO},'-','') )
+						</when>
+						
+						<when test='DATE_FR != ""'>
+							AND REPLACE(#{DATE_FR},'-','') <![CDATA[<=]]> AC.APPR_DATE
+						</when>
+						
+						<when test='DATE_TO != ""'>
+							AND AC.APPR_DATE <![CDATA[<=]]> REPLACE(#{DATE_TO},'-','')
+						</when>
+					</choose>
+				</when>
+				<when test='STD_DATE_TYPE == "ORD_DATE"'>
+					<choose>
+						<when test='DATE_FR != "" and DATE_TO != ""'>
+							AND ( REPLACE(#{DATE_FR},'-','') <![CDATA[<=]]> SM.ORD_DATE AND SM.ORD_DATE <![CDATA[<=]]> REPLACE(#{DATE_TO},'-','') )
+						</when>
+						
+						<when test='DATE_FR != ""'>
+							AND REPLACE(#{DATE_FR},'-','') <![CDATA[<=]]> SM.ORD_DATE
+						</when>
+						
+						<when test='DATE_TO != ""'>
+							AND SM.ORD_DATE <![CDATA[<=]]> REPLACE(#{DATE_TO},'-','')
+						</when>
+					</choose>
+				</when>
+				<when test='STD_DATE_TYPE == "CLSE_DATE"'>
+					<choose>
+						<when test='DATE_FR != "" and DATE_TO != ""'>
+							AND ( REPLACE(#{DATE_FR},'-','') <![CDATA[<=]]> SM.CLSE_DATE AND SM.CLSE_DATE <![CDATA[<=]]> REPLACE(#{DATE_TO},'-','') )
+						</when>
+						
+						<when test='DATE_FR != ""'>
+							AND REPLACE(#{DATE_FR},'-','') <![CDATA[<=]]> SM.CLSE_DATE
+						</when>
+						
+						<when test='DATE_TO != ""'>
+							AND SM.CLSE_DATE <![CDATA[<=]]> REPLACE(#{DATE_TO},'-','')
+						</when>
+					</choose>
+				</when>
+			</choose>
+			
+			<if test='POS_NO != ""'>
+				AND AC.APPR_POS_NO = #{POS_NO}
+			</if>
+			
+			<if test='CASHIER != ""'>
+				AND SM.RESP_USER LIKE CONCAT('%',#{CASHIER},'%')
+			</if>
+			
+			<if test='CARD_ACQUIRER_CORP_CD != ""'>
+				AND AC.CARD_ACQUR_CORP_CD = #{CARD_ACQUIRER_CORP_CD}
+			</if>
+			
+			<if test='VAN_CD != ""'>
+				AND AC.APPR_VAN_CD = #{VAN_CD}
+			</if>
+			
+			<if test='PAY_APP_TYPE != ""'>
+				AND AC.APPR_TYPE = #{PAY_APP_TYPE}
+			</if>
+			
+			<if test='EASY_CHECKER_YN == "Y"'>
+<!-- 				AND AT.TRUST_SEQ IS NOT NULL -->
+			</if>
+			
+			<choose>
+				<when test='AMT_FROM != "" and AMT_TO != ""'>
+					AND ( #{AMT_FROM} <![CDATA[<=]]> AC.APPR_AMT AND AC.APPR_AMT <![CDATA[<=]]> #{AMT_TO} )
+				</when>
+				
+				<when test='AMT_FROM != ""'>
+					AND #{AMT_FROM} <![CDATA[<=]]> AC.APPR_AMT
+				</when>
+				
+				<when test='AMT_TO != ""'>
+					AND AC.APPR_AMT <![CDATA[<=]]> #{AMT_TO}
+				</when>
+			</choose>
+		ORDER BY AC.APPR_DATE DESC
+	</select>
+	
+	<select id="getStatisticsByCardAcquirerList" parameterType="Map" resultType="CMap">
+		/* getStatisticsByCardAcquirerList */
+		SELECT
+			TT.ORGN_DIV_CD
+			, TT.ORGN_CD
+			, CARD_ACQUR_CORP_CD
+			, CARDCORP_NM
+			, APPR_VAN_CD
+			, APPR_VAN_NM
+			
+			, SUCCESS_APPR_AMT													SUCCESS_APPR_AMT
+			, FLOOR(SUCCESS_APPR_AMT*FEE_RATE/100)								SUCCESS_APPR_FEE_AMT
+			, (SUCCESS_APPR_AMT - FLOOR(SUCCESS_APPR_AMT*FEE_RATE/100))			SUCCESS_APPR_DEPOSIT_AMT
+			, TOTAL_APPR_AMT													TOTAL_APPR_AMT
+			, FLOOR(TOTAL_APPR_AMT*FEE_RATE/100)								TOTAL_APPR_FEE_AMT
+			, (TOTAL_APPR_AMT - FLOOR(TOTAL_APPR_AMT*FEE_RATE/100))				TOTAL_APPR_DEPOSIT_AMT
+			
+			<if test='SUM_BY_CARD_ACQUIRER_CORP != "Y"'>
+			, APPR_DATE
+			, ORD_DATE
+			, CLSE_DATE
+			, APPR_POS_NO
+			</if>
+		FROM
+			(
+				SELECT 
+					T.ORGN_DIV_CD
+					, T.ORGN_CD
+					, T.CARD_ACQUR_CORP_CD
+					, T.APPR_VAN_CD
+					, T.APPR_VAN_NM
+					, SC.CARDCORP_NM
+					, SUM(SUCCESS_APPR_AMT)	SUCCESS_APPR_AMT
+					, SUM(SUCCESS_APPR_AMT + CANCEL_APPR_AMT) TOTAL_APPR_AMT
+					, SC.FEE_RATE
+					<if test='SUM_BY_CARD_ACQUIRER_CORP != "Y"'>
+					, ROUND(SUCCESS_APPR_AMT*FEE_RATE/100,0) SUCCESS_APPR_FEE_AMT
+					, T.APPR_DATE
+					, T.ORD_DATE
+					, T.CLSE_DATE
+					, T.APPR_POS_NO
+					</if>
+				FROM
+					(
+						SELECT
+							  AC.ORGN_DIV_CD
+							, AC.ORGN_CD
+							, AC.CARD_ACQUR_CORP_CD			CARD_ACQUR_CORP_CD							/*카드 매입사 코드*/
+							, AC.APPR_VAN_CD				APPR_VAN_CD									/*VAN사 코드*/
+							, CMMN_CD.CMMN_DETAIL_CD_NM		APPR_VAN_NM
+							,
+							ISNULL(CASE
+								WHEN AC.APPR_TYPE = 1 THEN SUM(AC.APPR_AMT)
+							END, 0)							SUCCESS_APPR_AMT							/*결제승인성공금액*/
+							,
+							ISNULL(CASE
+								WHEN AC.APPR_TYPE = 0 THEN SUM(AC.APPR_AMT)
+							END, 0)							CANCEL_APPR_AMT								/*결제승인취소금액*/
+							<if test='SUM_BY_CARD_ACQUIRER_CORP != "Y"'>
+							, CONVERT(NVARCHAR(10),CONVERT(DATETIME2,AC.APPR_DATE)) AS APPR_DATE		/*승인날짜*/
+							, SM.ORD_DATE																/*거래일시*/
+							, SM.CLSE_DATE
+							, AC.APPR_POS_NO
+							</if>
+						FROM 
+							T_SALE_MAST SM
+							INNER JOIN T_APPR_CARD AC
+							ON SM.ORD_CD = AC.ORD_CD
+								AND SM.ORGN_DIV_CD = AC.ORGN_DIV_CD
+								AND SM.ORGN_CD = AC.ORGN_CD
+							INNER JOIN COM_CMMN_CODE_DETAIL CMMN_CD
+							ON AC.APPR_VAN_CD = CMMN_CD.CMMN_DETAIL_CD AND CMMN_CD.CMMN_CD ='VAN_CD'
+						WHERE
+							1=1
+							AND AC.ORGN_DIV_CD = #{ORGN_DIV_CD}
+							<if test='ORGN_CD != ""'>
+							AND AC.ORGN_CD = #{ORGN_CD}
+							</if>
+			<choose>
+				<when test='STD_DATE_TYPE == "APPR_DATE"'>
+					<choose>
+						<when test='DATE_FR != "" and DATE_TO != ""'>
+							AND ( #{DATE_FR} <![CDATA[<=]]> AC.APPR_DATE AND AC.APPR_DATE <![CDATA[<=]]> #{DATE_TO} )
+						</when>
+						
+						<when test='DATE_FR != ""'>
+							AND #{DATE_FR} <![CDATA[<=]]> AC.APPR_DATE
+						</when>
+						
+						<when test='DATE_TO != ""'>
+							AND AC.APPR_DATE <![CDATA[<=]]> #{DATE_TO} 
+						</when>
+					</choose>
+				</when>
+				<when test='STD_DATE_TYPE == "ORD_DATE"'>
+					<choose>
+						<when test='DATE_FR != "" and DATE_TO != ""'>
+							AND ( #{DATE_FR} <![CDATA[<=]]> SM.ORD_DATE AND SM.ORD_DATE <![CDATA[<=]]> #{DATE_TO} )
+						</when>
+						
+						<when test='DATE_FR != ""'>
+							AND #{DATE_FR} <![CDATA[<=]]> SM.ORD_DATE
+						</when>
+						
+						<when test='DATE_TO != ""'>
+							AND SM.ORD_DATE <![CDATA[<=]]> #{DATE_TO} 
+						</when>
+					</choose>
+				</when>
+				<when test='STD_DATE_TYPE == "CLSE_DATE"'>
+					<choose>
+						<when test='DATE_FR != "" and DATE_TO != ""'>
+							AND ( #{DATE_FR} <![CDATA[<=]]> SM.CLSE_DATE AND SM.CLSE_DATE <![CDATA[<=]]> #{DATE_TO} )
+						</when>
+						
+						<when test='DATE_FR != ""'>
+							AND #{DATE_FR} <![CDATA[<=]]> SM.CLSE_DATE
+						</when>
+						
+						<when test='DATE_TO != ""'>
+							AND SM.CLSE_DATE <![CDATA[<=]]> #{DATE_TO} 
+						</when>
+					</choose>
+				</when>
+			</choose>
+						<if test='CARD_ACQUIRER_CORP_CD != ""'>
+							AND AC.CARD_ACQUR_CORP_CD = #{CARD_ACQUIRER_CORP_CD}
+						</if>
+						
+						<if test='VAN_CD != ""'>
+							AND AC.APPR_VAN_CD = #{VAN_CD}
+						</if>
+						<if test='POS_NO != ""'>
+							AND AC.APPR_POS_NO = #{POS_NO}
+						</if>
+						GROUP BY
+							AC.ORGN_DIV_CD
+							, AC.ORGN_CD
+							, AC.CARD_ACQUR_CORP_CD
+							, AC.APPR_VAN_CD
+							, CMMN_CD.CMMN_DETAIL_CD_NM
+							, AC.APPR_TYPE
+
+							<if test='SUM_BY_CARD_ACQUIRER_CORP != "Y"'>
+							, AC.APPR_DATE
+							, SM.ORD_DATE
+							, SM.CLSE_DATE
+							, AC.APPR_POS_NO
+							</if>
+					) T
+					INNER JOIN T_STD_CARDCORP SC
+							ON T.CARD_ACQUR_CORP_CD = SC.CARDCORP_CD
+							AND T.ORGN_DIV_CD = SC.ORGN_DIV_CD
+							AND T.ORGN_CD = SC.ORGN_CD
+					GROUP BY
+						T.ORGN_DIV_CD
+						, T.ORGN_CD
+						, CARD_ACQUR_CORP_CD
+						, APPR_VAN_CD
+						, APPR_VAN_NM
+						, SC.CARDCORP_NM
+						, SC.FEE_RATE
+						<if test='SUM_BY_CARD_ACQUIRER_CORP != "Y"'>
+						, SUCCESS_APPR_AMT
+						, T.APPR_DATE
+						, T.ORD_DATE
+						, T.CLSE_DATE
+						, T.APPR_POS_NO
+						</if>
+			) TT
+			ORDER BY
+			<if test='SUM_BY_CARD_ACQUIRER_CORP != "Y"'>
+			<if test='STD_DATE_TYPE == "APPR_DATE"'>
+			APPR_DATE DESC,
+			</if>
+			<if test='STD_DATE_TYPE == "ORD_DATE"'>
+			ORD_DATE DESC,
+			</if>
+			<if test='STD_DATE_TYPE == "CLSE_DATE"'>
+			CLSE_DATE DESC,
+			</if>
+			</if>
+			CARD_ACQUR_CORP_CD DESC
+	</select>
+	
+	<select id="getMoveBetweenMarkets" parameterType="Map" resultType="CMap">
+		/* getMoveBetweenMarkets */
+		/* !@#!@# 쿼리 */
+	</select>
+
+	<select id="getBargainManagementList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getBargainManagementList */
+		SELECT TEG.EVENT_NM,
+			EVENT_STRT_DATE,
+			EVENT_END_DATE,
+			TEG.USE_YN,
+			CONVERT(NVARCHAR(16),TEG.CDATE, 120) AS CDATE,
+			CONVERT(NVARCHAR(16),TEG.MDATE, 120) AS MDATE,
+			TEG.EVENT_CD,
+			TEG.ORGN_CD,
+			TEG.ORGN_DIV_CD,
+			ISNULL(TEG2.GOODS_CNT,0) AS GOODS_CNT,
+			TEG.EVENT_TYPE --일반특매 N, 우선특매 Y
+		FROM T_EVENT_GRUP AS TEG
+		LEFT OUTER JOIN (
+			SELECT EVENT_CD
+					, COUNT(EVENT_GOODS_CD) AS GOODS_CNT
+					,ORGN_CD, ORGN_DIV_CD
+			FROM T_EVENT_GOODS
+			WHERE 1=1
+			<if test = 'EVENT_GOODS_STATE == "1"'>
+			AND EVENT_GOODS_STATE !=''
+			</if>
+			<if test = 'EVENT_GOODS_STATE == "0"'>
+			AND EVENT_GOODS_STATE = 'Y'
+			</if>
+			GROUP BY EVENT_CD, ORGN_CD, ORGN_DIV_CD
+		) AS TEG2
+		ON TEG.EVENT_CD = TEG2.EVENT_CD
+		AND TEG.ORGN_CD = TEG2.ORGN_CD
+		AND TEG.ORGN_DIV_CD = TEG2.ORGN_DIV_CD
+		WHERE 1=1
+		AND LEFT(EVENT_STRT_DATE, 6) = REPLACE(#{SEARCH_FROM_DATE}, '-', '')
+			<if test = 'SEARCH_TYPE =="all"'>
+			AND TEG.EVENT_TYPE != ''
+			</if>
+			<if test = 'SEARCH_TYPE == "general"'>
+			AND TEG.EVENT_TYPE = 'N'
+			</if>
+			<if test = 'SEARCH_TYPE == "bargain"'>
+			AND TEG.EVENT_TYPE = 'Y'
+			</if>
+			<if test = 'USE_YN != ""'>
+			AND TEG.USE_YN = #{USE_YN}
+			</if>
+			<if test = 'ORGN_CD != ""'>
+			AND TEG.ORGN_CD = #{ORGN_CD}
+			</if>
+		ORDER BY TEG.CDATE DESC, TEG.MDATE DESC
+	</select>
+	
+	<select id="getBargainManagementSubList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getBargainManagementSubList */
+		SELECT BCD_NM
+				, DIMEN_NM
+				, BCD_CD
+				, SALE_PRICE
+				, EVENT_GOODS_PRICE
+				, EVENT_PUR_PRICE
+				, EVENT_GOODS_DC_QTY
+				, EVENT_GOODS_DC_TYPE
+				, POINT_SAVE_EX_YN
+				, EVENT_GOODS_FEE_AMT
+				, ONE_TIME_LIMIT_QTY
+				, EVENT_LIMIT_QTY
+				, EVENT_CD
+				, TEG.ORGN_CD
+				, TEG.ORGN_DIV_CD
+				, EVENT_APPLY_HH_FROM
+				, EVENT_APPLY_HH_TO
+				, EVENT_PUR_PRICE_APPLY_FROM
+				, EVENT_PUR_PRICE_APPLY_TO
+				, EVENT_GOODS_STATE
+				, EVENT_GOODS_SALE_QTY
+				, GOODS_TOT_DC_AMT
+				, EVENT_GOODS_SEQ
+				, EVENT_GOODS_RANK
+				, (MAST.SALE_PRICE - TEG.EVENT_GOODS_PRICE) AS DC_PRICE
+				, MAST.PUR_PRICE
+				, CASE WHEN SALE_PRICE = 0 THEN 0
+					ELSE ROUND((MAST.SALE_PRICE - TEG.EVENT_GOODS_PRICE) / MAST.SALE_PRICE * 100, 2) END AS DC_RATE
+				, EVENT_APPLY_TO AS EVENT_END_DATE
+				, EVENT_APPLY_FROM AS EVENT_STRT_DATE
+		FROM T_EVENT_GOODS TEG
+		LEFT OUTER JOIN (
+			SELECT TSP.ORGN_CD
+					,TSP.ORGN_DIV_CD
+					, TB.BCD_CD
+					, TB.BCD_NM
+					, TB.DIMEN_NM
+					, PUR_PRICE
+					, SALE_PRICE
+			FROM T_STD_MAST_BCD TB
+			INNER JOIN (
+				SELECT PUR_PRICE, BCD_CD, RM
+				FROM (
+					SELECT BCD_CD
+							,MIN(PUR_PRICE) AS PUR_PRICE 
+							,ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY PUR_PRICE ) RM
+					FROM T_STD_MAST_PUR_PRICE WITH(NOLOCK) 
+					GROUP BY BCD_CD, PUR_PRICE
+					) MSP
+				WHERE RM = 1
+			) TPP 
+			ON TB.BCD_CD = TPP.BCD_CD
+			INNER JOIN T_STD_MAST_SALE_PRICE TSP
+			ON TB.BCD_CD = TSP.BCD_CD
+		) MAST
+		ON TEG.ORGN_CD = MAST.ORGN_CD AND TEG.EVENT_GOODS_CD = MAST.BCD_CD
+		WHERE TEG.EVENT_CD = #{EVENT_CD}
+		<if test = 'EVENT_GOODS_STATE == "1"'>
+			AND TEG.EVENT_GOODS_STATE !=''
+		</if>
+		<if test = 'EVENT_GOODS_STATE == "0"'>
+			AND TEG.EVENT_GOODS_STATE = 'Y'
+		</if>
+			AND TEG.ORGN_CD = #{ORGN_CD}
+		ORDER BY BCD_NM 
+	</select>
+	
+	<select id="getBargainManagementInfoCheck" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getBargainManagementInfoCheck */	
+		DECLARE @NEW_EVENT_CD INT
+				, @EVENT_CD NVARCHAR(10)
+	
+		BEGIN
+			SELECT @NEW_EVENT_CD = NEXT VALUE
+			FOR [dbo].[SEQ_T_EVENT_GRUP_CD]
+	
+			SET @EVENT_CD = (
+				SELECT CONCAT(REPLICATE('0',10-LEN(@NEW_EVENT_CD)),@NEW_EVENT_CD) AS EVENT_CD
+			)
+	
+			SELECT @EVENT_CD AS EVENT_CD
+		END
+	</select>
+	
+	<insert id = "addBargainManagementGoods" parameterType="java.util.Map">
+		/* addBargainManagementGoods */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+		
+		INSERT INTO T_EVENT_GRUP(
+				ORGN_DIV_CD
+				, ORGN_CD
+				, EVENT_CD
+				, EVENT_NM
+				, EVENT_STRT_DATE
+				, EVENT_END_DATE
+				, MEMO
+				, EVENT_EVAL
+				, EVENT_TYPE
+				, USE_YN
+				, CPROGRM
+				, CUSER
+				, CDATE)
+		VALUES(
+				@ORGN_DIV_CD
+				, #{ORGN_CD}
+				, #{EVENT_CD}
+				, #{EVENT_NM}
+				, REPLACE(#{EVENT_STRT_DATE},'-','')
+				, REPLACE(#{EVENT_END_DATE},'-','')
+				, ''
+				, ''
+				, #{EVENT_TYPE}
+				, #{USE_YN}
+				, #{PROGRM}
+				, #{USER}
+				, GETDATE())
+	</insert>
+	
+	<delete id = "deleteBargainManagementGoods" parameterType="java.util.Map">
+		/* deleteBargainManagementGoods */
+		DELETE FROM T_EVENT_GOODS 
+		WHERE EVENT_CD = #{EVENT_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</delete>
+	
+	<delete id = "deleteBargainManagementGrup" parameterType="java.util.Map">
+		/* deleteBargainManagementGrup */
+		DELETE FROM T_EVENT_GRUP 
+		WHERE EVENT_CD = #{EVENT_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</delete>
+	
+	<update id = "updateBargainManagementGoods" parameterType="java.util.Map">
+		/* updateBargainManagementGoods */
+		UPDATE T_EVENT_GRUP
+		SET EVENT_NM = #{EVENT_NM},
+			EVENT_STRT_DATE = #{EVENT_STRT_DATE},
+			EVENT_END_DATE = #{EVENT_END_DATE},
+			MUSER = #{USER},
+			MPROGRM = #{PROGRM},
+			MDATE = GETDATE(),
+			USE_YN = #{USE_YN},
+			EVENT_TYPE = #{EVENT_TYPE}
+		WHERE EVENT_CD = #{EVENT_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<delete id = "deleteBargainSubList">
+		/* deleteBargainSubList */
+		DELETE FROM T_EVENT_GOODS_TMP
+	</delete>
+	
+	<insert id ="bargainSubList" parameterType="java.util.Map">
+		/* bargainSubList */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		DECLARE @POINT_SAVE_EX_YN NVARCHAR(1)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+		
+		INSERT INTO T_EVENT_GOODS_TMP (
+				RM, ORGN_DIV_CD, ORGN_CD, EVENT_CD, EVENT_GOODS_CD,
+				EVENT_GOODS_DC_RATE, EVENT_GOODS_DC_QTY, EVENT_GOODS_DC_TYPE, ONE_TIME_LIMIT_QTY, EVENT_LIMIT_QTY,
+				EVENT_APPLY_HH_FROM, EVENT_APPLY_HH_TO, EVENT_PUR_PRICE, EVENT_PUR_PRICE_APPLY_FROM, EVENT_PUR_PRICE_APPLY_TO,
+				EVENT_GOODS_STATE, EVENT_GOODS_SALE_QTY, GOODS_TOT_DC_AMT, EVENT_APPLY_FROM, EVENT_APPLY_TO,
+				BF_NS_VF, EVENT_GOODS_PRICE, POINT_SAVE_EX_YN, EVENT_GOODS_FEE_AMT, EVENT_GOODS_SEQ, EVENT_GOODS_RANK, CRUD
+			)
+		VALUES((SELECT ISNULL(MAX(RM), 0) +1 FROM T_EVENT_GOODS_TMP), #{ORGN_DIV_CD}, #{ORGN_CD}, #{EVENT_CD}, #{BCD_CD},
+				${DC_RATE}, ${EVENT_GOODS_DC_QTY}, #{EVENT_GOODS_DC_TYPE}, ${ONE_TIME_LIMIT_QTY}, ${EVENT_LIMIT_QTY},
+				#{EVENT_APPLY_HH_FROM}, #{EVENT_APPLY_HH_TO}, ${EVENT_PUR_PRICE}, #{EVENT_STRT_DATE}, #{EVENT_END_DATE},
+				#{EVENT_GOODS_STATE}, ${EVENT_GOODS_SALE_QTY}, ${GOODS_TOT_DC_AMT}, #{EVENT_STRT_DATE}, #{EVENT_END_DATE},
+				'', ${EVENT_GOODS_PRICE}, #{POINT_SAVE_EX_YN}, ${EVENT_GOODS_FEE_AMT}, ${EVENT_GOODS_SEQ}, ${EVENT_GOODS_RANK}, #{CRUD})
+	</insert>
+		
+	<select id = "saveBargainSubList" parameterType="java.util.Map" resultType="int" >
+		/* saveBargainSubList */
+		DECLARE @V_RETURN INT
+		
+		SET @V_RETURN = 0
+		EXEC SP_CRUD_EVENTGOODS
+			#{ORGN_DIV_CD}
+			, #{ORGN_CD}
+			, #{EVENT_CD}
+			, #{CUSER}
+			, #{ORGN_APPLY_YN}
+			, @V_RETURN output
+		SELECT @V_RETURN
+	</select>
+	
+	<select id="getBargainGoodsInfo" parameterType="java.util.Map" resultType="CMap">
+		/* getBargainGoodsInfo */
+		<if test='list.size > 0'>
+		SELECT TSP.ORGN_CD
+				,TSP.ORGN_DIV_CD
+				, TB.BCD_CD
+				, TB.BCD_NM
+				, TB.DIMEN_NM
+				, PUR_PRICE
+				, SALE_PRICE
+		FROM T_STD_MAST_BCD TB
+		INNER JOIN (
+			SELECT PUR_PRICE, BCD_CD
+			FROM (
+				SELECT BCD_CD
+						,MIN(PUR_PRICE) AS PUR_PRICE 
+						,ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY PUR_PRICE ) RM
+				FROM T_STD_MAST_PUR_PRICE WITH(NOLOCK) 
+				GROUP BY BCD_CD, PUR_PRICE
+				) MSP
+			WHERE RM = 1
+		) TPP 
+		ON TB.BCD_CD = TPP.BCD_CD
+		INNER JOIN T_STD_MAST_SALE_PRICE TSP
+		ON TB.BCD_CD = TSP.BCD_CD
+		WHERE TB.BCD_CD IN
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	
+	<select id="getBargainGoodsSearch" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getBargainGoodsSearch */
+		SELECT MAST.BCD_NM
+				,MAST.DIMEN_NM
+				,MAST.BCD_CD
+				,MAST.SALE_PRICE
+				,TG.EVENT_GOODS_PRICE
+				,TG.EVENT_GOODS_DC_QTY
+				,(MAST.SALE_PRICE - TG.EVENT_GOODS_PRICE) AS DC_PRICE
+				,TG.ONE_TIME_LIMIT_QTY
+				,TG.EVENT_LIMIT_QTY
+				,TEG.EVENT_TYPE
+				,TEG.EVENT_NM
+				,TG.EVENT_GOODS_STATE
+				,TG.ORGN_CD
+		FROM T_EVENT_GOODS AS TG
+		INNER JOIN T_EVENT_GRUP AS TEG
+		ON TG.ORGN_CD = TEG.ORGN_CD
+		AND TG.ORGN_DIV_CD = TEG.ORGN_DIV_CD
+		AND TG.EVENT_CD = TEG.EVENT_CD
+		LEFT OUTER JOIN (
+			SELECT TSP.ORGN_CD
+						,TSP.ORGN_DIV_CD
+						, TB.BCD_CD
+						, TB.BCD_NM
+						, TB.DIMEN_NM
+						, SALE_PRICE
+						,TSMG.GRUP_TOP_CD
+						,TSMG.GRUP_MID_CD
+						,TSMG.GRUP_BOT_CD
+				FROM T_STD_MAST_BCD TB
+				INNER JOIN T_STD_MAST_SALE_PRICE TSP
+				ON TB.BCD_CD = TSP.BCD_CD
+				INNER JOIN T_STD_MAST_GOODS AS TSMG
+				ON TB.GOODS_NO = TSMG.GOODS_NO
+		) MAST
+		ON TG.ORGN_CD = MAST.ORGN_CD AND TG.EVENT_GOODS_CD = MAST.BCD_CD
+		WHERE TG.EVENT_APPLY_FROM BETWEEN REPLACE(#{SEARCH_DATE_FROM},'-','') AND REPLACE(#{SEARCH_DATE_TO},'-','')
+		AND TG.EVENT_APPLY_TO BETWEEN REPLACE(#{SEARCH_DATE_FROM},'-','') AND REPLACE(#{SEARCH_DATE_TO},'-','')
+		<if test = 'KEY_WORD != ""'>   <!-- 키워드조건 -->
+		AND MAST.BCD_NM LIKE '%'+#{KEY_WORD}+'%'
+		</if>
+		<if test ='CUSTMR_CD != ""'>	<!-- 협력사조건 -->
+		AND MAST.CUSTMR_CD = #{CUSTMR_CD}
+		</if>
+		<if test = 'EVENT_GOODS_STATE == "00"'>		<!-- 유효&뮤효조건 -->
+		AND TG.EVENT_GOODS_STATE !=''
+		</if>
+		<if test = 'EVENT_GOODS_STATE == "01"'>
+		AND TG.EVENT_GOODS_STATE = 'Y'
+		</if>
+		<if test = 'EVENT_GOODS_STATE == "02"'>
+		AND TG.EVENT_GOODS_STATE = 'N'
+		</if>
+		<if test = 'EVENT_TYPE != ""'>
+		AND TEG.EVENT_TYPE = #{EVENT_TYPE}
+		</if>
+		<if test = 'ORGN_CD != ""'>
+		AND TG.ORGN_CD = #{ORGN_CD}
+		</if>
+		<choose>
+			<when test='GRUP_TOP_CD == "ALL"'>
+			AND TG.EVENT_GOODS_CD IS NOT NULL
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+			AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD != '0' AND MAST.GRUP_BOT_CD != '0'
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+			AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD != 0
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+			AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD = #{GRUP_BOT_CD}
+			</when>
+		</choose>
+		ORDER BY MAST.BCD_NM
+	</select>
+	
+	<select id="getBargainGoodsSearchTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBargainGoodsSearchTMB */
+		SELECT TSG.GRUP_TOP_CD /*대뷴류*/
+			,TSG.GRUP_MID_CD /*중분류*/
+			,TSG.GRUP_BOT_CD /*소분류*/
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="getBargainSalesHistory" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBargainSalesHistory */
+		SELECT MAST.BCD_CD
+				,MAST.BCD_NM
+				,MAST.CUSTMR_NM
+				,MAST.GOODS_NO
+				,(MAST.SALE_PRICE - MAST.PUR_PRICE) AS NORM_PROF_AMT
+				,ROUND((( 1 - (MAST.PUR_PRICE / MAST.SALE_PRICE)) * 100 ),2) AS NORM_PROF_RATE
+				,TG.EVENT_PUR_PRICE
+				,TG.EVENT_GOODS_PRICE
+				,(TG.EVENT_GOODS_PRICE - TG.EVENT_PUR_PRICE) AS EVENT_PROF_AMT
+				,ROUND((( 1 - (TG.EVENT_PUR_PRICE / TG.EVENT_GOODS_PRICE)) * 100 ),2) AS EVENT_PROF_RATE
+				,TG.EVENT_GOODS_SALE_QTY
+				,ISNULL(CASE
+							WHEN TG.EVENT_GOODS_DC_TYPE = '1' THEN  (TG.EVENT_GOODS_SALE_QTY * ((MAST.SALE_PRICE - MAST.PUR_PRICE) - (TG.EVENT_GOODS_PRICE - TG.EVENT_PUR_PRICE)))
+							WHEN TG.EVENT_GOODS_DC_TYPE= '2' THEN ((MAST.SALE_PRICE - MAST.PUR_PRICE) - (TG.EVENT_GOODS_PRICE - TG.EVENT_PUR_PRICE))
+						END,0) AS DC_AMT
+				,TGR.EVENT_TYPE
+				,TGR.EVENT_NM
+		FROM T_SALE_MAST_DETL AS TSD
+		LEFT JOIN T_SALE_MAST AS TS
+		ON TS.ORD_CD = TSD.ORD_CD
+		AND TS.ORGN_CD = TSD.ORGN_CD
+		AND TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+		INNER JOIN (
+				SELECT TB.BCD_CD
+						,TB.BCD_NM
+						,TB.DIMEN_NM
+						,TPP.PUR_PRICE
+						,TSP.SALE_PRICE
+						,TMC.CUSTMR_NM
+						,TMC.CUSTMR_CD
+						,TSMG.GRUP_TOP_CD
+						,TSMG.GRUP_MID_CD
+						,TSMG.GRUP_BOT_CD
+						,TSMG.GOODS_NO
+				FROM T_STD_MAST_BCD TB
+				INNER JOIN T_STD_MAST_PUR_PRICE TPP
+				ON TB.BCD_CD = TPP.BCD_CD
+				INNER JOIN T_STD_MAST_SALE_PRICE TSP
+				ON TB.BCD_CD = TSP.BCD_CD
+				INNER JOIN T_STD_MAST_GOODS AS TSMG
+				ON TB.GOODS_NO = TSMG.GOODS_NO	
+				INNER JOIN (
+						SELECT CORP_NO, MAX(CUSTMR_NM) AS CUSTMR_NM,  MAX(CUSTMR_CD) AS CUSTMR_CD
+						--, CUSTMR_NM, CUSTMR_CD
+						FROM T_STD_MAST_CUSTMR
+						WHERE USE_YN = 'Y'
+						GROUP BY CORP_NO--, CUSTMR_NM, CUSTMR_CD
+				) TMC
+				ON TPP.CUSTMR_CD = TMC.CUSTMR_CD
+				WHERE 1=1
+				<if test = 'ORGN_CD != ""'>
+				AND TSP.ORGN_CD = #{ORGN_CD}
+				</if>
+				<if test = 'ORGN_CD == ""'>
+					AND TSP.ORGN_CD IS NOT NULL
+				</if>
+				GROUP BY TB.BCD_CD
+						, TB.BCD_NM
+						, TB.DIMEN_NM
+						, TPP.PUR_PRICE
+						, TSP.SALE_PRICE
+						, TMC.CUSTMR_NM
+						, TMC.CUSTMR_CD
+						, TSMG.GRUP_TOP_CD
+						, TSMG.GRUP_MID_CD
+						, TSMG.GRUP_BOT_CD  
+						, TSMG.GOODS_NO
+		) MAST
+		ON TSD.BCD_CD = MAST.BCD_CD
+		INNER JOIN T_EVENT_GOODS AS TG
+		ON TG.EVENT_GOODS_CD = MAST.BCD_CD
+		AND TG.EVENT_GOODS_CD = TSD.BCD_CD
+		INNER JOIN T_EVENT_GRUP AS TGR
+		ON TG.EVENT_CD = TGR.EVENT_CD 
+		AND TG.ORGN_CD = TGR.ORGN_CD
+		WHERE TG.EVENT_APPLY_FROM BETWEEN REPLACE(#{SEARCH_DATE_FROM},'-','') AND REPLACE(#{SEARCH_DATE_TO},'-','')
+		AND TG.EVENT_APPLY_TO BETWEEN REPLACE(#{SEARCH_DATE_FROM},'-','') AND REPLACE(#{SEARCH_DATE_TO},'-','')
+		<if test ='CUSTMR_CD != "" and CUSTMR_CD != null'>
+			AND MAST.CUSTMR_CD = #{CUSTMR_CD}
+		</if>
+		<if test ='EVENT_NM != "" and EVENT_NM != null'>
+			AND TGR.EVENT_NM = #{EVENT_NM}
+		</if>
+		<if test ='EVENT_CD != "" and EVENT_CD != null'>
+			AND TGR.EVENT_CD = #{EVENT_CD}
+		</if>
+		<if test = 'ORGN_CD != ""'>
+			AND TSD.ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test = 'ORGN_CD == ""'>
+			AND TSD.ORGN_CD IS NOT NULL
+		</if>
+		<choose>
+			<when test='GRUP_CD == "ALL"'>
+				AND TG.EVENT_GOODS_CD IS NOT NULL
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+				AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD != '0' AND MAST.GRUP_BOT_CD != '0'
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+				AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD != 0
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+				AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD = #{GRUP_BOT_CD}
+			</when>
+		</choose>
+		GROUP BY MAST.BCD_CD,
+				MAST.BCD_NM,
+				MAST.CUSTMR_NM,
+				MAST.GOODS_NO,
+				MAST.SALE_PRICE,
+				MAST.PUR_PRICE,
+				TG.EVENT_PUR_PRICE,
+				TG.EVENT_GOODS_PRICE,
+				TG.EVENT_GOODS_SALE_QTY,
+				TG.EVENT_GOODS_DC_TYPE,
+				TGR.EVENT_TYPE,
+				TGR.EVENT_NM
+		ORDER BY TGR.EVENT_NM
+	</select>
+	
+	<select id="getBargainSalesHistoryTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBargainSalesHistoryTMB */
+		SELECT TSG.GRUP_TOP_CD
+			,TSG.GRUP_MID_CD
+			,TSG.GRUP_BOT_CD
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="getBargainChangeHistory" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBargainChangeHistory */
+		SELECT TB.BCD_NM,
+				TB.DIMEN_NM,
+				TEL.EVENT_GOODS_CD,
+				TEL.MODI_TYPE,
+				TEL.MODI_BEFR_VALUE,
+				TEL.MODI_AFTR_VALUE,
+				CONVERT(NVARCHAR(10), TEL.MODI_DATE, 23) AS MODI_DATE,
+				TEL.RESP_USER,
+				TEG.EVENT_TYPE,
+				TEG.EVENT_NM
+		FROM T_EVENT_LOG AS TEL
+		INNER JOIN T_EVENT_GRUP AS TEG
+			ON TEG.EVENT_CD = TEL.EVENT_CD
+		INNER JOIN T_EVENT_GOODS AS TGO
+			ON TEL.EVENT_CD = TGO.EVENT_CD
+		INNER JOIN T_STD_MAST_BCD AS TB
+			ON TEL.EVENT_GOODS_CD = TB.BCD_CD
+		INNER JOIN T_STD_MAST_PUR_PRICE TPP
+			ON TB.BCD_CD = TPP.BCD_CD
+		INNER JOIN (
+					SELECT CORP_NO, MAX(CUSTMR_NM) AS CUSTMR_NM,  MAX(CUSTMR_CD) AS CUSTMR_CD
+					--, CUSTMR_NM, CUSTMR_CD
+					FROM T_STD_MAST_CUSTMR
+					WHERE USE_YN = 'Y'
+					GROUP BY CORP_NO--, CUSTMR_NM, CUSTMR_CD
+					) TMC
+			ON TPP.CUSTMR_CD = TMC.CUSTMR_CD
+		INNER JOIN T_STD_MAST_GOODS AS TG
+			ON TG.GOODS_NO = TB.GOODS_NO
+		WHERE TEL.MODI_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1,#{SEARCH_DATE_TO}))
+		<choose>
+			<when test='GRUP_CD == "ALL"'>
+			AND TEL.EVENT_GOODS_CD IS NOT NULL
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+				AND TG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TG.GRUP_MID_CD != '0' AND TG.GRUP_BOT_CD != '0'
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+						AND TG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TG.GRUP_MID_CD = #{GRUP_MID_CD} AND TG.GRUP_BOT_CD != 0
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+				AND TG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TG.GRUP_MID_CD = #{GRUP_MID_CD} AND TG.GRUP_BOT_CD = #{GRUP_BOT_CD}
+			</when>
+		</choose>
+		<if test ='EVENT_NM != ""'>		<!--특매그룹조건 -->
+				AND TEG.EVENT_NM = #{EVENT_NM}
+		</if>
+		<if test ='CUSTMR_CD != ""'>	<!-- 협력사조건 -->
+				AND TMC.CUSTMR_CD = #{CUSTMR_CD}
+		</if>
+		<if test = 'KEY_WORD != ""'> 	<!-- 검색어조건 -->
+				AND TB.BCD_NM LIKE '%'+#{KEY_WORD}+'%' 
+		</if>
+		<if test = 'BCD_CD != ""'>		<!-- 바코드조건 -->
+				AND TEL.EVENT_GOODS_CD LIKE '%'+#{BCD_CD}+'%'
+		</if>
+		<if test = 'MODI_TYPE != ""'>
+			AND TEL.MODI_TYPE = #{MODI_TYPE} 
+		</if>	
+		<if test = 'EVENT_TYPE != ""'>
+			AND TEG.EVENT_TYPE = #{EVENT_TYPE}
+		</if>
+		<if test = 'GOODS_STATE != ""'>
+			AND TG.GOODS_PUR_CD = #{GOODS_STATE}
+		</if>
+		<if test = 'ORGN_CD != ""'>
+			AND TEG.ORGN_CD = #{ORGN_CD}
+		</if>
+	</select>
+		
+	<select id="getBargainChangeHistoryTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBargainChangeHistoryTMB */
+		SELECT TSG.GRUP_TOP_CD /*대뷴류*/
+			,TSG.GRUP_MID_CD /*중분류*/
+			,TSG.GRUP_BOT_CD /*소분류*/
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="getDoubleMainList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getDoubleMainList */
+		SELECT TG.BUDL_NM
+				,TG.BUDL_STRT_DATE
+				,TG.BUDL_END_DATE
+				,CONVERT(NVARCHAR(10),TG.CDATE,120)AS CDATE
+				,CONVERT(NVARCHAR(10),TG.MDATE,120)AS MDATE
+				,TG.POINT_SAVE_EX_YN
+				,TG.MEMO
+				,TG.BUDL_CD
+				,TG.ORGN_CD
+				,TG.ORGN_DIV_CD
+				,TG.BUDL_STATE
+				,ISNULL(TGO.BUDL_QTY, 0) AS BUDL_QTY
+				,TG.BUDL_DC_TYPE
+				,TG.BUDL_APPLY_VALUE
+				,TG.BUDL_APPLY_UNIT
+		FROM T_EVENT_BUDL_GRUP AS TG
+		LEFT JOIN (
+			SELECT BUDL_CD
+				, ORGN_CD, ORGN_DIV_CD
+				, COUNT(BUDL_GOODS_CD) AS BUDL_QTY
+			FROM T_EVENT_BUDL_GOODS
+			GROUP BY BUDL_CD, ORGN_CD, ORGN_DIV_CD
+		) AS TGO
+		ON TG.BUDL_CD = TGO.BUDL_CD
+		AND TG.ORGN_CD = TGO.ORGN_CD
+		AND TG.ORGN_DIV_CD = TGO.ORGN_DIV_CD
+		WHERE 1=1 
+		AND LEFT(BUDL_STRT_DATE, 6) = REPLACE(#{SEARCH_FROM_DATE}, '-', '')
+		<if test = 'USE_YN != ""'>
+			AND TG.BUDL_STATE = #{USE_YN} 
+		</if>
+		<if test = 'ORGN_CD != ""'>
+			AND TG.ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test = 'ORGN_CD == ""'>
+			AND TG.ORGN_CD IS NOT NULL
+		</if>
+		ORDER BY TG.CDATE DESC, TG.MDATE DESC
+	</select>
+	
+	<select id="getDoubleSubList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getDoubleSubList */
+		SELECT MAST.BCD_NM
+				,MAST.DIMEN_NM
+				,MAST.BCD_CD
+				,MAST.PUR_PRICE
+				,MAST.SALE_PRICE
+				,TGO.BUDL_PUR_PRICE
+				,ISNULL(CASE
+						WHEN TGO.BUDL_DC_TYPE = 0 THEN TGO.BUDL_APPLY_VALUE
+						WHEN TGO.BUDL_DC_TYPE = 1 THEN (ISNULL(CASE
+															WHEN (MAST.SALE_PRICE - TGO.BUDL_APPLY_VALUE) <![CDATA[<]]> 0 THEN 0
+															WHEN  (MAST.SALE_PRICE - TGO.BUDL_APPLY_VALUE) <![CDATA[>=]]> 0 THEN (MAST.SALE_PRICE - TGO.BUDL_APPLY_VALUE)
+														END,0))
+						ELSE (MAST.SALE_PRICE * (TGO.BUDL_APPLY_VALUE * 0.01))
+						END, 0)	AS BUDL_SALE_PRICE
+				,TGO.POINT_SAVE_EX_YN
+				,CONVERT(NVARCHAR(16),TGO.CDATE,120) AS CDATE
+				,CONVERT(NVARCHAR(16),TGO.MDATE,120) AS MDATE
+				,TGO.BUDL_CD
+				,TGO.ORGN_CD
+				,TGO.ORGN_DIV_CD
+				,TGO.BUDL_STRT_DATE
+				,TGO.BUDL_END_DATE
+				,TGO.BUDL_DC_TYPE
+				,TGO.BUDL_APPLY_VALUE
+				,TGO.BUDL_APPLY_UNIT
+				,TG.BUDL_STATE
+		FROM T_EVENT_BUDL_GOODS AS TGO
+		INNER JOIN T_EVENT_BUDL_GRUP AS TG
+		ON TGO.ORGN_DIV_CD = TG.ORGN_DIV_CD
+		AND TGO.ORGN_CD = TG.ORGN_CD
+		AND TGO.BUDL_CD = TG.BUDL_CD
+		LEFT OUTER JOIN (
+			SELECT TSP.ORGN_CD
+					, TSP.ORGN_DIV_CD
+					, TB.BCD_CD
+					, TB.BCD_NM
+					, TB.DIMEN_NM
+					, PUR_PRICE
+					, SALE_PRICE
+			FROM T_STD_MAST_BCD TB
+			INNER JOIN (
+				SELECT PUR_PRICE, BCD_CD, RM
+				FROM (
+					SELECT BCD_CD
+							,MIN(PUR_PRICE) AS PUR_PRICE 
+							,ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY PUR_PRICE ) RM
+					FROM T_STD_MAST_PUR_PRICE WITH(NOLOCK) 
+					GROUP BY BCD_CD, PUR_PRICE
+					) MSP
+				WHERE RM = 1
+			) TPP 
+			ON TB.BCD_CD = TPP.BCD_CD
+			INNER JOIN T_STD_MAST_SALE_PRICE TSP
+			ON TB.BCD_CD = TSP.BCD_CD
+			WHERE TSP.ORGN_CD = #{ORGN_CD}
+		) MAST
+		ON TGO.ORGN_CD = MAST.ORGN_CD AND TGO.BUDL_GOODS_CD = MAST.BCD_CD
+		WHERE TGO.BUDL_CD = #{BUDL_CD}
+		AND TGO.ORGN_CD = #{ORGN_CD}
+	</select>
+	
+	<insert id = "saveAddDoubleList" parameterType="java.util.Map">
+		/* saveAddDoubleList */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+
+		INSERT INTO T_EVENT_BUDL_GRUP(
+			ORGN_DIV_CD
+			, ORGN_CD
+			, BUDL_CD
+			, BUDL_NM
+			, BUDL_STRT_DATE
+			, BUDL_END_DATE
+			, MEMO
+			, BUDL_STATE
+			, BUDL_TYPE
+			, POINT_SAVE_EX_YN
+			, BUDL_DC_TYPE
+			, BUDL_APPLY_VALUE
+			, BUDL_APPLY_UNIT
+			, BF_NS_VF
+			, BF_NS_VF2
+			, CPROGRM
+			, CUSER
+			, CDATE)
+		VALUES(
+			@ORGN_DIV_CD
+			, #{ORGN_CD}
+			, #{BUDL_CD}
+			, #{BUDL_NM}
+			, #{BUDL_STRT_DATE}
+			, #{BUDL_END_DATE}
+			, #{MEMO}
+			, #{BUDL_STATE}
+			, '1'
+			, #{POINT_SAVE_EX_YN}
+			, #{BUDL_DC_TYPE}
+			, ${BUDL_APPLY_VALUE}
+			, ${BUDL_APPLY_UNIT}
+			, '0'
+			, '0'
+			, #{PROGRM}
+			, #{USER}
+			, GETDATE())
+	</insert>
+	
+	<update id = "saveUpdateDoubleList" parameterType="java.util.Map">
+		/* saveUpdateDoubleList */
+		UPDATE T_EVENT_BUDL_GRUP
+		SET MUSER = #{USER},
+			MPROGRM = #{PROGRM},
+			MDATE = GETDATE(),
+			BUDL_STATE = #{BUDL_STATE}
+		WHERE BUDL_CD = #{BUDL_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<delete id = "saveDeleteDoubleList" parameterType="java.util.Map">
+		/* saveDeleteDoubleList */
+		DELETE T_EVENT_BUDL_GRUP 
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND BUDL_CD = #{BUDL_CD}
+	</delete>
+	
+	<delete id = "saveDeleteGoodsDoubleList" parameterType="java.util.Map">
+		/* saveDeleteGoodsDoubleList */
+		DELETE T_EVENT_BUDL_GOODS 
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND BUDL_CD = #{BUDL_CD}
+	</delete>
+	
+	<insert id = "saveAddDoubleSubList" parameterType="java.util.Map">
+		/* saveAddDoubleSubList */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+	
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+
+		INSERT INTO T_EVENT_BUDL_GOODS(
+			ORGN_DIV_CD
+			, ORGN_CD
+			, BUDL_CD
+			, BUDL_GOODS_CD
+			, BUDL_GOODS_SALE_UNIT_QTY
+			, BUDL_STRT_DATE
+			, BUDL_END_DATE
+			, BUDL_STATE
+			, BUDL_TYPE
+			, POINT_SAVE_EX_YN
+			, BUDL_DC_TYPE
+			, BUDL_APPLY_VALUE
+			, BUDL_APPLY_UNIT
+			, BUDL_GRUP_TYPE
+			, BUDL_GOODS_SALE_QTY
+			, BUDL_GOODS_RANK
+			, BUDL_PUR_PRICE
+			, BUDL_PUR_APPLY_FROM
+			, BUDL_PUR_APPLY_TO
+			, BUDL_GOODS_FEE_AMT
+			, CPROGRM
+			, CUSER
+			, CDATE)
+		VALUES (
+			@ORGN_DIV_CD
+			, #{ORGN_CD}
+			, #{BUDL_CD}
+			, #{BCD_CD}
+			, 0
+			, #{BUDL_STRT_DATE}
+			, #{BUDL_END_DATE}
+			, #{BUDL_STATE}
+			, '1'
+			, #{POINT_SAVE_EX_YN}
+			, #{BUDL_DC_TYPE}
+			, #{BUDL_APPLY_VALUE}
+			, #{BUDL_APPLY_UNIT}
+			, '1'
+			, 0
+			, (SELECT TOP 1
+						(BUDL_GOODS_RANK * 1) +1
+				FROM T_EVENT_BUDL_GOODS
+				WHERE ORGN_CD = #{ORGN_CD}
+				AND BUDL_CD = #{BUDL_CD}
+				ORDER BY BUDL_CD DESC)
+			, #{BUDL_PUR_PRICE}
+			, #{BUDL_STRT_DATE}
+			, #{BUDL_END_DATE}
+			, 0
+			, #{PROGRM}
+			, #{USER}
+			, GETDATE())
+	</insert>
+	
+	<delete id = "saveDeleteDoubleSubList" parameterType="java.util.Map">
+		/* saveDeleteDoubleSubList */
+		DELETE T_EVENT_BUDL_GOODS 
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND BUDL_CD = #{BUDL_CD}
+		AND BUDL_GOODS_CD = #{BCD_CD}
+	</delete>
+	
+	<update id = "saveUpdateDoubleSubList" parameterType="java.util.Map">
+		/* saveUpdateDoubleSubList */
+		UPDATE T_EVENT_BUDL_GOODS
+		SET MUSER = #{USER},
+			MPROGRM = #{PROGRM},
+			MDATE = GETDATE(),
+			BUDL_PUR_PRICE = #{BUDL_PUR_PRICE}
+		WHERE BUDL_CD = #{BUDL_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		AND BUDL_GOODS_CD = #{BCD_CD}
+	</update>
+	
+	<select id="getInfoCheck" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getInfoCheck */
+		DECLARE @NEW_BUDL_CD INT
+				, @BUDL_CD NVARCHAR(10)
+		
+		BEGIN
+			SELECT @NEW_BUDL_CD = NEXT VALUE
+			FOR [dbo].[SEQ_T_EVENT_BUDL_GRUP_CD]
+	
+			SET @BUDL_CD = (
+				SELECT CONCAT(REPLICATE('0',10-LEN(@NEW_BUDL_CD)),@NEW_BUDL_CD) AS BUDL_CD
+			)
+	
+			SELECT @BUDL_CD AS BUDL_CD
+		END
+	</select>
+	
+	<select id="getDoubleSalesHistory" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getDoubleSalesHistory */
+		SELECT MAST.BCD_NM --상품명
+				, MAST.DIMEN_NM --규격
+				, TG.BUDL_GOODS_CD --바코드
+				, MAST.CUSTMR_NM --공급사
+				, TG.BUDL_PUR_PRICE --특매매입액
+				, ISNULL(CASE
+							WHEN TG.BUDL_DC_TYPE = 0 THEN TG.BUDL_APPLY_VALUE
+							WHEN TG.BUDL_DC_TYPE = 1 THEN (MAST.SALE_PRICE - TG.BUDL_APPLY_VALUE)
+							ELSE (MAST.SALE_PRICE * (TG.BUDL_APPLY_VALUE * 0.01))
+							END, 0)	AS BUDL_SALE_PRICE --특매판매액
+				, TG.BUDL_GOODS_SALE_QTY--할인수
+				, TGU.BUDL_NM --특매그룹명
+		FROM T_SALE_MAST_DETL AS TSD
+		LEFT JOIN T_SALE_MAST AS TS
+		ON TS.ORD_CD = TSD.ORD_CD
+		AND TS.ORGN_CD = TSD.ORGN_CD
+		AND TS.ORGN_DIV_CD = TSD.ORGN_DIV_CD
+		INNER JOIN (
+			SELECT 
+				TB.BCD_CD
+				, TB.BCD_NM
+				, TB.DIMEN_NM
+				, TPP.PUR_PRICE
+				, TSP.SALE_PRICE
+				, TMC.CUSTMR_NM
+				, TMC.CUSTMR_CD
+				, TSMG.GRUP_TOP_CD
+				, TSMG.GRUP_MID_CD
+				, TSMG.GRUP_BOT_CD
+				, TSMG.GOODS_NO
+			FROM T_STD_MAST_BCD TB
+			INNER JOIN T_STD_MAST_PUR_PRICE TPP
+			ON TB.BCD_CD = TPP.BCD_CD
+			INNER JOIN T_STD_MAST_SALE_PRICE TSP
+			ON TB.BCD_CD = TSP.BCD_CD
+			INNER JOIN T_STD_MAST_GOODS AS TSMG
+			ON TB.GOODS_NO = TSMG.GOODS_NO
+			INNER JOIN (
+					SELECT CORP_NO, MAX(CUSTMR_NM) AS CUSTMR_NM, MAX(CUSTMR_CD) AS CUSTMR_CD
+					--, CUSTMR_NM, CUSTMR_CD
+					FROM T_STD_MAST_CUSTMR
+					WHERE USE_YN = 'Y'
+					GROUP BY CORP_NO--, CUSTMR_NM, CUSTMR_CD
+			) TMC
+			ON TPP.CUSTMR_CD = TMC.CUSTMR_CD
+			WHERE 1=1
+				<if test = 'ORGN_CD != ""'>
+				AND TSP.ORGN_CD = #{ORGN_CD}
+				</if>
+				<if test = 'ORGN_CD == ""'>
+					AND TSP.ORGN_CD IS NOT NULL
+				</if>
+			GROUP BY TB.BCD_CD
+					, TB.BCD_NM
+					, TB.DIMEN_NM
+					, TPP.PUR_PRICE
+					, TSP.SALE_PRICE
+					, TMC.CUSTMR_NM
+					, TMC.CUSTMR_CD
+					, TSMG.GRUP_TOP_CD
+					, TSMG.GRUP_MID_CD
+					, TSMG.GRUP_BOT_CD
+					, TSMG.GOODS_NO
+		) MAST
+		ON TSD.BCD_CD = MAST.BCD_CD
+		INNER JOIN T_EVENT_BUDL_GOODS AS TG
+		ON TG.BUDL_GOODS_CD = MAST.BCD_CD
+		AND TG.BUDL_GOODS_CD = TSD.BCD_CD
+		INNER JOIN T_EVENT_BUDL_GRUP AS TGU
+		ON TG.BUDL_CD =TGU.BUDL_CD
+		AND TG.ORGN_CD = TGU.ORGN_CD
+		WHERE TG.BUDL_STRT_DATE BETWEEN REPLACE(#{SEARCH_DATE_FROM},'-','') AND REPLACE(#{SEARCH_DATE_TO},'-','')
+		AND TG.BUDL_END_DATE BETWEEN REPLACE(#{SEARCH_DATE_FROM},'-','') AND REPLACE(#{SEARCH_DATE_TO},'-','')
+		<if test ='CUSTMR_CD != ""'>	<!-- 협력사조건 -->
+			AND MAST.CUSTMR_CD = #{CUSTMR_CD}
+		</if>
+		<if test ='BUDL_NM != ""'>	<!--특매그룹조건 -->
+			AND TGU.BUDL_NM = #{BUDL_NM}
+		</if>
+		<if test = 'ORGN_CD != ""'>
+			AND TG.ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test = 'ORGN_CD == ""'>
+			AND TG.ORGN_CD IS NOT NULL
+		</if>
+		<choose>
+			<when test='GRUP_CD == "ALL"'>		<!-- 상품분류조건 -->
+			AND TG.BUDL_GOODS_CD IS NOT NULL /*전체분류조회눌렀을때*/
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+			AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD != '0' AND MAST.GRUP_BOT_CD != '0'
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+			AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD != 0
+			</when>
+			<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+			AND MAST.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MAST.GRUP_MID_CD = #{GRUP_MID_CD} AND MAST.GRUP_BOT_CD = #{GRUP_BOT_CD}
+			</when>
+		</choose>
+		GROUP BY MAST.BCD_NM
+				, MAST.DIMEN_NM
+				, TG.BUDL_GOODS_CD
+				, MAST.CUSTMR_NM
+				, TG.BUDL_PUR_PRICE
+				, TG.BUDL_DC_TYPE
+				, TG.BUDL_APPLY_VALUE
+				, MAST.SALE_PRICE
+				, TG.BUDL_GOODS_SALE_QTY
+				, TGU.BUDL_NM
+		ORDER BY TGU.BUDL_NM
+	</select>
+	
+	<select id="getDoubleSalesHistoryTMB" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getDoubleSalesHistoryTMB */
+		SELECT TSG.GRUP_TOP_CD
+			,TSG.GRUP_MID_CD
+			,TSG.GRUP_BOT_CD
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+</mapper>

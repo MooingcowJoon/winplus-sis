@@ -1,0 +1,628 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ include file="/WEB-INF/jsp/common/include/taglib.jspf" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_page_script_header.jsp"/>
+<script type="text/javascript">
+	
+	//LUI : 로그인한 유저의 세션 정보에서 그리드 데이터 직렬화시 공통으로 추가 시키고 싶은 데이터를 넣는 객체
+	LUI = JSON.parse('${empSessionDto.lui}');
+	var AUTHOR_CD = "${screenDto.author_cd}";
+	
+	var erpPopupLayout;
+	var erpPopupLeftLayout;
+	var erpPopupRightLayout;
+	var erpGroupRibbon;
+	var erpGoodsRibbon;
+	var erpGroupGrid;
+	var erpGoodsGrid;
+	var erpGroupGridColumns;
+	var erpGoodsGridColumns;
+	var erpGroupGridDataProcessor;
+	var erpGoodsGridDataProcessor;
+	var GRUP_CD = "";
+	var select_orgn_cd = "";
+	var check_value = 0;
+	var prev_check_rId;
+	var cmbORGN_DIV_CD;
+	var cmbORGN_CD;
+
+	$(document).ready(function(){
+		initErpPopupLayout();
+		initErpLeftLayout();
+		initGroupRibbon();
+		initErpGroupGrid();
+		initErpRightLayout();
+		initCustmrRibbon();
+		initErpGoodsGrid();
+		initDhtmlXCombo();
+		
+		$erp.asyncObjAllOnCreated(function(){
+			searchGroupList();
+		});
+	});
+
+	
+	function initErpPopupLayout() {
+		erpPopupLayout = new dhtmlXLayoutObject({
+			parent : document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "2U"
+			, cells : [
+				{id: "a", text : "상품그룹", header : true}
+				, {id: "b", text : "상품그룹상세", header : true, fix_size:[true, true]}
+			]
+		});
+		
+		erpPopupLayout.cells("a").attachObject("div_erp_left_layout");
+		erpPopupLayout.cells("a").setWidth(770);
+		erpPopupLayout.cells("b").attachObject("div_erp_right_layout");
+		
+		erpPopupLayout.setSeparatorSize(1,0);
+		
+		$erp.setEventResizeDhtmlXLayout(erpPopupLayout, function(names){
+			erpPopupLeftLayout.setSizes();
+			erpPopupRigthLayout.setSizes();
+		});
+	}
+	
+	function initErpLeftLayout(){
+		erpPopupLeftLayout = new dhtmlXLayoutObject({
+			parent : "div_erp_left_layout"
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "3E"
+			, cells : [
+				{id: "a", text: "상품그룹조건영역", header : false, fix_size:[true, true]}
+				, {id: "b", text: "상품그룹리본영역", header : false, fix_size:[true, true]}
+				, {id: "c", text: "상품그룹그리드영역", header : false, fix_size:[true, true]}
+			]
+		});
+		
+		erpPopupLeftLayout.cells("a").attachObject("div_erp_group_search");
+		erpPopupLeftLayout.cells("a").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		erpPopupLeftLayout.cells("b").attachObject("div_erp_group_ribbon");
+		erpPopupLeftLayout.cells("b").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		erpPopupLeftLayout.cells("c").attachObject("div_erp_group_grid");
+		
+		$erp.setEventResizeDhtmlXLayout(erpPopupLayout, function(names){
+			erpPopupLeftLayout.setSizes();
+			erpGroupGrid.setSizes();
+			//erpGoodsGrid.setSizes();
+		});
+	}
+	
+	
+	function initGroupRibbon() {
+		erpGroupRibbon = new dhtmlXRibbon({
+			parent : "div_erp_group_ribbon"
+			, skin : ERP_RIBBON_CURRENT_SKINS
+			, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+			, items : [
+				{type : "block", mode : "rows", list : [
+					{id : "search_erp_group_Grid", type : "button", text :'그룹조회', isbig : false, img : "menu/search.gif", imgdis : "menu/search_dis.gif", disable : true}
+					, {id : "add_erp_group_Grid", type : "button", text :'그룹추가', isbig : false, img : "menu/add.gif", imgdis : "menu/add_dis.gif", disable : true}
+					, {id : "delete_group_Grid", type : "button", text:'그룹삭제', isbig : false, img : "menu/delete.gif", imgdis : "menu/delete_dis.gif", disable : true}
+					, {id : "save_erp_group_Grid", type : "button", text:'그룹저장', isbig : false, img : "menu/save.gif", imgdis : "menu/save_dis.gif", disable : true}
+					//, {id : "apply_erp_group_Grid", type : "button", text:'그룹적용', isbig : false, img : "menu/apply.gif", imgdis : "menu/apply_dis.gif", disable : true}
+				]}
+			]
+		});
+		
+		erpGroupRibbon.attachEvent("onClick", function(itemId, bId){
+			if(itemId == "search_erp_group_Grid"){
+				searchGroupList();
+			}else if(itemId == "add_erp_group_Grid") {
+				addErpGroupGrid();
+			} else if(itemId == "delete_group_Grid"){
+				deleteErpGroupGrid();
+			} else if(itemId == "save_erp_group_Grid"){
+				saveErpGroupGrid();
+			}
+		});
+		
+	}
+	
+	function initErpRightLayout(){
+		erpPopupRigthLayout = new dhtmlXLayoutObject({
+			parent : "div_erp_right_layout"
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "2E"
+			, cells : [
+				{id: "a", text: "상품그룹상세리본영역", header: false}
+				, {id: "b", text: "상품그룹상세그리드영역", header: false, fix_size:[true, true]}
+			]
+		});
+		
+		erpPopupRigthLayout.cells("a").attachObject("div_erp_custmr_ribbon");
+		erpPopupRigthLayout.cells("a").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		erpPopupRigthLayout.cells("b").attachObject("div_erp_custmr_grid");
+		
+		$erp.setEventResizeDhtmlXLayout(erpPopupLayout, function(names){
+			erpPopupRigthLayout.setSizes();
+			erpGoodsGrid.setSizes();
+		});
+	}
+	
+	function initCustmrRibbon() {
+		erpGoodsRibbon = new dhtmlXRibbon({
+			parent : "div_erp_custmr_ribbon"
+			, skin : ERP_RIBBON_CURRENT_SKINS
+			, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+			, items : [
+				{type : "block", mode : "rows", list : [
+					{id : "search_erp_custmr_Grid", type : "button", text : '상품추가', isbig : false, img : "menu/add.gif", imgdis : "menu/add_dis.gif", disable : true}
+					//, {id : "add_erp_custmr_Grid", type : "button", text:'상품추가', isbig : false, img : "menu/add.gif", imgdis : "menu/add_dis.gif", disable : true}
+					, {id : "delete_erp_custmr_Grid", type : "button", text:'상품삭제', isbig : false, img : "menu/delete.gif", imgdis : "menu/delete_dis.gif", disable : true}
+					, {id : "save_erp_custmr_Grid", type : "button", text:'상품내역저장', isbig : false, img : "menu/save.gif", imgdis : "menu/save_dis.gif", disable : true}
+				]}
+			]
+		});
+		
+		erpGoodsRibbon.attachEvent("onClick", function(itemId, bId){
+			if(itemId == "search_erp_custmr_Grid") {
+				if(GRUP_CD == ""){
+					$erp.alertMessage({
+						"alertMessage" : "사용자별거래처그룹을 지정 후 이용가능합니다.",
+						"alertCode" : null,
+						"alertType" : "alert",
+						"isAjax" : false
+					});
+				}else {
+					openSearchGoodsGridPopup();
+				}
+			}/*  else if(itemId == "add_erp_custmr_Grid") {
+				adderpGoodsGrid();
+			}  */else if(itemId == "delete_erp_custmr_Grid"){
+				deleteErpGoodsGrid();
+			} else if(itemId == "save_erp_custmr_Grid"){
+				saveErpGoodsGrid();
+			}
+		});
+	}
+	
+	function initErpGroupGrid() {
+		erpGroupGridColumns = [
+		  {id: "NO", label:["NO"], type: "cntr", width: "30", sort : "int", align : "center", isHidden : false, isEssential : false}
+		  , {id : "CHECK", label:["#master_checkbox"], type: "ch", width: "40", sort : "int", align : "center", isHidden : false, isEssential : false}
+		  , {id : "ORGN_CD", label:["조직명"], type: "combo", width: "80", sort : "str", align : "left", isHidden : false, isDisabled : true, isEssential : false, commonCode : ["ORGN_CD", "", "", "", "", "MK"]}
+		  , {id : "GRUP_CD", label:["상품그룹코드"], type: "ro", width: "100", sort : "int", align : "center", isHidden : false, isEssential : false}
+		  , {id : "GRUP_NM", label:["상품그룹명"], type: "ed", width: "190", sort : "int", align : "left", isHidden : false, isEssential : true}
+		  , {id : "USE_YN", label:["사용여부"], type: "combo", width: "80", sort : "str", align : "center", isHidden : false, isEssential : true, commonCode : ["USE_CD","YN"]}
+		  , {id : "RESP_USER", label:["담당자"], type: "ro", width: "100", sort : "int", align : "center", isHidden : false, isEssential : false}
+		  , {id : "CDATE", label:["등록일시"], type: "ro", width: "140", sort : "int", align : "center", isHidden : false, isEssential : false}
+		];
+		
+		erpGroupGrid = new dhtmlXGridObject({
+			parent : "div_erp_group_grid"
+			, skin : ERP_GRID_CURRENT_SKINS
+			, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+			, columns : erpGroupGridColumns
+		});
+		
+		erpGroupGrid.enableDistributedParsing(true, 100, 50);
+		erpGroupGrid.enableBlockSelection();
+		$erp.initGridCustomCell(erpGroupGrid);
+		$erp.initGridComboCell(erpGroupGrid);
+		$erp.attachDhtmlXGridFooterRowCount(erpGroupGrid, '<spring:message code="grid.allRowCount" />');
+		
+		erpGroupGridDataProcessor = new dataProcessor();
+		erpGroupGridDataProcessor.init(erpGroupGrid);
+		erpGroupGridDataProcessor.setUpdateMode("off");
+		$erp.initGridDataColumns(erpGroupGrid);
+		$erp.attachDhtmlXGridFooterPaging(erpGroupGrid, 100);
+		
+		erpGroupGrid.attachEvent("onRowDblClicked", function(rId, cInd){
+			if(cInd != this.getColIndexById("GRUP_NM") && cInd != this.getColIndexById("USE_YN")){
+				GRUP_CD = erpGroupGrid.cells(rId, erpGroupGrid.getColIndexById("GRUP_CD")).getValue();
+				select_orgn_cd = erpGroupGrid.cells(rId, erpGroupGrid.getColIndexById("ORGN_CD")).getValue();
+				
+				searchGoodsList(GRUP_CD, select_orgn_cd);
+			}else{
+				GRUP_NM = erpGroupGrid.cells(rId, erpGroupGrid.getColIndexById("GRUP_NM")).getValue();
+				USE_YN = erpGroupGrid.cells(rId, erpGroupGrid.getColIndexById("USE_YN")).getValue();
+				erpGroupGrid.editCell(GRUP_NM, USE_YN);
+			}
+		});
+		
+		erpGroupGrid.attachEvent("onCheck", function(rId,cInd){
+			if(cInd == this.getColIndexById("CHECK")){
+				if(check_value == 0){
+					prev_check_rId = rId;
+					check_value = check_value +  1;
+				} else {
+					if(prev_check_rId != rId){
+						if(this.cells(prev_check_rId, this.getColIndexById("CHECK")).getValue() == 1) {
+							this.cells(prev_check_rId, this.getColIndexById("CHECK")).setValue(0);
+							prev_check_rId = rId;
+						}
+					}else {
+						check_value = 0;
+					}
+				}
+			}
+			
+		 });
+		
+	}
+	
+	function initErpGoodsGrid() {
+		erpGoodsGridColumns = [
+		{id: "NO", label:["NO"], type: "cntr", width: "30", sort : "int", align : "center", isHidden : false, isEssential : false}
+		, {id : "CHECK", label:["#master_checkbox"], type: "ch", width: "40", sort : "int", align : "center", isHidden : false, isEssential : false}
+		, {id : "ORGN_CD", label:["조직코드"], type: "ro", width: "120", sort : "str", align : "left", isHidden : true, isEssential : false}
+		, {id : "GRUP_CD", label:["상품그룹코드"], type: "ro", width: "100", sort : "str", align : "left", isHidden : false, isEssential : false}
+		, {id : "OBJ_CD", label:["바코드"], type: "ro", width: "120", sort : "str", align : "left", isHidden : false, isEssential : false}
+		, {id : "SEQ", label:["순번"], type: "ro", width: "120", sort : "str", align : "center", isHidden : true, isEssential : false}
+		, {id : "OBJ_NM", label:["상품명"], type: "ro", width: "300", sort : "str", align : "left", isHidden : false, isEssential : false}
+		, {id : "USE_YN", label:["사용여부"], type: "combo", width: "80", sort : "str", align : "center", isHidden : false, isEssential : true, commonCode : ["USE_CD","YN"]}
+   		];
+   		
+   		erpGoodsGrid = new dhtmlXGridObject({
+   			parent : "div_erp_custmr_grid"
+   			, skin : ERP_GRID_CURRENT_SKINS
+   			, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+   			, columns : erpGoodsGridColumns
+   		});
+   		
+   		$erp.initGridCustomCell(erpGoodsGrid);
+   		erpGoodsGridDataProcessor = $erp.initGrid(erpGoodsGrid, {useAutoAddRowPaste : true, standardColumnId : "OBJ_CD", deleteDuplication : true , overrideDuplication : false, editableColumnIdListOfInsertedRows : ["OBJ_CD"], notEditableColumnIdListOfInsertedRows : []});
+		
+   		erpGoodsGrid.attachEvent("onEndPaste", function(result){
+			loadGoods(result);
+		});
+	}
+	
+	function loadGoods(result){
+		//erpPopupLayout.progressOn();
+		var loadGoodsList = [];
+		for(var index in result.newAddRowDataList){
+			loadGoodsList.push(result.newAddRowDataList[index]["OBJ_CD"]);
+		}
+		var url = "/common/popup/getPasteGrupGoodsList.do";
+		var send_data = {
+				"loadGoodsList" : loadGoodsList
+				, "ORGN_CD" : select_orgn_cd
+		};
+		
+		var if_success = function(data){
+			var gridDataList = data.gridDataList;
+				for(var index in gridDataList){
+					erpGoodsGrid.cells(result.standardColumnValue_indexAndRowId_obj[gridDataList[index]["OBJ_CD"]][1], erpGoodsGrid.getColIndexById("ORGN_CD")).setValue(gridDataList[index]["ORGN_CD"]);
+					erpGoodsGrid.cells(result.standardColumnValue_indexAndRowId_obj[gridDataList[index]["OBJ_CD"]][1], erpGoodsGrid.getColIndexById("OBJ_NM")).setValue(gridDataList[index]["OBJ_NM"]);
+					erpGoodsGrid.cells(result.standardColumnValue_indexAndRowId_obj[gridDataList[index]["OBJ_CD"]][1], erpGoodsGrid.getColIndexById("OBJ_CD")).setValue(gridDataList[index]["OBJ_CD"]);
+					erpGoodsGrid.cells(result.standardColumnValue_indexAndRowId_obj[gridDataList[index]["OBJ_CD"]][1], erpGoodsGrid.getColIndexById("GRUP_CD")).setValue(GRUP_CD);
+					erpGoodsGrid.cells(result.standardColumnValue_indexAndRowId_obj[gridDataList[index]["OBJ_CD"]][1], erpGoodsGrid.getColIndexById("USE_YN")).setValue("Y");
+					result.standardColumnValue_indexAndRowId_obj[gridDataList[index]["OBJ_CD"]].push("로드완료");
+				}
+			var notExistList = [];
+			var value;
+			var state;
+			var dp = erpGoodsGrid.getDataProcessor();
+			for(var index in result.newAddRowDataList){
+				value = result.standardColumnValue_indexAndRowId_obj[result.newAddRowDataList[index]["OBJ_CD"]];
+				state = dp.getState(value[1]);
+				if(value.length == 2 && state == "inserted"){
+					notExistList.push(value[0]);
+				}
+			}
+			$erp.deleteGridRows(erpGoodsGrid, notExistList, result.editableColumnIdListOfInsertedRows, result.notEditableColumnIdListOfInsertedRows);
+			
+			$erp.alertMessage({
+				"alertMessage" : "[중복 : " + result.duplicationCount_in_toGridDataList + "개]<br/>[무효  : " + notExistList.length + "개]<br/>[신규 : " + (result.newAddRowDataList.length-notExistList.length) + "개]",
+				"alertType" : "alert",
+				"isAjax" : false
+			});
+			
+			if(erpGoodsGrid.getRowsNum() == 0){
+				erpGoodsRibbon.callEvent("onClick",["searchGoodsList"]);
+				return;
+			}
+			
+			$erp.setDhtmlXGridFooterRowCount(erpGoodsGrid);	// 현재 행수 계산
+		}
+		
+		var if_error = function(XHR, status, error){
+		}
+		$erp.UseAjaxRequestInBody(url, send_data, if_success, if_error, erpPopupRightLayout);
+	}
+	
+	function addErpGroupGrid(){
+		var uid = erpGroupGrid.uid();
+		erpGroupGrid.addRow(uid);
+		erpGroupGrid.selectRow(erpGroupGrid.getRowIndex(uid));
+		erpGroupGrid.cells(uid, erpGroupGrid.getColIndexById("ORGN_CD")).setValue(cmbORGN_CD.getSelectedValue());
+		erpGroupGrid.cells(uid, erpGroupGrid.getColIndexById("GRUP_CD")).setValue("신규");
+		erpGroupGrid.cells(uid, erpGroupGrid.getColIndexById("USE_YN")).setValue("Y");
+		$erp.setDhtmlXGridFooterRowCount(erpGroupGrid);
+	}
+	
+	function deleteErpGroupGrid(){
+		var gridRowCount = erpGroupGrid.getRowsNum();
+		var isChecked = false;
+		
+		var deleteRowIdArray = [];
+		for(var i = 0; i < gridRowCount; i++){
+			var rId = erpGroupGrid.getRowId(i);
+			var check = erpGroupGrid.cells(rId, erpGroupGrid.getColIndexById("CHECK")).getValue();
+			if(check == "1"){
+				deleteRowIdArray.push(rId);
+			}
+		}
+		
+		if(deleteRowIdArray.length == 0){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noSelectedRow"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return;
+		}
+		
+		for(var i = 0; i < deleteRowIdArray.length; i++){
+			erpGroupGrid.deleteRow(deleteRowIdArray[i]);
+		}
+		
+		$erp.setDhtmlXGridFooterRowCount(erpGroupGrid);
+	}
+	
+	function saveErpGroupGrid(){
+		if(erpGroupGridDataProcessor.getSyncState()){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noChanged"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return false;
+		}
+		
+		var validResultMap = $erp.validDhtmlXGridEssentialData(erpGroupGrid);
+		if(validResultMap.isError) {
+			$erp.alertMessage({
+				"alertMessage" : validResultMap.errMessage
+				, "alertCode" : validResultMap.errCode
+				, "alertType" : "error"
+				, "alertMessageParam" : validResultMap.errMessageParam
+			});
+			return false;
+		}
+		
+		erpPopupLayout.progressOn();
+		//var paramData = $erp.dataSerializeOfGrid(erpGroupGrid); //대리님 소스
+		var paramData = $erp.serializeDhtmlXGridData(erpGroupGrid);
+		paramData["GRUP_TYPE"] = "G";
+		$.ajax({
+			url : "/common/popup/SaveGoodsGroupList.do"
+			,data : paramData
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data) {
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				}else {
+					$erp.alertMessage({
+						"alertMessage" : "저장이 완료되었습니다.",
+						"alertType" : "alert",
+						"isAjax" : false
+					});
+					$erp.clearDhtmlXGrid(erpGoodsGrid);
+					searchGroupList();
+				}
+			}, error : function(jqXHR, textStatus, errorThrown){
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+		erpPopupLayout.progressOff();
+	}
+	
+	function searchGroupList(){
+		$.ajax({
+			url : "/common/popup/SearchGoodsGroupList.do"
+			,data : {
+				"ORGN_CD" : cmbORGN_CD.getSelectedValue()
+				,"ORGN_DIV_CD" : cmbORGN_DIV_CD.getSelectedValue()
+				, "GRUP_TYPE" : "G"
+			}
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					$erp.clearDhtmlXGrid(erpGroupGrid);
+					var gridDataList = data.gridDataList;
+					if($erp.isEmpty(gridDataList)){
+						$erp.addDhtmlXGridNoDataPrintRow(
+							erpGroupGrid
+							, '<spring:message code="grid.noSearchData" />'
+						);
+					} else {
+						erpGroupGrid.parse(gridDataList, 'js');	
+					}
+				}
+				$erp.setDhtmlXGridFooterRowCount(erpGroupGrid);
+			}, error : function(jqXHR, textStatus, errorThrown){
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
+	function searchGoodsList(GRUP_CD, select_orgn_cd) {
+		$.ajax({
+			url : "/common/popup/SearchGoodsGroupDetailList.do"
+			,data : {
+				"GRUP_CD" : GRUP_CD
+				, "ORGN_CD" : select_orgn_cd
+				,"GRUP_TYPE" : "G" 
+			}
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					$erp.clearDhtmlXGrid(erpGoodsGrid);
+					var gridDataList = data.gridDataList;
+					if($erp.isEmpty(gridDataList)){
+						$erp.addDhtmlXGridNoDataPrintRow(
+							erpGoodsGrid
+							, '<spring:message code="grid.noSearchData" />'
+						);
+					} else {
+						erpGoodsGrid.parse(gridDataList, 'js');	
+					}
+				}
+				$erp.setDhtmlXGridFooterRowCount(erpGoodsGrid);
+			}, error : function(jqXHR, textStatus, errorThrown){
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
+	function openSearchGoodsGridPopup(){
+		var rId = erpGroupGrid.getSelectedRowId();
+		if(rId == "" || rId == null || rId == "undefined"){
+			$erp.alertMessage({
+				"alertMessage" : "error.sis.usergrup_no_selected"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+		} else {
+			var pur_sale_type = "1";
+			var onClickRibbonAddData = function(popupGrid){
+				//dataState : checked,selected  //copyType : add,new
+				var popup = erpPopupWindows.window("openSearchGoodsGridPopup");
+				popup.progressOn();
+				$erp.copyRowsGridToGrid(popupGrid, erpGoodsGrid, ["BCD_CD","GOODS_NM", "ORGN_CD"], ["OBJ_CD","OBJ_NM", "ORGN_CD"], "checked", "add", ["USE_YN"], [], {"USE_YN" : "Y", }, {"USE_YN" : "Y","GRUP_CD" : GRUP_CD}, function(){
+					popup.progressOff();
+					$erp.closePopup2("openSearchGoodsGridPopup");}, false);
+			}
+			$erp.openSearchGoodsPopup(null, onClickRibbonAddData, {"ORGN_DIV_CD" : cmbORGN_DIV_CD.getSelectedValue() , "ORGN_CD" : cmbORGN_CD.getSelectedValue()});
+		}
+	}
+	
+	function deleteErpGoodsGrid(){
+		var gridRowCount = erpGoodsGrid.getRowsNum();
+		var isChecked = false;
+		
+		var deleteRowIdArray = [];
+		for(var i = 0; i < gridRowCount; i++){
+			var rId = erpGoodsGrid.getRowId(i);
+			var check = erpGoodsGrid.cells(rId, erpGoodsGrid.getColIndexById("CHECK")).getValue();
+			if(check == "1"){
+				deleteRowIdArray.push(rId);
+			}
+		}
+		
+		if(deleteRowIdArray.length == 0){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noSelectedRow"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return;
+		}
+		
+		for(var i = 0; i < deleteRowIdArray.length; i++){
+			erpGoodsGrid.deleteRow(deleteRowIdArray[i]);
+		}
+		
+		$erp.setDhtmlXGridFooterRowCount(erpGoodsGrid);
+	}
+	
+	function saveErpGoodsGrid() {
+		if(erpGoodsGridDataProcessor.getSyncState()){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noChanged"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return false;
+		}
+		
+		var validResultMap = $erp.validDhtmlXGridEssentialData(erpGoodsGrid);
+		if(validResultMap.isError) {
+			$erp.alertMessage({
+				"alertMessage" : validResultMap.errMessage
+				, "alertCode" : validResultMap.errCode
+				, "alertType" : "error"
+				, "alertMessageParam" : validResultMap.errMessageParam
+			});
+			return false;
+		}
+		
+		erpPopupLayout.progressOn();
+		//var paramData = $erp.dataSerializeOfGrid(erpGroupGrid); //대리님 소스
+		var paramData = $erp.serializeDhtmlXGridData(erpGoodsGrid);
+		paramData["ORGN_CD"] = select_orgn_cd;
+		$.ajax({
+			url : "/common/popup/SaveGoodsGroupDetailList.do"
+			,data : paramData
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data) {
+				erpPopupLayout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				}else {
+					$erp.alertMessage({
+						"alertMessage" : "저장이 완료되었습니다.",
+						"alertType" : "alert",
+						"isAjax" : false
+					});
+					searchGoodsList(GRUP_CD, select_orgn_cd);
+				}
+			}, error : function(jqXHR, textStatus, errorThrown){
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
+	function initDhtmlXCombo(){
+		cmbORGN_DIV_CD = $erp.getDhtmlXComboTableCode("cmbORGN_DIV_CD", "ORGN_DIV_CD", "/sis/code/getSearchableOrgnDivCdList.do", LUI, 210, null, false, LUI.LUI_orgn_div_cd, function(){
+			cmbORGN_CD = $erp.getDhtmlXComboTableCode("cmbORGN_CD", "ORGN_CD", "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : cmbORGN_DIV_CD.getSelectedValue()}]), 210, null, false, LUI.LUI_orgn_cd);
+			cmbORGN_DIV_CD.attachEvent("onChange", function(value, text){
+				cmbORGN_CD.unSelectOption();
+				cmbORGN_CD.clearAll();
+				$erp.setDhtmlXComboTableCodeUseAjax(cmbORGN_CD, "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : value}]), null, false, null);
+			}); 
+		});
+	}
+	
+</script>
+</head>
+<body>
+	<div id="div_erp_left_layout" class="div_layout_full_size div_sub_layout" style="display:none">
+		<div id="div_erp_group_search" class="div_erp_contents_search" style="display:none;">
+			<table class="table_search">
+				<colgroup>
+					<col width="85px">
+					<col width="220px">
+					<col width="85px">
+					<col width="*">
+				</colgroup>
+				<tr>
+					<th>법인구분</th>
+					<td>
+						<div id="cmbORGN_DIV_CD"></div>
+					</td>
+					<th>조직명</th>
+					<td>
+						<div id="cmbORGN_CD"></div>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+	<div id="div_erp_group_ribbon" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_erp_group_grid" class="div_grid_full_size" style="display:none"></div>
+	
+	<div id="div_erp_right_layout" class="div_layout_full_size div_sub_layout" style="display:none"></div>
+	<div id="div_erp_custmr_ribbon" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_erp_custmr_grid" class="div_grid_full_size" style="display:none"></div>
+	
+</body>
+</html>

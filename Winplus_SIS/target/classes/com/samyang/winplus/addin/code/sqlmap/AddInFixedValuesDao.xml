@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.addin.code.dao.AddInFixedValuesDao">
+	<select id="getMaster" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getMaster */
+		SELECT
+				  A.TABLE_NM_EN
+				, A.TABLE_DESC
+				, A.USE_YN
+				, A.REG_PROGRM
+				, A.REG_ID
+				, CONVERT(VARCHAR,A.REG_DT, 120) AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, CONVERT(VARCHAR,A.UPD_DT, 120) AS UPD_DT
+		FROM ADDIN_FIXED_VALUES_MASTER A
+		WHERE (A.TABLE_NM_EN LIKE CONCAT('%',#{TABLE_NM_EN},'%') OR A.TABLE_DESC LIKE CONCAT('%',#{TABLE_DESC},'%'))
+		AND USE_YN  LIKE CONCAT(#{USE_YN},'%')
+	</select>		
+	
+	<insert id="insertMaster" parameterType="java.util.Map">
+		/* insertMaster */
+		INSERT INTO ADDIN_FIXED_VALUES_MASTER (
+			  TABLE_NM_EN
+			, TABLE_DESC
+			, USE_YN
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			  UPPER(#{TABLE_NM_EN})
+			, UPPER(#{TABLE_DESC})
+			, #{USE_YN}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()
+		)
+	</insert>		
+	
+	<update id="updateMaster" parameterType="java.util.Map">
+		/* updateMaster */
+		UPDATE ADDIN_FIXED_VALUES_MASTER
+			SET 
+			  TABLE_DESC			= UPPER(#{TABLE_DESC})
+			, USE_YN				= #{USE_YN}
+			, UPD_PROGRM 			= #{REG_PROGRM}
+			, UPD_ID				= #{REG_ID}
+			, UPD_DT				= NOW()
+		WHERE TABLE_NM_EN=#{TABLE_NM_EN}
+	</update>
+	
+	<delete id="deleteMaster" parameterType="java.util.Map">
+		/* deleteMaster */
+		DELETE FROM ADDIN_FIXED_VALUES_MASTER WHERE TABLE_NM_EN=#{TABLE_NM_EN}
+	</delete>	
+	
+	<select id="getDetailCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getDetailCount */
+		SELECT COUNT(*) 
+		FROM ADDIN_FIXED_VALUES_DETAIL A
+		WHERE A.TABLE_NM_EN=#{TABLE_NM_EN}
+	</select>		
+	
+	<select id="getDetail" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getDetail */
+		SELECT 
+				  SEQ
+				, A.TABLE_NM_EN
+				, A.COLUMN_NM_EN
+				, A.COLUMN_VALUE
+				, A.COLUMN_VALUE_DESC
+				, A.USE_YN
+				, A.REG_PROGRM
+				, A.REG_ID
+				, CONVERT(VARCHAR,A.REG_DT, 120) AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, CONVERT(VARCHAR,A.UPD_DT, 120) AS UPD_DT
+		FROM ADDIN_FIXED_VALUES_DETAIL A
+		WHERE A.TABLE_NM_EN=#{TABLE_NM_EN}
+		ORDER BY A.TABLE_NM_EN, A.COLUMN_NM_EN, A.COLUMN_VALUE
+	</select>		
+	
+	<insert id="insertDetail" parameterType="java.util.Map">
+		/* insertDetail */
+		INSERT INTO ADDIN_FIXED_VALUES_DETAIL (
+			  TABLE_NM_EN
+			, COLUMN_NM_EN
+			, COLUMN_VALUE
+			, COLUMN_VALUE_DESC
+			, USE_YN
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		) VALUES (
+			  UPPER(#{TABLE_NM_EN})
+			, UPPER(#{COLUMN_NM_EN})
+			, UPPER(#{COLUMN_VALUE})
+			, UPPER(#{COLUMN_VALUE_DESC})
+			, #{USE_YN}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()
+		)
+	</insert>		
+	
+	<update id="updateDetail" parameterType="java.util.Map">
+		/* updateDetail */
+		UPDATE ADDIN_FIXED_VALUES_DETAIL
+			SET 
+			  COLUMN_VALUE 			= UPPER(#{COLUMN_VALUE})
+			, COLUMN_VALUE_DESC 	= UPPER(#{COLUMN_VALUE_DESC})
+			, USE_YN				= #{USE_YN}
+			, UPD_PROGRM 			= #{REG_PROGRM}
+			, UPD_ID				= #{REG_ID} 
+			, UPD_DT				= NOW()
+		WHERE SEQ = #{SEQ}
+	</update>
+	
+	<delete id="deleteDetail" parameterType="java.util.Map">
+		/* deleteDetail */
+		DELETE FROM ADDIN_FIXED_VALUES_DETAIL 
+		WHERE	SEQ = #{SEQ}
+	</delete>
+
+
+</mapper>

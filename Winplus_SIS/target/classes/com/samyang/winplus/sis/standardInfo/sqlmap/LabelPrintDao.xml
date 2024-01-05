@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.standardInfo.dao.LabelPrintDao">
+	
+	<select id="getBCodeList" resultType="java.util.Map" parameterType="java.util.Map">
+		<!-- 라벨관리에서사용 -->
+		/* getBCodeList*/
+		SELECT S.ORGN_CD
+			, B.GOODS_NO
+			, B.BCD_NM
+			, B.BCD_CD
+		FROM T_STD_MAST_BCD AS B 
+		INNER JOIN T_STD_MAST_SALE_PRICE AS S ON B.BCD_CD = S.BCD_CD
+		WHERE 1=1
+		AND S.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND S.ORGN_CD = #{ORGN_CD}
+		AND B.BCD_CD IN (${BCD_CD})
+	</select>
+	
+	<select id="checkMrdFile" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT COUNT(*) AS NUM
+		FROM COM_CMMN_CODE_DETAIL 
+		WHERE CMMN_DETAIL_CD = #{CMMN_DETAIL_CD}
+	</select>
+	
+	<select id="getPdaLabelList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPdaLabelList */
+		SELECT ORGN_DIV_CD
+			, ORGN_CD
+			, PDA.BCD_CD
+			, BCD_NM
+			, GOODS_NO
+			, GOODS_QTY
+			, FLAG_YN
+			, DATA_TYPE
+			, PDA.CUSER
+			, EMP.EMP_NO
+			, EMP.EMP_NM
+			, CONVERT(NVARCHAR(19),PDA.CDATE, 20) AS CDATE
+			, STORE_AREA
+		FROM T_PDA_TEMP AS PDA
+		INNER JOIN T_STD_MAST_BCD AS BCD ON PDA.BCD_CD = BCD.BCD_CD
+		INNER JOIN (
+			SELECT CEA.EMP_NO
+				, CEA.ID
+				, CEI.EMP_NM
+			FROM COM_EMP_ACNT AS CEA
+			INNER JOIN COM_EMP_INFO AS CEI ON CEA.EMP_NO = CEI.EMP_NO
+		) AS EMP ON EMP.ID = PDA.CUSER 
+		WHERE DATA_TYPE = '5'
+		AND ORGN_CD = #{ORGN_CD}
+		ORDER BY CDATE DESC
+	</select>
+	
+	<delete id="deletePdaLabelList" parameterType="java.util.Map">
+		/* deletePdaList */
+		
+		DELETE FROM T_PDA_TEMP
+		WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+		AND ORGN_CD = #{ORGN_CD}
+		AND DATA_TYPE = #{DATA_TYPE}
+		AND CUSER = #{CUSER}
+		AND STORE_AREA = #{STORE_AREA}
+		AND CONVERT(NVARCHAR(19),CDATE, 20) = #{CDATE}
+		AND BCD_CD = #{BCD_CD}
+	</delete>
+	
+	<update id="updatePdaLabelPrintState" parameterType="java.util.Map">
+		/* updatePdaLabelPrintState */
+		IF #{CHECK} = '1' AND #{FLAG_YN} = '0'
+		BEGIN
+			UPDATE T_PDA_TEMP
+			SET FLAG_YN = '1'
+			WHERE ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND DATA_TYPE = #{DATA_TYPE}
+			AND CUSER = #{CUSER}
+			AND STORE_AREA = #{STORE_AREA}
+			AND CONVERT(NVARCHAR(19),CDATE, 20) = #{CDATE}
+			AND BCD_CD = #{BCD_CD}
+		END
+	</update>
+</mapper>

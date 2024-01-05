@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.standardInfo.dao.GoodsCategoryDao">
+	<select id="getCategoryMap" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCategoryMap */
+		SELECT
+			A.[GRUP_CD]
+			,A.[GRUP_TOP_CD]
+			,(
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND GRUP_MID_CD = '0'
+				AND GRUP_BOT_CD = '0'
+			) AS GRUP_TOP_NM
+			,A.[GRUP_MID_CD]
+			,ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = A.GRUP_MID_CD)
+				AND GRUP_BOT_CD = '0'
+			),'') AS GRUP_MID_NM
+			,A.[GRUP_BOT_CD]
+			,ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = A.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = A.GRUP_MID_CD)
+				AND (GRUP_BOT_CD != '0' AND GRUP_BOT_CD = A.GRUP_BOT_CD)
+			),'') AS GRUP_BOT_NM
+			,A.[GRUP_NM]
+			,A.[GRUP_STATE]
+			,A.[GRUP_LOCAL_CD]
+		FROM T_STD_GOODSGRUP A
+		WHERE A.GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<select id="insertGoodsCategory" resultType="java.lang.String" parameterType="java.util.Map">
+		/* insertGoodsCategory */
+		IF EXISTS(
+					SELECT
+						GRUP_CD
+					FROM T_STD_GOODSGRUP
+					WHERE GRUP_TOP_CD = #{GRUP_TOP_CD}
+					<if test="treeLvlInt == 1">
+						AND GRUP_MID_CD = '0'
+						AND GRUP_BOT_CD = '0'
+					</if>
+					<if test="treeLvlInt == 2">
+						AND GRUP_MID_CD = #{GRUP_MID_CD}
+						AND GRUP_BOT_CD = '0'
+					</if>
+					<if test="treeLvlInt == 3">
+						AND GRUP_MID_CD = #{GRUP_MID_CD}
+						AND GRUP_BOT_CD = #{GRUP_BOT_CD}
+					</if>
+				)
+			BEGIN
+				SELECT 'DUPL' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				DECLARE @GRUP_CD NVARCHAR(5)
+				
+				SET @GRUP_CD = (
+									SELECT  
+										CONCAT('T',MAX(RIGHT(GRUP_CD,4))+1) AS GRUP_CD
+									FROM T_STD_GOODSGRUP
+								)
+				
+				INSERT INTO T_STD_GOODSGRUP (
+					[GRUP_CD]
+					,[GRUP_TOP_CD]
+					,[GRUP_MID_CD]
+					,[GRUP_BOT_CD]
+					,[GRUP_NM]
+					,[GRUP_STATE]
+					,[GRUP_LOCAL_CD]
+					,[CPROGRM]
+					,[CUSER]
+					,[CDATE]
+				) VALUES (
+					<if test="GRUP_CD != null and GRUP_CD != '' ">
+						#{GRUP_CD}
+					</if>
+					<if test="GRUP_CD == null or (GRUP_CD != null and GRUP_CD == '') ">
+						@GRUP_CD
+					</if>
+					,#{GRUP_TOP_CD}
+					<if test="treeLvlInt == 1">
+						,'0'
+						,'0'
+					</if>
+					<if test="treeLvlInt == 2">
+						,#{GRUP_MID_CD}
+						,'0'
+					</if>
+					<if test="treeLvlInt == 3">
+						,#{GRUP_MID_CD}
+						,#{GRUP_BOT_CD}
+					</if>
+					,#{GRUP_NM}
+					,#{GRUP_STATE}
+					,#{GRUP_LOCAL_CD}
+					,#{PROGRM}
+					,#{EMP_NO}
+					,GETDATE()
+				)
+				
+				SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="updateGoodsCategory" resultType="java.lang.String" parameterType="java.util.Map">
+		/* updateGoodsCategory */
+		IF EXISTS(
+					SELECT
+						GRUP_CD
+					FROM T_STD_GOODSGRUP
+					WHERE GRUP_CD != #{GRUP_CD} 
+					AND GRUP_TOP_CD = #{GRUP_TOP_CD}
+					<if test="treeLvlInt == 1">
+						AND GRUP_MID_CD = '0'
+						AND GRUP_BOT_CD = '0'
+					</if>
+					<if test="treeLvlInt == 2">
+						AND GRUP_MID_CD = #{GRUP_MID_CD}
+						AND GRUP_BOT_CD = '0'
+					</if>
+					<if test="treeLvlInt == 3">
+						AND GRUP_MID_CD = #{GRUP_MID_CD}
+						AND GRUP_BOT_CD = #{GRUP_BOT_CD}
+					</if>
+				)
+			BEGIN
+				SELECT 'DUPL' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				UPDATE T_STD_GOODSGRUP
+				SET GRUP_NM = #{GRUP_NM}
+					,GRUP_TOP_CD = #{GRUP_TOP_CD}
+					,GRUP_MID_CD = #{GRUP_MID_CD}
+					,GRUP_BOT_CD = #{GRUP_BOT_CD}
+					,GRUP_STATE = #{GRUP_STATE}
+					,GRUP_LOCAL_CD = #{GRUP_LOCAL_CD}
+					,MPROGRM = #{PROGRM}
+					,MUSER = #{EMP_NO}
+					,MDATE = GETDATE()
+				WHERE GRUP_CD = #{GRUP_CD}
+				
+				SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="chkChildCategory" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* chkChildCategory */
+		DECLARE @GRUP_TOP_CD NVARCHAR(4)
+				,@GRUP_MID_CD NVARCHAR(4)
+				,@GRUP_BOT_CD NVARCHAR(4)
+				,@RESULT_CNT INT
+		
+		SET @GRUP_TOP_CD = #{GRUP_TOP_CD}
+		SET @GRUP_MID_CD = #{GRUP_MID_CD}
+		SET @GRUP_BOT_CD = #{GRUP_BOT_CD}
+		SET @RESULT_CNT = 0
+		
+		-- 대분류 인 경우 해당 대분류를 사용하는 코드 확인
+		IF(@GRUP_MID_CD = '0' AND @GRUP_BOT_CD = '0')
+			BEGIN
+				SET @RESULT_CNT = (
+									SELECT
+										COUNT(*) AS CNT
+									FROM T_STD_GOODSGRUP
+									WHERE GRUP_CD != #{GRUP_CD}
+									AND GRUP_TOP_CD = @GRUP_TOP_CD
+								)
+								+
+								(
+									SELECT
+										COUNT(*) AS CNT
+									FROM T_STD_MAST_GOODS
+									WHERE GRUP_TOP_CD = @GRUP_TOP_CD
+								)
+			END
+		-- 중분류 인 경우 해당 중분류를 사용하는 코드 확인
+		ELSE IF(@GRUP_MID_CD != '0' AND @GRUP_BOT_CD = '0')
+			BEGIN
+				SET @RESULT_CNT = (
+									SELECT
+										COUNT(*) AS CNT
+									FROM T_STD_GOODSGRUP
+									WHERE GRUP_CD != #{GRUP_CD}
+									AND GRUP_TOP_CD = @GRUP_TOP_CD
+									AND GRUP_MID_CD = @GRUP_MID_CD
+								)
+								+
+								(
+									SELECT
+										COUNT(*) AS CNT
+									FROM T_STD_MAST_GOODS
+									WHERE GRUP_TOP_CD = @GRUP_TOP_CD
+									AND GRUP_MID_CD = @GRUP_MID_CD
+								)
+			END
+		-- 소분류 인 경우 해당 소분류를 사용하는 코드 확인
+		ELSE
+			BEGIN
+				SET @RESULT_CNT = (
+									SELECT
+										COUNT(*) AS CNT
+									FROM T_STD_MAST_GOODS
+									WHERE GRUP_TOP_CD = @GRUP_TOP_CD
+									AND GRUP_MID_CD = @GRUP_MID_CD
+									AND GRUP_BOT_CD = @GRUP_BOT_CD
+								)
+			END
+		
+		SELECT @RESULT_CNT AS RESULT_CNT
+	</select>
+	
+	<select id="deleteGoodsCategory" resultType="java.lang.String" parameterType="java.util.Map">
+		/* deleteGoodsCategory */
+		DELETE FROM T_STD_GOODSGRUP
+		WHERE GRUP_CD = #{GRUP_CD}
+		
+		SELECT 'DEL_SUCCESS' AS RESULT_MSG
+	</select>
+	
+	<select id="getGoodsCategoryByGoodsList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsCategoryByGoodsList */
+		SELECT
+			[GOODS_NO]
+			,[GRUP_TOP_CD]
+			,[GRUP_MID_CD]
+			,[GRUP_BOT_CD]
+			,[GOODS_NM]
+			,[GOODS_PUR_CD]
+			,[GOODS_SALE_TYPE]
+			,[ITEM_TYPE]
+			,[POINT_SAVE_RATE]
+			,[TAX_TYPE]
+			,[GOODS_STATE]
+			,[MAT_TEMPER_INFO]
+			,[GOODS_SET_TYPE]
+			,[MIN_PUR_QTY]
+			,[MIN_PUR_UNIT]
+			,[MIN_ORD_UNIT]
+			,[MIN_ORD_QTY]
+			,[MIN_UNIT_QTY]
+			,[GOODS_DESC]
+			,[GOODS_KEYWD]
+			,[RESP_USER]
+			,[GOODS_LOAD_CD]
+			,[GOODS_EXP_CD]
+			,[GOODS_EXP_DATE]
+			,[PUR_DSCD_TYPE]
+			,[SALE_DSCD_TYPE]
+			--,[DELI_DD_TYPE]
+			,[GOODS_TC_TYPE]
+			--,[DELI_AREA_TYPE]
+			,[GOODS_STOCK_TYPE]
+			,[POLI_TYPE]
+			,[STOCK_CONF_DATE]
+			,[BRADN_TYPE]
+			,[STORE_TYPE]
+			,[CPROGRM]
+			,[CUSER]
+			,[CDATE]
+			,[MPROGRM]
+			,[MUSER]
+			,[MDATE]
+		FROM T_STD_MAST_GOODS
+		WHERE GRUP_TOP_CD = #{GRUP_TOP_CD}
+		AND GRUP_MID_CD = #{GRUP_MID_CD}
+		AND GRUP_BOT_CD = #{GRUP_BOT_CD}
+	</select>
+	
+	<update id="updateCategoryByGoods" parameterType="java.util.Map">
+		<if test='CRUD != null and !CRUD.equals("D")'>
+			/* updateCategoryByGoods 분류 업데이트 */
+			UPDATE T_STD_MAST_GOODS
+			SET GRUP_TOP_CD = #{GRUP_TOP_CD}
+				,GRUP_MID_CD = #{GRUP_MID_CD}
+				,GRUP_BOT_CD = #{GRUP_BOT_CD}
+				,MPROGRM = #{REG_PROGRM}
+				,MUSER = #{REG_ID}
+				,MDATE = GETDATE()
+			WHERE GOODS_NO = #{GOODS_NO}
+		</if>
+		<if test='CRUD != null and CRUD.equals("D")'>
+			/* updateCategoryByGoods 미분류로 업데이트 */
+			UPDATE T_STD_MAST_GOODS
+			SET GRUP_TOP_CD = '901'
+				,GRUP_MID_CD = '1'
+				,GRUP_BOT_CD = '1'
+				,MPROGRM = #{REG_PROGRM}
+				,MUSER = #{REG_ID}
+				,MDATE = GETDATE()
+			WHERE GOODS_NO = #{GOODS_NO}
+		</if>
+	</update>
+</mapper>

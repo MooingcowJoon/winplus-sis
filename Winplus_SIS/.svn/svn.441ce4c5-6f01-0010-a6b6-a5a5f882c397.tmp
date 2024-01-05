@@ -1,0 +1,488 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ include file="/WEB-INF/jsp/common/include/taglib.jspf" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_page_script_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header_override.jsp"/>
+<script type="text/javascript">
+	
+	//LUI : 로그인한 유저의 세션 정보에서 그리드 데이터 직렬화시 공통으로 추가 시키고 싶은 데이터를 넣는 객체
+	LUI = JSON.parse('${empSessionDto.lui}');
+	LUI.exclude_auth_cd = "ALL,1,2";
+	
+	var erpLayout;
+	var erpRibbon;
+	var erpGrid;
+	var cmbORGN_DIV_CD;
+	var cmbORGN_CD;
+	var cmbSEARCH_GUBUN;
+	var cmbPUR_PRICE_GUBUN;
+	
+	$(document).ready(function(){
+		initErpLayout();
+		initErpRibbon();
+		initErpGrid();
+		initDhtmlXCombo();
+	});
+	
+	function initErpLayout() {
+		erpLayout = new dhtmlXLayoutObject({
+			parent : document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "3E"
+			, cells : [
+				{id: "a", text: "조회조건영역", header:false}
+				, {id: "b", text: "리본영역", header:false, fix_size:[true, true]}
+				, {id: "c", text: "그리드영역", header:false}
+			]
+		});
+		
+		erpLayout.cells("a").attachObject("div_erp_search");
+		erpLayout.cells("a").setHeight(145);
+		erpLayout.cells("b").attachObject("div_erp_ribbon");
+		erpLayout.cells("b").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		erpLayout.cells("c").attachObject("div_erp_grid");
+		
+		$erp.setEventResizeDhtmlXLayout(erpLayout, function(names){
+			erpGrid.setSizes();
+		});
+	}
+	
+	function initErpRibbon(){
+		erpRibbon = new dhtmlXRibbon({
+			parent : "div_erp_ribbon"
+			, skin : ERP_RIBBON_CURRENT_SKINS
+			, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+			, items : [
+				{type : "block", mode : 'rows', list : [
+					{id : "search_erpGrid", type : "button", text:'<spring:message code="ribbon.search" />', isbig : false, img : "menu/search.gif", imgdis : "menu/search_dis.gif", disable : false}
+					,{id : "excel_erpGrid", type : "button", text:'<spring:message code="ribbon.excel" />', isbig : false, img : "menu/excel.gif", imgdis : "menu/excel_dis.gif", disable : false}
+					, {id : "print_erpGrid", type : "button", text:'<spring:message code="ribbon.print" />', isbig : false, img : "menu/print.gif", imgdis : "menu/print_dis.gif", disable : false}
+				]}
+			]
+		});
+		
+		erpRibbon.attachEvent("onClick", function(itemId, bId){
+			if(itemId == "search_erpGrid"){
+				isSearchCheck();
+			}else if (itemId == "excel_erpGrid"){
+				$erp.exportDhtmlXGridExcel({
+					"grid" : erpGrid
+					, "fileName" : "단가변동표"
+					, "isForm" : false
+				});
+			} else if(itemId == "print_erpGrid"){
+
+			}
+		});
+	}
+	
+	function initErpGrid(){
+		erpGridColumns = [
+				{id : "NO", label:["NO"], type: "cntr", width: "30", sort : "int", align : "center", isHidden : false, isEssential : false}
+			  , {id : "GOODS_NO", label:["상품코드"], type: "ro", width: "100", sort : "str", align : "center", isHidden : false, isEssential : false}
+			  , {id : "BCD_CD", label:["상품바코드"], type: "ro", width: "120", sort : "str", align : "center", isHidden : false, isEssential : false}
+			  , {id : "BCD_NM", label:["상품명"], type: "ro", width: "400", sort : "str", align : "left", isHidden : false, isEssential : false}
+			  , {id : "DIMEN_NM", label:["규격"], type: "ro", width: "120", sort : "str", align : "left", isHidden : false, isEssential : false}
+			  , {id : "ORD_CD", label:["전표별"], type: "ro", width: "200", sort : "int", align : "left", isHidden : true, isEssential : false}
+			  , {id : "ORD_DATE", label:["일자별"], type: "ro", width: "100", sort : "int", align : "left", isHidden : false, isEssential : false}
+			  , {id : "SALE_QTY", label:["판매수량"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			  , {id : "AVG_SALE_AMT", label:["판매단가(단순평균)"], type: "ron", width: "120", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			  , {id : "MAX_SALE_AMT", label:["판매단가(최고)"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			  , {id : "MIN_SALE_AMT", label:["판매단가(최저)"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			  , {id : "PUR_QTY", label:["구매수량"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			  , {id : "AVG_PUR_PRICE", label:["구매단가(단순평균)"], type: "ron", width: "120", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			  , {id : "MAX_PUR_PRICE", label:["구매단가(최고)"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+			  , {id : "MIN_PUR_PRICE", label:["구매단가(최저)"], type: "ron", width: "100", sort : "int", align : "right", isHidden : true, isEssential : false, numberFormat : "0,000"}
+		];
+		
+		erpGrid = new dhtmlXGridObject({
+			parent: "div_erp_grid"	
+			, skin : ERP_GRID_CURRENT_SKINS
+			, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+			, columns : erpGridColumns
+		});
+		
+		erpGrid.enableDistributedParsing(true, 100, 50);
+		$erp.initGridCustomCell(erpGrid);
+		$erp.initGridComboCell(erpGrid);
+		$erp.attachDhtmlXGridFooterRowCount(erpGrid, '<spring:message code="grid.allRowCount" />');
+		
+		erpGridDataProcessor = new dataProcessor();
+		erpGridDataProcessor.init(erpGrid);
+		erpGridDataProcessor.setUpdateMode("off"); //변경되는 값을 서버에 실시간으로 전송하지 않겠다.
+		$erp.initGridDataColumns(erpGrid);
+		$erp.attachDhtmlXGridFooterPaging(erpGrid, 100);
+		
+		//groupBy
+		erpGrid.attachEvent("onPageChangeCompleted", function(){
+			erpLayout.progressOn();
+			setTimeout(function(){
+				gridGroupBy();
+				erpLayout.progressOff();
+			}, 10);
+		});
+		
+	}
+	
+	function isSearchCheck(){
+		$erp.clearDhtmlXGrid(erpGrid);
+		var price_gubun = cmbPUR_PRICE_GUBUN.getSelectedValue();
+		var search_gubun = cmbSEARCH_GUBUN.getSelectedValue();
+		
+		if($("#qty").is(":checked") == false){
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("SALE_QTY"), true);
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("PUR_QTY"), true);
+		}else {
+			if(price_gubun == "ALL"){
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("SALE_QTY"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("PUR_QTY"), false);
+			}else if(price_gubun == "SALE") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("SALE_QTY"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("PUR_QTY"), true);
+			}else if(price_gubun == "PUR") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("SALE_QTY"), true);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("PUR_QTY"), false);
+			}
+		}
+		
+		if($("#avg_price").is(":checked") == false){
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_SALE_AMT"), true);
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_PUR_PRICE"), true);
+		}else{
+			if(price_gubun == "ALL"){
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_SALE_AMT"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_PUR_PRICE"), false);
+			}else if(price_gubun == "SALE") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_SALE_AMT"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_PUR_PRICE"), true);
+			}else if(price_gubun == "PUR") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_SALE_AMT"), true);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("AVG_PUR_PRICE"), false);
+			}
+		}
+		
+		if($("#max_price").is(":checked") == false){
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_SALE_AMT"), true);
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_PUR_PRICE"), true);
+		}else{
+			if(price_gubun == "ALL"){
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_SALE_AMT"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_PUR_PRICE"), false);
+			}else if(price_gubun == "SALE") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_SALE_AMT"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_PUR_PRICE"), true);
+			}else if(price_gubun == "PUR") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_SALE_AMT"), true);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MAX_PUR_PRICE"), false);
+			}
+		}
+		
+		if($("#min_price").is(":checked") == false){
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_SALE_AMT"), true);
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_PUR_PRICE"), true);
+		}else{
+			if(price_gubun == "ALL"){
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_SALE_AMT"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_PUR_PRICE"), false);
+			}else if(price_gubun == "SALE") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_SALE_AMT"), false);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_PUR_PRICE"), true);
+			}else if(price_gubun == "PUR") {
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_SALE_AMT"), true);
+				erpGrid.setColumnHidden(erpGrid.getColIndexById("MIN_PUR_PRICE"), false);
+			}
+		}
+		
+		if(search_gubun == "ORDER"){
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("ORD_CD"), false);
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("ORD_DATE"), true);
+		}else{
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("ORD_CD"), true);
+			erpGrid.setColumnHidden(erpGrid.getColIndexById("ORD_DATE"), false);
+		}
+		
+		searchErpGrid();
+	}
+	
+	function searchErpGrid(){
+		var CUSTMR_NM = $("#txtCUSTMR_NM").val();
+		var GOODS_NM = $("#txtGOODS_NM").val();
+		
+		if(CUSTMR_NM == ""){
+			$("#txtCUSTMR_CD").val("");
+		}
+		
+		if(GOODS_NM == ""){
+			$("#txtBCD_CD").val("");
+		}
+		
+		var paramMap = {
+				"ORGN_DIV_CD" : cmbORGN_DIV_CD.getSelectedValue()
+				, "ORGN_CD" : cmbORGN_CD.getSelectedValue()
+				, "SEARCH_GUBUN" : cmbSEARCH_GUBUN.getSelectedValue()
+				, "CUSTMR_CD" : $("#txtCUSTMR_CD").val()
+				, "BCD_CD" : $("#txtBCD_CD").val()
+				, "PUR_PRICE_GUBUN" : cmbPUR_PRICE_GUBUN.getSelectedValue()
+		}
+		
+		
+		var searchDateFrom = document.getElementById("searchDateFrom").value.split("-").join("");
+		var searchDateTo = document.getElementById("searchDateTo").value.split("-").join("");
+		if(Number(searchDateFrom) > Number(searchDateTo)) {
+			$erp.alertMessage({
+				"alertMessage" : "error.common.invalidBeginEndDate",
+				"alertCode" : null,
+				"alertType" : "alert",
+				"alertCallbackFn" : function() {
+					document.getElementById("searchDateFrom").value = $erp.getToday("-");
+					document.getElementById("searchDateTo").value = $erp.getToday("-");
+					return false;
+				},
+			});
+		} else {
+			paramMap["SEARCH_DATE_FROM"] = searchDateFrom;
+			paramMap["SEARCH_DATE_TO"] = searchDateTo;
+			
+			erpLayout.progressOn();
+			$.ajax({
+				url : "/sis/report/etc/getPriceChangeList.do"
+				,data : paramMap
+				,method : "POST"
+				,dataType : "JSON"
+				,success : function(data) {
+					erpLayout.progressOff();
+					if(data.isError){
+						$erp.ajaxErrorMessage(data);
+					}else {
+						var gridDataList = data.gridDataList;
+						if($erp.isEmpty(gridDataList)){
+							$erp.addDhtmlXGridNoDataPrintRow(
+									erpGrid
+								,  '<spring:message code="grid.noSearchData" />'
+							);
+						} else {
+							erpGrid.parse(gridDataList, 'js');
+							gridGroupBy();
+							$erp.setDhtmlXGridFooterRowCount(erpGrid);
+						}
+					}
+				}, error : function(jqXHR, textStatus, errorThrown){
+					erpLayout.progressOff();
+					$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+				}
+			});
+		}
+	}
+	
+	function gridGroupBy(){
+		erpGrid.groupBy(erpGrid.getColIndexById("BCD_NM"),["#title","#cspan","#cspan","#cspan","#cspan","#cspan","#cspan","#cspan","#cspan","#cspan","#cspan","#cspan","#cspan"]);
+	}
+	
+	function openSearchCustmrGridPopup(){
+		var pur_sale_type = ""; //협력사(매입처) == "1" 고객사(매출처) == "2"
+		var onRowSelect = function(id, ind) {			
+			custmr_cd = this.cells(id, this.getColIndexById("CUSTMR_CD")).getValue();
+			document.getElementById("txtCUSTMR_CD").value = custmr_cd;
+			document.getElementById("txtCUSTMR_NM").value = this.cells(id, this.getColIndexById("CUSTMR_NM")).getValue();
+			$erp.closePopup2("openSearchCustmrGridPopup");
+		}
+		
+		var onClickRibbonAddData = function(popupGrid){
+			var pop_check_list = popupGrid.getCheckedRows(popupGrid.getColIndexById("CHECK")).split(",");
+			var pop_check_custmr_cd = "";
+			var pop_check_custmr_nm = "";
+			
+			for(var i = 0 ; i < pop_check_list.length ; i++){
+				if(i == 0) {
+					pop_check_custmr_cd += "\'" + popupGrid.cells(pop_check_list[i], popupGrid.getColIndexById("CUSTMR_CD")).getValue() + "\'";
+					pop_check_custmr_nm += popupGrid.cells(pop_check_list[i], popupGrid.getColIndexById("CUSTMR_NM")).getValue();
+				} else {
+					pop_check_custmr_cd += ",\'" + popupGrid.cells(pop_check_list[i], popupGrid.getColIndexById("CUSTMR_CD")).getValue() + "\'";
+				}
+			}
+			
+			if(pop_check_list.length > 1) {
+				pop_check_custmr_nm += " 외 " + (pop_check_list.length-1) + "건";
+			}
+			
+			document.getElementById("txtCUSTMR_CD").value = pop_check_custmr_cd;
+			document.getElementById("txtCUSTMR_NM").value = pop_check_custmr_nm;
+			
+			$erp.closePopup2("openSearchCustmrGridPopup");
+	   	}
+		
+		$erp.searchCustmrPopup(onRowSelect, pur_sale_type, onClickRibbonAddData);
+	}
+	
+	function openSearchGoodsGridPopup(){
+		var onRowSelect = function(id) {
+			document.getElementById("txtGOODS_NM").value = this.cells(id, this.getColIndexById("BCD_NM")).getValue();
+			document.getElementById("txtBCD_CD").value = this.cells(id, this.getColIndexById("BCD_CD")).getValue();
+			$erp.closePopup2("openSearchGoodsGridPopup");
+		}
+		
+		var onClickAddData = function(erpPopupGrid) {
+			var checkList = erpPopupGrid.getCheckedRows(erpPopupGrid.getColIndexById("CHECK")).split(',');
+			var check_bcd_cd = "";
+			var check_goods_nm = "";
+			
+			for(var i = 0 ; i < checkList.length ; i ++) {
+				if(i == 0){
+					check_bcd_cd += "\'" + erpPopupGrid.cells(checkList[i], erpPopupGrid.getColIndexById("BCD_CD")).getValue() + "\'";
+					check_goods_nm += erpPopupGrid.cells(checkList[i], erpPopupGrid.getColIndexById("BCD_NM")).getValue();
+				} else {
+					check_bcd_cd += ",\'" + erpPopupGrid.cells(checkList[i], erpPopupGrid.getColIndexById("BCD_CD")).getValue() + "\'";
+				}
+			}
+			
+			if(checkList.length > 1) {
+				check_goods_nm += " 외 " + (checkList.length-1) + "건";
+			}
+			
+			document.getElementById("txtGOODS_NM").value = check_goods_nm;
+			document.getElementById("txtBCD_CD").value = check_bcd_cd;
+			$erp.closePopup2("openSearchGoodsGridPopup");
+		}
+		
+		$erp.openSearchGoodsPopup(onRowSelect,onClickAddData, {"ORGN_DIV_CD" : cmbORGN_DIV_CD.getSelectedValue(), "ORGN_CD" : cmbORGN_CD.getSelectedValue(), "SHOW_TYPE" : true});
+		
+	}
+	
+	function initDhtmlXCombo(){
+		cmbSEARCH_GUBUN = new dhtmlXCombo("cmbSEARCH_GUBUN");
+		cmbSEARCH_GUBUN.setSize(200);
+		cmbSEARCH_GUBUN.addOption([   
+            {value: "DAY", text: "일별" ,selected: true}
+            ,{value: "MONTH", text: "월별"}      
+            ,{value: "YEAR", text: "년별"}
+            ,{value: "ORDER", text: "주문번호별"}
+         ]);
+		
+		cmbPUR_PRICE_GUBUN = new dhtmlXCombo("cmbPUR_PRICE_GUBUN");
+		cmbPUR_PRICE_GUBUN.setSize(200);
+		cmbPUR_PRICE_GUBUN.addOption([   
+            {value: "ALL", text: "전체" ,selected: true}
+            ,{value: "SALE", text: "판매단가"}      
+            ,{value: "PUR", text: "구매단가"}
+         ]);
+		
+		cmbORGN_DIV_CD = $erp.getDhtmlXComboTableCode("cmbORGN_DIV_CD", "ORGN_DIV_CD", "/sis/code/getSearchableOrgnDivCdList.do", LUI, 200, null, false, LUI.LUI_orgn_div_cd, function(){
+			cmbORGN_CD = $erp.getDhtmlXComboTableCode("cmbORGN_CD", "ORGN_CD", "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : cmbORGN_DIV_CD.getSelectedValue()}]), 200, null, false, LUI.LUI_orgn_cd);
+			cmbORGN_DIV_CD.attachEvent("onChange", function(value, text){
+				cmbORGN_CD.unSelectOption();
+				cmbORGN_CD.clearAll();
+				$erp.setDhtmlXComboTableCodeUseAjax(cmbORGN_CD, "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : value}]), null, false, null);
+			});
+		});
+		
+	}
+	
+	function price_check(){
+		var All_Check_YN = $("#standard_price").is(":checked");
+		if(All_Check_YN == true){
+			$("#avg_price").prop("checked", true);
+			$("#max_price").prop("checked", true);
+			$("#min_price").prop("checked", true);
+		}else {
+			$("#avg_price").prop("checked", false);
+			$("#max_price").prop("checked", false);
+			$("#min_price").prop("checked", false);
+		}
+	}
+	
+	function per_price_check(){
+		var avg_price = $("#avg_price").is(":checked");
+		var max_price = $("#max_price").is(":checked");
+		var min_price = $("#min_price").is(":checked");
+		
+		if(avg_price == true && max_price == true && min_price == true){
+			$("#standard_price").prop("checked", true);
+		}
+		
+		if(avg_price == false || max_price == false || min_price == false){
+			$("#standard_price").prop("checked", false);
+		}
+	}
+	
+	
+</script>
+</head>
+<body>
+	<div id="div_erp_search" class="samyang_div" style="diplay:none;">
+		<table id="table_search" class="table_search">
+			<colgroup>
+				<col width="100px">
+				<col width="250px">
+				<col width="75px">
+				<col width="300px">
+				<col width="*">
+			</colgroup>
+			<tr>
+				<th>법인구분</th>
+				<td>
+					<div id="cmbORGN_DIV_CD"></div>
+				</td>
+				<th>조직명</th>
+				<td>
+					<div id="cmbORGN_CD"></div>
+				</td>
+			</tr>
+			<tr>
+				<th>기준일자</th>
+				<td>
+					<input type="text" id="searchDateFrom" name="searchDateFrom" class="input_calendar default_date" data-position="(start)">
+					<span style="float: left;">~</span>
+					<input type="text" id="searchDateTo" name="searchDateTo" class="input_calendar default_date" data-position="">
+				</td>
+				<th>구분</th>
+				<td>
+					<div id="cmbSEARCH_GUBUN"></div>
+				</td>
+			</tr>
+			<tr>
+				<th>거래처</th>
+				<td>
+					<input type="hidden" id="txtCUSTMR_CD">
+					<input type="text" id="txtCUSTMR_NM" style="width: 160px;">
+					<input type="button" id="btnCUSTMR" value="검색" class="input_common_button" onclick="openSearchCustmrGridPopup()">
+				</td>
+				<th>상  품</th>
+				<td>
+					<input type="hidden" id="txtBCD_CD">
+					<input type="text" id="txtGOODS_NM" style="width: 160px;">
+					<input type="button" id="btnGOODS" value="검색" class="input_common_button" onclick="openSearchGoodsGridPopup()">
+				</td>
+			</tr>
+			<tr>
+				<th>단가구분</th>
+				<td>
+					<div id="cmbPUR_PRICE_GUBUN"></div>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<input type="checkbox" id="standard_price" onchange="price_check()">단가기준
+				</th>
+				<td>
+					<input type="checkbox" id="avg_price" onchange="per_price_check()">단순평균단가
+					<input type="checkbox" id="max_price" onchange="per_price_check()">최고단가
+					<input type="checkbox" id="min_price" onchange="per_price_check()">최저단가
+				</td>
+				<th>기타</th>
+				<td>
+					<input type="checkbox" id="qty">수량표시
+<!-- 					<input type="checkbox" id="price_up_down">단가등락폭표시 -->
+<!-- 					<input type="checkbox" id="no_change_price">변동없는단가포함 -->
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div id="div_erp_ribbon" class="div_ribbon_full_size" style="display:none"></div>
+	<div id="div_erp_grid" class="div_grid_full_size" style="display:none"></div>
+</body>
+</html>

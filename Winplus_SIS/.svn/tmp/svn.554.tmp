@@ -1,0 +1,325 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+ <%@ include file="/WEB-INF/jsp/common/include/taglib.jspf" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_page_script_header.jsp"/>
+<jsp:include page="/WEB-INF/jsp/common/include/default_resources_header_override.jsp"/>
+<script type="text/javascript">
+	LUI = JSON.parse('${empSessionDto.lui}');
+	LUI.exclude_auth_cd = "ALL,1,2,3,4";
+	LUI.exclude_orgn_type = "CT,OT,PM,PS,CS";
+	var total_layout;
+	var top_layout;
+	var mid_layout;
+	var ribbon;
+	
+	
+	$(document).ready(function() {
+		init_total_layout();
+		init_top_layout();
+		init_mid_layout();
+		init_bot_layout();
+	});
+	
+	function init_total_layout() {
+		total_layout = new dhtmlXLayoutObject({
+			parent : document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "3E"
+			, cells : [
+				{id: "a", text: "검색 조건", header: false, fix_size : [true, true]}
+				,{id: "b", text: "버튼 목록", header: false, fix_size:[true,true]}
+				,{id: "c", text: "그리드", header: false, fix_size:[true,true]}
+			]
+		});
+		total_layout.cells("a").attachObject("div_top_layout");
+		total_layout.cells("a").setHeight(60);
+		total_layout.cells("b").attachObject("div_mid_layout");
+		total_layout.cells("b").setHeight(40);
+		total_layout.cells("c").attachObject("div_bot_layout_grid");
+		
+		total_layout.setSeparatorSize(0, 1);
+		total_layout.setSeparatorSize(1, 1);
+	}
+	
+	function init_top_layout(){
+		cmbORGN_DIV_CD = $erp.getDhtmlXComboTableCode("cmbORGN_DIV_CD", "ORGN_DIV_CD", "/sis/code/getSearchableOrgnDivCdList.do", LUI, 220, "AllOrOne", false, null, function(){
+			cmbORGN_CD = $erp.getDhtmlXComboTableCode("cmbORGN_CD", "ORGN_CD", "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : cmbORGN_DIV_CD.getSelectedValue()}]), 110, "AllOrOne", false, null);
+			cmbORGN_DIV_CD.attachEvent("onChange", function(value, text){
+				cmbORGN_CD.unSelectOption();
+				cmbORGN_CD.clearAll();
+				$erp.setDhtmlXComboTableCodeUseAjax(cmbORGN_CD, "/sis/code/getSearchableOrgnCdList.do", $erp.unionObjArray([LUI, {ORGN_DIV_CD : value}]), "AllOrOne", false, null, null);
+			});
+			cmbORGN_CD.attachEvent("onChange", function(value, text){
+
+			});
+		});
+		
+		cmbGROUPBY = new dhtmlXCombo("cmbGROUPBY","cmbGROUPBY",230)
+		cmbGROUPBY.readonly(true);
+		cmbGROUPBY.addOption([
+			{value: "GOODS", text: "상품별", selected: true}
+			,{value: "CUSTMR", text: "주문처별"}
+		]);
+		$erp.objReadonly(["cmbGROUPBY"]);
+		
+		cmbDELI_ORD_STATE = $erp.getDhtmlXComboCommonCode("cmbDELI_ORD_STATE","DELI_ORD_STATE", ["DELI_ORD_STATE"],230, "모두조회", false, false,null,"Y");
+		
+		cmbDATE = new dhtmlXCombo("cmbDATE","cmbDATE")
+		cmbDATE.readonly(true);
+		cmbDATE.addOption([
+			{value: "OUTDATE", text: "배송일"}
+			,{value: "CDATE", text: "등록일", selected: true}
+		]);
+	
+	}
+	
+	function init_mid_layout(){
+		ribbon = new dhtmlXRibbon({
+			parent : "div_mid_layout"
+				, skin : ERP_RIBBON_CURRENT_SKINS
+				, icons_path : ERP_RIBBON_CURRENT_ICON_PATH
+				, items : [
+							{type : "block"
+							, mode : 'rows'
+							, list : [
+								{id : "search_grid",	type : "button", text:'<spring:message code="ribbon.search" />', 	isbig : false, img : "menu/search.gif", imgdis : "menu/search_dis.gif", disable : true}
+// 								, {id : "add_grid", 	type : "button", text:'<spring:message code="ribbon.add" />', 		isbig : false, img : "menu/add.gif", 	imgdis : "menu/add_dis.gif", 	disable : true}
+// 								, {id : "delete_grid",	type : "button", text:'<spring:message code="ribbon.delete" />', 	isbig : false, img : "menu/delete.gif", imgdis : "menu/delete_dis.gif", disable : true}
+// 								, {id : "save_grid", 	type : "button", text:'<spring:message code="ribbon.save" />', 		isbig : false, img : "menu/save.gif", 	imgdis : "menu/save_dis.gif", 	disable : true}
+								, {id : "excel_grid", 	type : "button", text:'<spring:message code="ribbon.excel" />', 	isbig : false, img : "menu/excel.gif", 	imgdis : "menu/excel_dis.gif", 	disable : true, unused : false}
+// 								, {id : "print_grid", 	type : "button", text:'<spring:message code="ribbon.print" />', 	isbig : false, img : "menu/print.gif", 	imgdis : "menu/print_dis.gif", 	disable : true}
+// 								, {id : "excelForm_grid", type : "button", text:'<spring:message code="ribbon.excelForm" />', isbig : false, img : "menu/excel.gif", imgdis : "menu/excel_dis.gif", disable : true, unused : false}
+// 								, {id : "excel_grid_upload", type : "button", text:'<spring:message code="ribbon.upload" />', isbig : false, img : "menu/excel.gif", imgdis : "menu/excel_dis.gif", disable : true, unused : false}
+									]
+							}
+						]
+		});
+		
+		ribbon.attachEvent("onClick", function(itemId, bId){
+			if(itemId == "search_grid"){
+				isSearchValidate();
+			} else if (itemId == "add_grid"){
+					
+			} else if (itemId == "delete_grid"){
+				
+			} else if (itemId == "save_grid"){
+				var dhtmlXGridObj = bot_layout_grid;
+				$erp.gridValidationCheck(bot_layout_grid, function(){
+					saveErpGrid(dhtmlXGridObj)
+				});
+			} else if (itemId == "excel_grid"){
+				$erp.exportGridToExcel({
+					"grid" : bot_layout_grid
+					, "fileName" : "판매내역(온라인)"
+					, "isOnlyEssentialColumn" : false
+					, "excludeColumnIdList" : ['NO','BCD_CD','CUSTMR_CD','UNIQUE_INDEX','GOODS_NO','UNIQUE_INDEX','GRUP_INDEX']
+					, "isIncludeHidden" : true
+					, "isExcludeGridData" : true
+				});
+			} else if (itemId == "excelForm_grid"){
+				
+			} else if (itemId == "excel_grid_upload"){
+				
+			}
+		});
+	}
+	
+	function init_bot_layout() {
+		grid_Columns = [
+						{id : "NO", label:["순번"], type: "cntr", width: "30", sort : "int", align : "center", isHidden : false, isEssential : false}
+						, {id : "ORGN_DIV_CD", label:["법인구분"], type : "combo", width : "140", sort : "str", align : "center", isHidden : false, isEssential : false, isDisabled : true, commonCode : ["ORGN_DIV_CD"]}
+						, {id : "ORGN_CD", label:["조직명"], type : "combo", width : "100", sort : "str", align : "center", isHidden : false, isEssential : false, isDisabled : true, commonCode : ["ORGN_CD"]}
+						, {id : "BCD_CD", label:["바코드"], type : "ro", width : "100", sort : "str", align : "center", isHidden : false, isEssential : true}
+						, {id : "BCD_NM", label:["상품명"], type : "ro", width : "350", sort : "str", align : "left", isHidden : false, isEssential : true}
+						, {id : "DIMEN_NM", label:["규격"], type : "ro", width : "100", sort : "str", align : "left", isHidden : false, isEssential : true}
+						
+						, {id : "TEL_SALE_PRICE", label:["주문서 판매단가"], type : "ron", width : "100", sort : "str", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+						, {id : "MAST_SALE_PRICE", label:["POS 판매단가"], type : "ron", width : "100", sort : "str", align : "right", isHidden : false, isEssential : true, numberFormat : "0,000"}
+						, {id : "SALE_QTY", label:["주문수량"], type : "ro", width : "50", sort : "str", align : "right", isHidden : false, isEssential : true}
+						, {id : "MEM_NM", label:["회원명"], type : "ro", width : "100", sort : "str", align : "center", isHidden : false, isEssential : false}
+						, {id : "MEM_NO", label:["회원번호"], type : "ro", width : "100", sort : "str", align : "center", isHidden : false, isEssential : false}
+						, {id : "ORD_MEMO", label:["메모"], type : "ro", width : "100", sort : "str", align : "left", isHidden : false, isEssential : true}
+						
+						, {id : "TEL_ORD_CD", label:["전화주문코드"], type : "ro", width : "100", sort : "str", align : "left", isHidden : true, isEssential : true}
+						, {id : "GRUP_INDEX", label:["그룹조건"], type : "ro", width : "100", sort : "str", align : "center", isHidden : true, isEssential : false}
+						, {id : "ORD_DATE", label:["등록일자"], type : "ro", width : "100", sort : "str", align : "center", isHidden : true, isEssential : false}
+						, {id : "OUT_WARE_DATE", label:["배송일자"], type : "ro", width : "100", sort : "str", align : "center", isHidden : true, isEssential : false}
+						
+						];
+		bot_layout_grid = new dhtmlXGridObject({
+			parent: "div_bot_layout_grid"
+				, skin : ERP_GRID_CURRENT_SKINS
+				, image_path : ERP_GRID_CURRENT_IMAGE_PATH
+				, columns : grid_Columns
+		});
+		$erp.initGrid(bot_layout_grid,{multiSelect : true});
+		
+		bot_layout_grid.attachEvent("onRowDblClicked", function(rId){
+			var paramGridData = {};
+			var selectedRow = bot_layout_grid.getSelectedRowId();
+			if(selectedRow != null){
+				paramGridData["ORGN_DIV_CD"] = bot_layout_grid.cells(rId, bot_layout_grid.getColIndexById("ORGN_DIV_CD")).getValue();
+				paramGridData["ORGN_CD"] = bot_layout_grid.cells(rId, bot_layout_grid.getColIndexById("ORGN_CD")).getValue();
+				paramGridData["TEL_ORD_CD"] = bot_layout_grid.cells(rId, bot_layout_grid.getColIndexById("TEL_ORD_CD")).getValue();
+				paramGridData["BCD_CD"] = bot_layout_grid.cells(rId, bot_layout_grid.getColIndexById("BCD_CD")).getValue();
+				paramGridData["MEM_NO"] = bot_layout_grid.cells(rId, bot_layout_grid.getColIndexById("MEM_NO")).getValue();
+			}
+			openDetailpopup(paramGridData)
+		});
+
+		//groupBy
+		bot_layout_grid.attachEvent("onPageChangeCompleted", function(){
+			bot_layout_grid.progressOn();
+			setTimeout(function(){
+				gridGroupBy(bot_layout_grid);
+				bot_layout_grid.progressOff();
+			}, 10);
+		});
+	}
+	
+	function openDetailpopup(paramGridData) {
+		var option = {
+				"win_id"	: "openTellOrderHistoryPopup"
+				,"width"	: 1200
+				,"height"	: 600
+				}
+		var url = "sis/market/sales/openTellOrderHistoryPopup.sis";
+		var onContentLoaded = function(){//팝업 이벤트 추가
+			var popWin = this.getAttachedObject().contentWindow;
+			
+			this.progressOff();
+		}
+		$erp.openPopup(url, {"tellInfo" : JSON.stringify(paramGridData)}, onContentLoaded, option); 
+	}
+	
+	function isSearchValidate(){
+		var isValidated = true;
+		
+		var searchDateFrom = document.getElementById("txtDATE_FR").value;
+		var searchDateTo = document.getElementById("txtDATE_TO").value;
+		var alertMessage = "";
+		var alertType = "error";
+		
+		if($erp.isEmpty(searchDateFrom)){
+			isValidated = false;
+			alertMessage = "error.common.date.empty3";
+		}
+		if($erp.isEmpty(searchDateTo)){
+			isValidated = false;
+			alertMessage = "error.common.date.empty3";
+		}
+		if(!isValidated){
+			$erp.alertMessage({
+				"alertMessage" : alertMessage
+				, "alertCode" : null
+				, "alertType" : alertType
+			});
+		} else {
+			searchErpGrid(bot_layout_grid);
+		}
+	}
+	
+	function searchErpGrid(dhtmlXGridObj) {
+		var search_date_from = document.getElementById("txtDATE_FR").value;
+		var search_date_to = document.getElementById("txtDATE_TO").value;
+		var date_from = search_date_from.replace(/\-/g,'');
+		var date_to = search_date_to.replace(/\-/g,'');
+		
+		var dataObj = $erp.dataSerialize("tb_search");
+		var url = "/sis/market/sales/getOrderListByGroup.do";
+		
+		var data1 = {};
+// 		data1["ORGN_DIV_CD"] = "${empSessionDto.orgn_div_cd}";
+// 		data1["ORGN_CD"] = "${empSessionDto.orgn_cd}";
+		
+		var send_data = $erp.unionObjArray([dataObj,data1]);
+		if(Number(date_from.split("-").join("")) > Number(date_to.split("-").join(""))) {
+			$erp.alertMessage({
+				"alertMessage" : "error.common.invalidBeginEndDate",
+				"alertCode" : null,
+				"alertType" : "alert",
+				"alertCallbackFn" : function() {
+					document.getElementById("txtDATE_FR").value = $erp.getToday("-");
+					document.getElementById("txtDATE_TO").value = $erp.getToday("-");
+				}
+			});
+		} else {
+			var if_success = function(data){
+				$erp.clearDhtmlXGrid(dhtmlXGridObj); //기존데이터 삭제
+				if($erp.isEmpty(data.gridDataList)){
+					//검색 결과 없음
+					$erp.addDhtmlXGridNoDataPrintRow(dhtmlXGridObj, '<spring:message code="info.common.noDataSearch" />');
+				}else{
+					dhtmlXGridObj.parse(data.gridDataList,'js');
+					$erp.setDhtmlXGridFooterRowCount(dhtmlXGridObj);
+					gridGroupBy(dhtmlXGridObj);
+				}
+			}	
+			var if_error = function(){
+				
+			}
+			$erp.setDhtmlXGridFooterRowCount(dhtmlXGridObj);
+			$erp.UseAjaxRequestInBody(url, send_data, if_success, if_error, total_layout);
+		}
+	}
+	
+	function gridGroupBy(dhtmlXGridObj){
+		dhtmlXGridObj.groupBy(dhtmlXGridObj.getColIndexById("GRUP_INDEX"),["","#title","#cspan","#cspan","#cspan","","#stat_total","#stat_total","#stat_total","","","","","","","",""]);
+		dhtmlXGridObj.collapseAllGroups();//접힌 채 그리드
+	}
+
+</script>
+</head>
+<body>
+<div id="div_top_layout" class="samyang_div" style="display:none">
+	<div id="div_top_layout_search" class="samyang_div">
+		<table id="tb_search" class="table">
+			<colgroup>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="120px"/>
+				<col width="*"/>
+			</colgroup>
+			<tr>
+				<th colspan="1">법인구분</th>
+				<td colspan="2">
+					<div id="cmbORGN_DIV_CD"></div>
+				</td>
+				<th colspan="1">조직명</th>
+				<td colspan="1">
+					<div id="cmbORGN_CD"></div>
+				</td>
+				<th colspan="1">배달 주문 상태</th>
+				<td colspan="4"><div id="cmbDELI_ORD_STATE"></div></td>
+			</tr>
+			<tr>
+				<th colspan="1">기 간</th>
+				<td colspan="2">
+					<input type="text" id="txtDATE_FR" class="input_calendar default_date" data-position="" value="">
+					<span style="float: left; margin-left: 4px;">~</span>
+					<input type="text" id="txtDATE_TO" class="input_calendar default_date" data-position="" value="" style="float: left; margin-left: 6px;">
+				</td>
+				<th colspan="1">일자 구분</th>
+				<td colspan="1"><div id="cmbDATE"></div></td>
+				<th colspan="1">그룹 구분</th>
+				<td colspan="4"><div id="cmbGROUPBY"></div></td>
+			</tr>
+		</table>
+	</div>
+</div>
+<div id="div_mid_layout" class="div_ribbon_full_size" style="display:none"></div>
+<div id="div_bot_layout_grid" class="div_grid_full_size" style="display:none"></div>
+
+</body>
+</html>

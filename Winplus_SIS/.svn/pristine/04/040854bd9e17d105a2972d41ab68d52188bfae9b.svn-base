@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.basic.dao.CustmrSearchDao">
+	<select id="getSearchCustmrList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSearchCustmrList */
+		SELECT
+			distinct
+			aa.custmr_cd       	 	                   /*거래처코드                    */
+			,aa.custmr_nm      		                   /*거래처명                      */
+           ,aa.custmr_ceonm   		                   /*대표자명                      */
+           ,aa.corp_no        		                   /*사업자번호                    */
+           ,aa.taxbill_cd     		                   /*세무신고거래처                */
+           ,aa.corp_ori_no    		                   /*종사업장번호                  */
+           ,aa.busi_cond      		                   /*업태                          */
+           ,aa.busi_type      		                   /*업종                          */
+           ,aa.ceo_tel        		                   /*대표자휴대전화                */
+           ,aa.resp_user_nm   		                   /*담당자명                      */
+           ,aa.ord_resp_user  		                   /*구매담당자                    */
+           ,aa.cent_resp_user 		                   /*센터담당자                    */
+           ,aa.tel_no         		                   /*전화번호                      */
+           ,aa.fax_no         		                   /*팩스번호                      */
+           ,aa.phon_no        		                   /*담당자 휴대폰                 */
+           ,aa.email          		                   /*이메일                        */
+           ,aa.siteurl        		                   /*홈페이지                      */
+           ,aa.corp_zip_no    		                   /*우편번호(거래처사업소재지)    */
+           ,aa.corp_addr      		                   /*상세주소(거래처사업소재지)    */
+           ,aa.ord_zip_no     		                   /*우편번호(거래처우편물주소(DM))*/
+           ,aa.ord_addr       		                   /*상세주소(거래처우편물주소(DM))*/
+           ,aa.deli_respuser  		                   /*배송담당자                    */
+           ,aa.pay_type       		                   /*수금/지급구분                 */
+           ,aa.pay_schd_1     		                   /*수금/지급예정일 값1           */
+           ,aa.pay_schd_2     		                   /*수금/지급예정일 값2           */
+           ,B1.cmmn_detail_cd_nm pay_std_NM            /*정산유형                      */
+           ,B2.cmmn_detail_cd_nm pay_date_type_NM      /*정산지급유형                      */
+           ,ISNULL(B8.LOAN_AMT,0) LOAN_AMT    		   /*여신한도                      */
+           ,ISNULL(B8.CASH_AMT,0) CASH_AMT     		   /*현금보증                      */
+           ,ISNULL(B8.GRNT_AMT,0) GRNT_AMT     		   /*보증증권                      */
+           ,ISNULL(B8.CREDIT_AMT,0) CREDIT_AMT   	   /*신용보증                          */
+           ,aa.ord_sale_type  		                   /*거래유형(영업)구분            */
+           ,aa.ord_sale_fee   		                   /*거래유형(영업)                */
+           ,aa.ord_pur_type   		                   /*거래유형(구매)구분            */
+           ,aa.ord_pur_fee    		                   /*거래유형(구매)                */
+           ,aa.keywd          		                   /*검색창내용                    */
+           ,aa.memo           		                   /*메모                          */
+           ,aa.exc_vat        		                   /*부가세제외                    */
+           ,B3.cmmn_detail_cd_nm pur_sale_type_NM      /*매입/매출처구분               */
+           ,B4.cmmn_detail_cd_nm pur_type_NM           /*매입유형                      */
+           ,B5.cmmn_detail_cd_nm supr_grup_cd_NM       /*공급사분류코드                */
+           ,B6.cmmn_detail_cd_nm supr_type_NM          /*공급사유형                    */
+           ,B9.cmmn_detail_cd_nm custmr_grup_NM		   /*거래처유형*/
+           ,aa.event_yn       		                   /*행사차단                      */
+           ,aa.goods_fee      		                   /*수수료율(신규상품)            */
+           ,aa.mk_incen_rate  		                   /*매장장려금요율                */
+           ,aa.cent_incen_rate		                   /*센터장려금요율                */
+           ,aa.clse_time      		                   /*주문마감시간                  */
+           ,aa.deli_yoil      		                   /*배송 요일                     */
+           ,aa.deli_date      		                   /*배송 특정일                   */
+           ,aa.min_pur_amt    		                   /*최저발주금액                  */
+           ,aa.haccp_yn       		                   /*HACCP인증여부                 */
+           ,aa.supr_state     		                   /*휴/폐업상태                   */
+           ,aa.clse_busi_date 		                   /*휴/폐업일자                   */
+           ,aa.supr_id        		                   /*공급사 ID                     */
+           ,aa.supr_pwd       		                   /*공급사 패스워드               */
+           ,aa.sales_id       		                   /*매출처 ID                     */
+           ,aa.sales_pwd      		                   /*매출처 패스워드               */
+           ,aa.FILE_YN								   /*계약서 파일 사용여부 */
+           ,aa.cprogrm        		                   /*생성프로그램                  */
+           ,aa.cuser          		                   /*생성자                        */
+           ,CONVERT(CHAR(19), aa.cdate, 120) cdate     /*생성일시                      */
+           ,aa.mprogrm        		                   /*수정프로그램                  */
+           ,aa.muser          		                   /*수정자                        */
+           ,CONVERT(CHAR(19), aa.mdate, 120) mdate     /*수정일시                      */
+          FROM T_STD_MAST_CUSTMR aa
+				left join COM_CMMN_CODE_DETAIL 			B1 on 'PAY_STD'         = B1.CMMN_CD AND aa.PAY_STD         = B1.CMMN_DETAIL_CD  
+			   left join COM_CMMN_CODE_DETAIL 			B2 on 'PAY_DATE_TYPE'   = B2.CMMN_CD AND aa.PAY_DATE_TYPE   = B2.CMMN_DETAIL_CD  
+				left join COM_CMMN_CODE_DETAIL 			B3 on 'PUR_SALE_TYPE'   = B3.CMMN_CD AND aa.PUR_SALE_TYPE   = B3.CMMN_DETAIL_CD  
+				left join COM_CMMN_CODE_DETAIL 			B4 on 'PUR_TYPE'        = B4.CMMN_CD AND aa.PUR_TYPE        = B4.CMMN_DETAIL_CD  
+				left join COM_CMMN_CODE_DETAIL 			B5 on 'SUPR_GRUP_CD'    = B5.CMMN_CD AND aa.SUPR_GRUP_CD    = B5.CMMN_DETAIL_CD  
+				left join COM_CMMN_CODE_DETAIL 			B6 on 'SUPR_TYPE'       = B6.CMMN_CD AND aa.SUPR_TYPE       = B6.CMMN_DETAIL_CD
+				/* left join T_STD_MAST_CREDITLOAN_DETL 	B7 on aa.CUSTMR_CD = B7.OBJ_CD  */
+				/* left join T_STD_MAST_CREDITLOAN 	    B8 on B7.LOAN_CD = B8.LOAN_CD   */
+				left join COM_CMMN_CODE_DETAIL			B9 on 'CUSTMR_GRUP'		= B9.CMMN_CD AND aa.CUSTMR_GRUP		= B9.CMMN_DETAIL_CD
+			   left join  (
+							SELECT  C1.OBJ_CD ,  C2.LOAN_CD,  MAX(C2.LOAN_SEQ) LOAN_SEQ
+							 FROM   T_STD_MAST_CREDITLOAN_DETL      C1
+								    left join T_STD_MAST_CREDITLOAN C2 on C1.LOAN_CD = C2.LOAN_CD
+							 GROUP  BY C1.OBJ_CD, C2.LOAN_CD
+		                 ) B7 ON  aa.CUSTMR_CD  = B7.OBJ_CD
+               left join T_STD_MAST_CREDITLOAN B8 on B7.LOAN_CD = B8.LOAN_CD and  B7.LOAN_SEQ = B8.LOAN_SEQ
+         
+         <choose>
+         	<when test='(cmbORGN_DIV_CD != "" and cmbORGN_DIV_CD != null) and (cmbORGN_CD != "" and cmbORGN_CD != null)'>
+				INNER JOIN (SELECT * FROM T_STD_CUSTMR_MK WHERE ORGN_DIV_CD = #{cmbORGN_DIV_CD} AND ORGN_CD = #{cmbORGN_CD}) MK
+				on aa.CUSTMR_CD = MK.CUSTMR_CD
+         	</when>
+         	<when test='cmbORGN_DIV_CD != "" and cmbORGN_DIV_CD != null'>
+				INNER JOIN (SELECT * FROM T_STD_CUSTMR_MK WHERE ORGN_DIV_CD = #{cmbORGN_DIV_CD}) MK
+				on aa.CUSTMR_CD = MK.CUSTMR_CD
+         	</when>
+         	<when test='cmbORGN_CD != "" and cmbORGN_CD != null'>
+				INNER JOIN (SELECT * FROM T_STD_CUSTMR_MK WHERE ORGN_CD = #{cmbORGN_CD}) MK
+				on aa.CUSTMR_CD = MK.CUSTMR_CD
+         	</when>
+			<otherwise></otherwise>
+         </choose>
+         LEFT JOIN T_STD_CUSTMR_ACNT AS TA
+				ON aa.CUSTMR_CD = TA.CUSTMR_CD
+         WHERE aa.CUSTMR_CD IS NOT NULL 
+           AND ( aa.CUSTMR_CD       LIKE #{Query_value} 
+                 OR aa.CUSTMR_NM    LIKE #{Query_value} 
+                 OR aa.CUSTMR_CEONM LIKE #{Query_value} 
+                 OR aa.CORP_NO      LIKE #{Query_value} 
+               )
+        <if test='cmbPamentDay != null and cmbPamentDay != ""'>
+           AND  aa.PAY_STD = #{cmbPamentDay}          /* 마감일자(결제기준) */
+        </if> 
+        <if test='cmbPartnerIO  != null and cmbPartnerIO != ""'>
+           AND  aa.PUR_SALE_TYPE = #{cmbPartnerIO}    /* 거래처구분(매입-매출처구분) */
+        </if> 
+        <if test='cmbCUSTMR_GRUP  != "" and cmbCUSTMR_GRUP != null'>
+           AND  aa.CUSTMR_GRUP = #{cmbCUSTMR_GRUP}   /* 거래처유형 */
+        </if> 
+        <if test='cmbPartnerPART  != null and cmbPartnerPART != ""'>
+           AND  aa.SUPR_GRUP_CD = #{cmbPartnerPART}   /* 공급사분류코드 */
+        </if> 
+        <if test='cmbPartnerTYPE  != null and cmbPartnerTYPE  != ""'>
+           AND  aa.SUPR_TYPE = #{cmbPartnerTYPE}       /* 공급사유형 */
+        </if> 
+        <if test='cmbYNCD  != null and cmbYNCD  != ""'>
+           AND  aa.USE_YN = #{cmbYNCD}
+        </if>
+        <if test='cmbBANK_YN != "" and cmbBANK_YN != null'>
+           AND TA.USE_YN = #{cmbBANK_YN}
+        </if>
+         ORDER BY aa.custmr_cd
+    </select>
+
+    <select id="getSearchCustomPopup" resultType="java.util.Map" parameterType="java.util.Map">
+        /* getSearchCustomPopup */
+        SELECT  aa.custmr_cd       	 	               /*거래처코드                    */
+           ,aa.custmr_nm      		                   /*거래처명                      */
+           ,aa.custmr_ceonm   		                   /*대표자명                      */
+           ,aa.corp_no        		                   /*사업자번호                    */
+           ,aa.taxbill_cd     		                   /*세무신고거래처                */
+           ,aa.corp_ori_no    		                   /*종사업장번호                  */
+           ,aa.busi_cond      		                   /*업태                          */
+           ,aa.busi_type      		                   /*업종                          */
+           ,aa.ceo_tel        		                   /*대표자휴대전화                */
+           ,aa.resp_user_nm   		                   /*담당자명                      */
+           ,aa.ord_resp_user  		                   /*구매담당자                    */
+           ,aa.cent_resp_user 		                   /*센터담당자                    */
+           ,aa.tel_no         		                   /*전화번호                      */
+           ,aa.fax_no         		                   /*팩스번호                      */
+           ,aa.phon_no        		                   /*담당자 휴대폰                 */
+           ,aa.email          		                   /*이메일                        */
+           ,aa.siteurl        		                   /*홈페이지                      */
+           ,aa.corp_zip_no    		                   /*우편번호(거래처사업소재지)    */
+           ,aa.corp_addr      		                   /*상세주소(거래처사업소재지)    */
+           ,aa.ord_zip_no     		                   /*우편번호(거래처우편물주소(DM))*/
+           ,aa.ord_addr       		                   /*상세주소(거래처우편물주소(DM))*/
+           ,aa.deli_respuser  		                   /*배송담당자                    */
+           ,aa.pay_type       		                   /*수금/지급구분                 */
+           ,aa.pay_schd_1     		                   /*수금/지급예정일 값1           */
+           ,aa.pay_schd_2     		                   /*수금/지급예정일 값2           */
+           ,B1.cmmn_detail_cd_nm pay_std_NM            /*정산유형                      */
+           ,B2.cmmn_detail_cd_nm pay_date_type_NM      /*정산지급유형                      */
+           ,ISNULL(B8.LOAN_AMT,0) LOAN_AMT    		   /*여신한도                      */
+           ,ISNULL(B8.CASH_AMT,0) CASH_AMT     		   /*현금보증                      */
+           ,ISNULL(B8.GRNT_AMT,0) GRNT_AMT     		   /*보증증권                      */
+           ,ISNULL(B8.CREDIT_AMT,0) CREDIT_AMT   	   /*신용보증                          */
+           ,aa.ord_sale_type  		                   /*거래유형(영업)구분            */
+           ,aa.ord_sale_fee   		                   /*거래유형(영업)                */
+           ,aa.ord_pur_type   		                   /*거래유형(구매)구분            */
+           ,aa.ord_pur_fee    		                   /*거래유형(구매)                */
+           ,aa.keywd          		                   /*검색창내용                    */
+           ,aa.memo           		                   /*메모                          */
+           ,aa.exc_vat        		                   /*부가세제외                    */
+           ,B3.cmmn_detail_cd_nm pur_sale_type_NM      /*매입/매출처구분               */
+           ,B4.cmmn_detail_cd_nm pur_type_NM           /*매입유형                      */
+           ,B5.cmmn_detail_cd_nm supr_grup_cd_NM       /*공급사분류코드                */
+           ,B6.cmmn_detail_cd_nm supr_type_NM          /*공급사유형                    */
+           ,B9.cmmn_detail_cd_nm custmr_grup_nm		   /*거래처유형*/
+           ,aa.event_yn       		                   /*행사차단                      */
+           ,aa.goods_fee      		                   /*수수료율(신규상품)            */
+           ,aa.mk_incen_rate  		                   /*매장장려금요율                */
+           ,aa.cent_incen_rate		                   /*센터장려금요율                */
+           ,aa.clse_time      		                   /*주문마감시간                  */
+           ,aa.deli_yoil      		                   /*배송 요일                     */
+           ,aa.deli_date      		                   /*배송 특정일                   */
+           ,aa.min_pur_amt    		                   /*최저발주금액                  */
+           ,aa.haccp_yn       		                   /*HACCP인증여부                 */
+           ,aa.supr_state     		                   /*휴/폐업상태                   */
+           ,aa.clse_busi_date 		                   /*휴/폐업일자                   */
+           ,aa.supr_id        		                   /*공급사 ID                     */
+           ,aa.supr_pwd       		                   /*공급사 패스워드               */
+           ,aa.sales_id       		                   /*매출처 ID                     */
+           ,aa.sales_pwd      		                   /*매출처 패스워드               */
+           ,aa.cprogrm        		                   /*생성프로그램                  */
+           ,aa.cuser          		                   /*생성자                        */
+           ,CONVERT(CHAR(19), aa.cdate, 120) cdate     /*생성일시                      */
+           ,aa.mprogrm        		                   /*수정프로그램                  */
+           ,aa.muser          		                   /*수정자                        */
+           ,CONVERT(CHAR(19), aa.mdate, 120) mdate     /*수정일시                      */
+          FROM T_STD_MAST_CUSTMR aa
+               left join COM_CMMN_CODE_DETAIL 			B1 on 'PAY_STD'         = B1.CMMN_CD AND aa.PAY_STD         = B1.CMMN_DETAIL_CD  
+			   left join COM_CMMN_CODE_DETAIL 			B2 on 'PAY_DATE_TYPE'   = B2.CMMN_CD AND aa.PAY_DATE_TYPE   = B2.CMMN_DETAIL_CD  
+               left join COM_CMMN_CODE_DETAIL 			B3 on 'PUR_SALE_TYPE'   = B3.CMMN_CD AND aa.PUR_SALE_TYPE   = B3.CMMN_DETAIL_CD  
+               left join COM_CMMN_CODE_DETAIL 			B4 on 'PUR_TYPE'        = B4.CMMN_CD AND aa.PUR_TYPE        = B4.CMMN_DETAIL_CD  
+               left join COM_CMMN_CODE_DETAIL 			B5 on 'SUPR_GRUP_CD'    = B5.CMMN_CD AND aa.SUPR_GRUP_CD    = B5.CMMN_DETAIL_CD  
+               left join COM_CMMN_CODE_DETAIL 			B6 on 'SUPR_TYPE'       = B6.CMMN_CD AND aa.SUPR_TYPE       = B6.CMMN_DETAIL_CD
+               left join T_STD_MAST_CREDITLOAN_DETL 	B7 on aa.CUSTMR_CD = B7.OBJ_CD
+               left join T_STD_MAST_CREDITLOAN 			B8 on B7.LOAN_CD = B8.LOAN_CD
+               left join COM_CMMN_CODE_DETAIL			B9 on 'CUSTMR_GRUP'		= B9.CMMN_CD AND aa.CUSTMR_GRUP		= B9.CMMN_DETAIL_CD
+         WHERE CORP_NO =  #{CORP_NO} 
+         ORDER BY aa.custmr_cd		 
+    </select>
+    
+	<select id="getSearchCustmrGroupList" parameterType="Map" resultType="CMap">
+		/* getSearchCustmrGroupList */
+			SELECT TG.GRUP_CD
+					,TG.GRUP_NM
+					,TG.USE_YN
+					,CONVERT(NVARCHAR(19),TG.CDATE,120) AS CDATE
+					,TG.CUSER
+					,CONVERT(NVARCHAR(19),TG.MDATE,120) AS MDATE
+					,TG.MUSER
+			FROM T_STD_GOODSGRUP_USER AS TG
+			INNER JOIN T_STD_GOODSGRUP_U_DETL AS TGD
+			ON TG.GRUP_CD = TGD.GRUP_CD
+			INNER JOIN T_STD_MAST_CUSTMR AS TC
+			ON TGD.OBJ_CD = TC.CUSTMR_CD
+			WHERE TC.CUSTMR_CD = #{CUSTMR_CD}
+			GROUP BY TG.GRUP_CD
+					,TG.GRUP_NM
+					,TG.USE_YN
+					,TG.CDATE
+					,TG.CUSER
+					,TG.MDATE
+					,TG.MUSER
+	</select>
+    
+    <select id="getCustmrInfoLog" parameterType="Map" resultType="CMap">
+    	SELECT
+    		CUSTMR_CD
+    		, CUSTMR_NM
+    		, CUSTMR_CEONM
+    		, CORP_NO
+    		, TAXBILL_CD
+    		, CORP_ORI_NO	
+    		, BUSI_COND	
+    		, BUSI_TYPE	
+    		, CEO_TEL	
+    		, RESP_USER_NM	
+    		, ORD_RESP_USER	
+    		, CENT_RESP_USER	
+    		, TEL_NO	
+    		, FAX_NO	
+    		, PHON_NO	
+    		, EMAIL	
+    		, SITEURL	
+    		, CORP_ZIP_NO	
+    		, CORP_ADDR	
+    		, CORP_ADDR_DETL	
+    		, ORD_ZIP_NO	
+    		, ORD_ADDR	
+    		, ORD_ADDR_DETL	
+    		, DELI_RESPUSER	
+    		, PAY_TYPE	
+    		, PAY_SCHD_1	
+    		, PAY_SCHD_2	
+    		, PAY_STD	
+    		, TRUST_LIMIT	
+    		, TRUST_CASH	
+    		, TRUST_GRNT	
+    		, TRUST_CREDIT	
+    		, ORD_SALE_TYPE	
+    		, ORD_SALE_FEE	
+    		, ORD_PUR_TYPE	
+    		, ORD_PUR_FEE	
+    		, KEYWD	
+    		, MEMO	
+    		, EXC_VAT	
+    		, PUR_SALE_TYPE	
+    		, PUR_TYPE	
+    		, SUPR_GRUP_CD	
+    		, SUPR_TYPE	
+    		, EVENT_YN	
+    		, GOODS_FEE	
+    		, BF_SEND_GB	
+    		, BF_NS_VF	
+    		, BF_FEE5	
+    		, BF_HEAD	
+    		, MK_INCEN_RATE	
+    		, CENT_INCEN_RATE	
+    		, CLSE_TIME	
+    		, DELI_YOIL	
+    		, DELI_DATE	
+    		, LEAD_TIME	
+    		, DELI_AREA_YN	
+    		, MIN_PUR_AMT	
+    		, HACCP_YN	
+    		, USE_YN	
+    		, SUPR_STATE	
+    		, CLSE_BUSI_DATE	
+    		, SUPR_ID
+    		, SUPR_PWD	
+    		, SALES_ID	
+    		, SALES_PWD	
+    		, CPROGRM	
+    		, CUSER	
+    		, CDATE	
+    		, MPROGRM	
+    		, MUSER	
+    		, MDATE	
+    		, REG_DATE
+    	FROM
+    		T_STD_MAST_CUSTMR_LOG
+    
+    </select>
+    
+	<select id="getCustmrGoodsSearch" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCustmrGoodsSearch */
+		SELECT TC.CUSTMR_CD
+			,TC.RESP_USER_NM
+			,TC.CUSTMR_NM
+			,TC.SUPR_TYPE
+		FROM T_STD_MAST_CUSTMR AS TC
+		WHERE TC.PUR_SALE_TYPE = '2'
+		<if test='CUSTMR_GRUP  != "" and CUSTMR_GRUP != null'>
+		AND TC.CUSTMR_GRUP = #{CUSTMR_GRUP}
+		</if>
+		<if test='KEY_WORD  != "" and KEY_WORD != null'>
+		AND TC.CUSTMR_NM LIKE '%'+#{KEY_WORD}+'%'
+		</if>
+	</select>
+	
+	<select id="getCustmrGoodsDetailSearch" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCustmrGoodsDetailSearch */
+		SELECT TG.BCD_CD
+				,TB.BCD_NM
+				,TG.USE_YN
+		FROM T_STD_CUSTMR_GOODS AS TG
+		INNER JOIN T_STD_MAST_BCD AS TB
+		ON TG.BCD_CD = TB.BCD_CD
+		WHERE CUSTMR_CD = #{CUSTMR_CD}
+		GROUP BY TG.BCD_CD
+				,TB.BCD_NM
+				,TG.USE_YN
+		ORDER BY TB.BCD_NM
+	</select>
+	
+	<insert id="saveAddCustmrGoodsSearch" parameterType="java.util.Map">
+		/* saveAddCustmrGoodsSearch */
+		DECLARE @GOODS_NO		NVARCHAR(10)
+		
+		SET @GOODS_NO = (SELECT TOP 1 GOODS_NO
+						FROM T_STD_MAST_BCD
+						WHERE BCD_CD = #{BCD_CD})
+		
+		INSERT INTO T_STD_CUSTMR_GOODS( 
+				ORGN_DIV_CD
+				,ORGN_CD
+				,CUSTMR_CD
+				,BCD_CD
+				,GOODS_NO
+				,ORD_TYPE
+				,USE_YN
+				,CPROGRM
+				,CUSER
+				,CDATE
+				)
+		VALUES(
+				#{ORGN_DIV_CD}
+				,#{ORGN_CD}
+				,#{CUSTMR_CD}
+				,#{BCD_CD}
+				,@GOODS_NO
+				,'0'
+				,#{USE_YN}
+				,#{CPROGRM}
+				,#{CUSER}
+				,GETDATE()
+				)
+	</insert>
+	
+	<update id="saveUpdateCustmrGoodsSearch" parameterType="java.util.Map">
+		/* saveUpdateCustmrGoodsSearch */
+		UPDATE T_STD_CUSTMR_GOODS
+		SET USE_YN = #{USE_YN}
+			,MPROGRM = #{MPROGRM}
+			,MUSER = #{MUSER}
+			,MDATE = GETDATE()
+		WHERE CUSTMR_CD = #{CUSTMR_CD}
+		AND BCD_CD = #{BCD_CD}
+	</update>
+</mapper>

@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.sales.dao.SalesManagementCenterDao">
+	<select id="getSuprBySupplyHeaderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSuprBySupplyHeaderList */
+				SELECT
+			A.ORGN_DIV_CD
+			,A.ORGN_CD
+			,A.ORD_CD
+			,CASE
+				WHEN COUNT(A.BCD_CD) > 1 THEN CONCAT((SELECT RTRIM(BCD_NM) FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(A.BCD_CD)),' 외 ',(COUNT(A.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(A.BCD_CD))
+			END AS TOT_GOODS_NM
+			,A.OUT_WARE_CD
+			,A.CUSTMR_CD
+			,A.ORD_DATE
+			,A.ORD_TYPE
+			,SUM(A.SALE_AMT) AS SALE_AMT
+			,SUM(A.SALE_VAT_AMT) AS SALE_VAT_AMT
+			,SUM(A.SALE_TOT_AMT) AS SALE_TOT_AMT
+			,SUM(A.SALE_QTY) AS SALE_QTY
+			,A.REG_TYPE
+			,A.CUSTMR_NM
+		FROM (
+			SELECT
+				CM.ORGN_DIV_CD
+				,CM.ORGN_CD
+				,CM.ORD_CD
+				,CD.BCD_CD
+				,CM.OUT_WARE_CD
+				,CM.CUSTMR_CD
+				,CONVERT(NVARCHAR(10),CM.ORD_DATE,120) AS ORD_DATE
+				,CM.ORD_TYPE
+				,SUM(CD.SALE_AMT) AS SALE_AMT
+				,SUM(CD.SALE_VAT_AMT) AS SALE_VAT_AMT
+				,SUM(CD.SALE_TOT_AMT) AS SALE_TOT_AMT
+				,SUM(CD.SALE_QTY) AS SALE_QTY
+				,CM.REG_TYPE
+				,TSMC.CUSTMR_NM
+			FROM T_SALE_CENT_MAST AS CM
+			INNER JOIN T_SALE_CENT_MAST_DETL AS CD 
+			ON CM.ORGN_DIV_CD = CD.ORGN_DIV_CD
+			AND CM.ORGN_CD = CD.ORGN_CD
+			AND CM.ORD_CD = CD.ORD_CD
+			INNER JOIN T_STD_MAST_CUSTMR TSMC
+			ON TSMC.CUSTMR_CD = CM.CUSTMR_CD
+			WHERE CM.ORD_DATE BETWEEN DATEADD(DD,0,#{searchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDateTo}))
+			AND CM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			<if test = 'ORGN_CD != ""'>
+			AND CM.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test = 'CUSTMR_CD != ""'>
+			AND CM.CUSTMR_CD = #{CUSTMR_CD}
+			</if>
+			<if test = 'REG_TYPE != ""'>
+			AND CM.REG_TYPE = #{REG_TYPE}
+			</if>
+			GROUP BY CM.ORGN_DIV_CD, CM.ORGN_CD,CM.ORD_CD,CM.OUT_WARE_CD,CM.ORD_TYPE,CONVERT(NVARCHAR(10),CM.ORD_DATE,120),CM.CUSTMR_CD,CD.BCD_CD,CM.REG_TYPE,TSMC.CUSTMR_NM
+		) AS A
+		GROUP BY A.ORGN_DIV_CD,A.ORGN_CD,A.ORD_CD,A.OUT_WARE_CD,A.CUSTMR_CD,A.ORD_DATE,A.ORD_TYPE,A.REG_TYPE,A.CUSTMR_NM
+		ORDER BY A.ORD_DATE DESC
+	</select>
+	
+	<select id="getSuprBySupplyDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getSuprBySupplyDetailList */
+		select CM.ORGN_DIV_CD
+			,CM.ORGN_CD
+			,CM.ORD_CD
+			,CD.BCD_CD
+			,BCD.BCD_NM
+			,BCD.DIMEN_NM
+			,CM.OUT_WARE_CD
+			,CM.CUSTMR_CD
+			,CONVERT(NVARCHAR(10),CM.ORD_DATE,120) AS ORD_DATE
+			,CM.ORD_TYPE
+			,SUM(CD.SALE_AMT) AS SALE_AMT
+			,SUM(CD.SALE_VAT_AMT) AS SALE_VAT_AMT
+			,SUM(CD.SALE_TOT_AMT) AS SALE_TOT_AMT
+			,SUM(CD.SALE_QTY) AS SALE_QTY
+			,CM.REG_TYPE
+		from T_SALE_CENT_MAST AS CM
+		INNER JOIN T_SALE_CENT_MAST_DETL AS CD
+		ON CM.ORGN_DIV_CD = CD.ORGN_DIV_CD
+		AND CM.ORGN_CD = CD.ORGN_CD
+		AND CM.ORD_CD = CD.ORD_CD
+		INNER JOIN T_STD_MAST_BCD AS BCD 
+		ON BCD.BCD_CD = CD.BCD_CD
+		WHERE CM.ORD_DATE BETWEEN DATEADD(DD,0,#{searchDate}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDate}))
+		AND CM.ORGN_CD = #{ORGN_CD}
+		AND CM.CUSTMR_CD = #{CUSTMR_CD}
+		AND CM.ORD_CD = #{ORD_CD}
+		GROUP BY CM.ORGN_DIV_CD, CM.ORGN_CD,CM.ORD_CD,CM.OUT_WARE_CD,CM.ORD_TYPE,ORD_DATE,CM.CUSTMR_CD,CD.BCD_CD,BCD.BCD_NM,BCD.DIMEN_NM,CM.REG_TYPE
+	</select>
+	
+	<update id="saveSuprBySupplyDetailInfo" parameterType="java.util.Map">
+		/* saveSuprBySupplyDetailInfo */
+		UPDATE T_SALE_CENT_MAST_DETL
+		SET  SALE_AMT = #{SALE_AMT}
+			,SALE_VAT_AMT = #{SALE_VAT_AMT}
+			,SALE_TOT_AMT = #{SALE_TOT_AMT}
+			,MPROGRM = 'saveSuprBySupplyDetailInfo'
+			,MUSER = #{emp_no}
+			,MDATE = GETDATE()
+		WHERE ORGN_CD = #{ORGN_CD} 
+		AND SUPR_CD = #{CUSTMR_CD}
+		AND ORD_CD = #{ORD_CD}
+		AND BCD_CD = #{BCD_CD}
+	</update>
+	
+	<select id="getSuprBySupplyConfirmHeaderList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getSuprBySupplyConfirmHeaderList */
+		SELECT
+		   A.ORGN_DIV_CD
+		   ,A.ORGN_CD
+		   ,A.ORD_CD
+		   ,A.CUSTMR_CD
+		   ,A.ORD_DATE
+		   ,CASE
+		      WHEN COUNT(A.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(A.BCD_CD)),' 외 ',(COUNT(A.BCD_CD)-1),'건')
+		      ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(A.BCD_CD))
+		   END AS TOT_GOODS_NM
+		   ,SUM(CASE WHEN ISNULL(GOODS_TAX_YN,'N') = 'Y' THEN A.SALE_TOT_AMT ELSE 0 END) AS PUR_TAXA_AMT
+		   ,SUM(CASE WHEN ISNULL(GOODS_TAX_YN,'N') = 'N' THEN A.SALE_TOT_AMT ELSE 0 END) AS PUR_FREE_AMT
+		   ,SUM(A.SALE_TOT_AMT) AS PAY_SUM_AMT
+		   ,CASE SEND_TYPE 
+		      WHEN 'Y' THEN 'ERP'
+		      ELSE CONF_TYPE
+		   END AS SEND_TYPE
+		   ,A.CONF_TYPE
+		   ,A.REG_TYPE
+		   ,SUM(A.CONF_AMT) AS CONF_AMT
+		   ,A.CUSTMR_NM
+		FROM (
+		   SELECT
+		      SCM.ORGN_DIV_CD
+		      ,SCM.ORGN_CD
+		      ,SCM.ORD_CD
+		      ,SCM.CUSTMR_CD
+		      ,CONVERT(NVARCHAR(10),SCM.ORD_DATE,120) AS ORD_DATE
+		      ,SCMD.BCD_CD
+		      ,COUNT(SCMD.BCD_CD) AS CNT
+		      ,(
+		         SELECT
+		         TOP 1 CASE WHEN ISNULL(TAX_TYPE,'1') = '1' THEN 'Y' ELSE 'N' END AS GOODS_TAX_YN
+		         FROM T_STD_MAST_GOODS
+		         WHERE GOODS_NO IN (
+		                        SELECT
+		                           GOODS_NO
+		                        FROM T_STD_MAST_BCD
+		                        WHERE BCD_CD = SCMD.BCD_CD
+		         )
+		      ) AS GOODS_TAX_YN
+		      ,SUM(SCMD.SALE_TOT_AMT) AS SALE_TOT_AMT
+		      ,SCM.CONF_TYPE
+		      ,ISNULL(SCM.SEND_TYPE,'N') AS SEND_TYPE
+		      ,SCM.REG_TYPE
+		      ,SCMD.CONF_AMT
+		      ,TSMC.CUSTMR_NM
+		FROM T_SALE_CENT_MAST SCM
+		INNER JOIN T_SALE_CENT_MAST_DETL SCMD
+			ON SCM.ORGN_DIV_CD = SCMD.ORGN_DIV_CD
+				AND SCM.ORGN_CD = SCMD.ORGN_CD
+				AND SCM.ORD_CD = SCMD.ORD_CD
+		INNER JOIN T_STD_MAST_CUSTMR TSMC
+			ON TSMC.CUSTMR_CD = SCM.CUSTMR_CD
+		WHERE 1=1 
+			AND SCM.ORD_DATE BETWEEN DATEADD(DD,0,#{searchDateFrom}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDateTo}))
+			AND SCM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			<if test='ORGN_CD != ""'>
+			AND SCM.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test = 'CUSTMR_CD != ""'>
+			AND SCM.CUSTMR_CD = #{CUSTMR_CD}
+			</if>
+			<if test = 'REG_TYPE != ""'>
+			AND SCM.REG_TYPE = #{REG_TYPE}
+			</if>
+			GROUP BY SCM.ORGN_DIV_CD,SCM.ORGN_CD,SCM.CUSTMR_CD,CONVERT(NVARCHAR(10),SCM.ORD_DATE,120),SCMD.BCD_CD,SCM.CONF_TYPE,SCM.SEND_TYPE,SCM.REG_TYPE,SCMD.CONF_AMT,TSMC.CUSTMR_NM,SCM.ORD_CD
+		) A
+		GROUP BY A.ORGN_DIV_CD,A.ORGN_CD,A.CUSTMR_CD,A.ORD_DATE,A.CONF_TYPE,A.SEND_TYPE,A.REG_TYPE,A.ORD_CD,A.CUSTMR_NM
+		ORDER BY A.ORD_DATE DESC
+	</select>
+	
+	<select id="getSuprBySupplyConfirmDetailList" parameterType="java.util.Map" resultType="java.util.Map">
+		/* getSuprBySupplyConfirmDetailList */
+		SELECT
+		   SCM.ORGN_DIV_CD
+		   ,SCM.ORGN_CD
+		   ,SCM.CUSTMR_CD
+		   ,CONVERT(NVARCHAR(10),SCM.ORD_DATE,120) AS ORD_DATE
+		   ,SCMD.BCD_CD
+		   ,BCD.BCD_NM
+		   ,BCD.DIMEN_NM
+		   ,COUNT(SCMD.BCD_CD) AS CNT
+		   ,SUM(SALE_QTY) AS SALE_QTY
+		   ,(
+		      SELECT
+		      TOP 1 CASE WHEN ISNULL(TAX_TYPE,'1') = '1' THEN 'Y' ELSE 'N' END AS GOODS_TAX_YN
+		      FROM T_STD_MAST_GOODS
+		      WHERE GOODS_NO IN (
+		                     SELECT
+		                        GOODS_NO
+		                     FROM T_STD_MAST_BCD
+		                     WHERE BCD_CD = SCMD.BCD_CD
+		      )
+		   ) AS GOODS_TAX_YN
+		   ,SUM(SCMD.SALE_TOT_AMT) AS SALE_TOT_AMT
+		   ,SCMD.CONF_AMT AS CONF_DETL_AMT
+		   ,SCM.CONF_TYPE
+		   ,ISNULL(SCM.SEND_TYPE,'N') AS SEND_TYPE
+		   ,SCM.REG_TYPE
+		   ,SCM.ORD_CD
+		   ,SCM.ORGN_CD
+		FROM T_SALE_CENT_MAST SCM
+		INNER JOIN T_SALE_CENT_MAST_DETL SCMD
+		ON SCM.ORGN_DIV_CD = SCMD.ORGN_DIV_CD
+		AND SCM.ORGN_CD = SCMD.ORGN_CD
+		AND SCM.ORD_CD = SCMD.ORD_CD
+		INNER JOIN T_STD_MAST_BCD AS BCD
+		ON BCD.BCD_CD = SCMD.BCD_CD
+		WHERE SCM.ORD_DATE BETWEEN DATEADD(DD,0,#{searchDate}) AND DATEADD(SS,-1,DATEADD(DD,1,#{searchDate}))
+		AND SCM.ORGN_CD = #{ORGN_CD}
+		AND SCM.CUSTMR_CD = #{CUSTMR_CD}
+		GROUP BY SCM.ORGN_DIV_CD,SCM.ORGN_CD,SCM.CUSTMR_CD,CONVERT(NVARCHAR(10),SCM.ORD_DATE,120),SCMD.BCD_CD,SCM.CONF_TYPE,SCM.SEND_TYPE,BCD.BCD_NM,BCD.DIMEN_NM,SCM.REG_TYPE,SCM.ORD_CD,SCM.ORGN_CD,SCMD.CONF_AMT
+	</select>
+	
+	<update id="approvalSuprBySupplyConfirm" parameterType="java.util.Map">
+		/* approvalSuprBySupplyConfirm */
+		<if test = 'SEND_TYPE != "ERP"'>
+			UPDATE T_SALE_CENT_MAST
+			SET CONF_TYPE = 'Y'
+				, MPROGRM = 'approvalSuprBySupplyConfirm'
+				, MUSER = #{emp_no}
+				, MDATE = GETDATE()
+			WHERE ORGN_CD = #{ORGN_CD}
+			AND CUSTMR_CD = #{CUSTMR_CD}
+			AND CONVERT(NVARCHAR(10),ORD_DATE, 23) = #{ORD_DATE}
+			AND CONF_TYPE = 'N'
+		</if>
+	</update>
+	
+	<update id="cancleSuprBySupplyConfirm" parameterType="java.util.Map">
+		/* cancleSuprBySupplyConfirm */
+		<if test = 'SEND_TYPE != "ERP"'>
+			UPDATE T_SALE_CENT_MAST
+			SET CONF_TYPE = 'N'
+				, MPROGRM = 'cancleSuprBySupplyConfirm'
+				, MUSER = #{emp_no}
+				, MDATE = GETDATE()
+			WHERE ORGN_CD = #{ORGN_CD}
+			AND CUSTMR_CD = #{CUSTMR_CD}
+			AND CONVERT(NVARCHAR(10),ORD_DATE, 23) = #{ORD_DATE}
+			AND CONF_TYPE = 'Y'
+		</if>
+	</update>
+	
+	<update id="saveSupplyConfirm" parameterType="java.util.Map">
+		/* saveSupplyConfirm */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (SELECT ORGN_DIV_CD
+							FROM COM_ORGN_INFO
+							WHERE ORGN_CD = #{ORGN_CD})
+						
+		UPDATE T_SALE_CENT_MAST_DETL
+		SET CONF_AMT = #{CONF_DETL_AMT}
+			, MPROGRM = #{MPROGM}
+			, MUSER = #{MUSER}
+			, MDATE = GETDATE()
+		WHERE ORD_CD = #{ORD_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND BCD_CD = #{BCD_CD}
+			AND ORGN_DIV_CD = @ORGN_DIV_CD
+	</update>
+	
+	<update id="updateSupplyConfirm" parameterType="java.util.Map">
+		/* updateSupplyConfirm */
+		DECLARE @CONF_AMT DECIMAL(19,6)
+				,@ORGN_DIV_CD NVARCHAR(10)
+	
+		SET @CONF_AMT = (SELECT SUM(CONF_AMT) AS CONF_AMT
+						FROM T_SALE_CENT_MAST_DETL
+						WHERE ORD_CD = #{ORD_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND ORGN_DIV_CD = @ORGN_DIV_CD)
+							
+		SET @ORGN_DIV_CD = (SELECT ORGN_DIV_CD
+							FROM COM_ORGN_INFO
+							WHERE ORGN_CD = #{ORGN_CD})
+						
+		UPDATE T_SALE_CENT_MAST
+		SET CONF_AMT = @CONF_AMT
+			,MPROGRM = #{MPROGM}
+			,MDATE = GETDATE()
+			,MUSER = #{MUSER}
+		WHERE ORD_CD = #{ORD_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND ORGN_DIV_CD = @ORGN_DIV_CD
+	</update>
+</mapper>

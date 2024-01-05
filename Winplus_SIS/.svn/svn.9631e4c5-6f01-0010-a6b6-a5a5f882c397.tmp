@@ -1,0 +1,1505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.member.dao.MemberDao">
+
+	<select id="getMemberList" parameterType="Map" resultType="CMap">
+		/* getMemberList */
+		/*!@#!@# 연관테이블 생성 완료시 필요한 데이터들 포함해서 수정해야함*/
+		SELECT
+			<choose>
+				<when test='TOP_COUNT_chk == "Y" and TOP_COUNT != ""'>
+					TOP ${TOP_COUNT}
+				</when>
+				<otherwise>
+					TOP 5000
+				</otherwise>
+			</choose>
+			TSMM.MEM_BCD
+			,TSMM.MEM_STATE
+			,TSMM.ORGN_DIV_CD
+			,TSMM.ORGN_CD
+			,TSMM.MEM_TYPE
+			,TSMM.PRICE_POLI
+			,TSMM.MEM_ABC
+			,TSMM.RESP_USER
+<!-- 			,ISNULL(THE.EMP_NM,'') -->
+			,TSMM.MEM_NO
+			,TSMM.MEM_NM
+			,TSMM.CORP_NM
+			,TSMM.FAMILY_CNT
+			,TSMM.SEX_TYPE
+			,TSMM.TEL_NO01
+			,TSMM.TEL_NO02
+			,TSMM.PHON_NO
+			,TSMM.EMAIL
+			,TSMM.SMS_YN
+			,TSMM.CHG_AMT_TYPE
+			,TSMM.CASH_RECP_YN
+			,TSMM.CASH_RECP_TYPE
+			,TSMM.LAST_CASH_RECP_NO
+			,TSMM.LAST_CASH_RECP_TYPE
+			,TSMM.CORP_NO
+			--,TSMM.CORP_NM
+			,TSMM.TRUST_YN				/* 외상가능여부 */
+			,TSMM.LOAN_YN				/* 여신가능여부*/
+			,TSMM.TAX_YN				/* 세금계산서 발행여부*/
+			,TSMC.LOAN_AMT				/* 여신한도 */
+			,TSMC.BAL_AMT				/* 잔액 */
+			,TSMC.TRUST_CNT				/* 외상횟수*/
+			,TSMM.PAY_GRUP_CD			/* 결제유형코드 */
+			,TSMM.PAY_DATE_CD			/* 결제일 */
+			,TSMM.POINT
+			,TSMM.POINT_SUM
+			,TSMM.BUSI_COND
+			,TSMM.BUSI_TYPE
+			,TSMM.CORP_ZIP_NO
+			,TSMM.CORP_R_ADDR
+			,TSMM.CORP_L_ADDR
+			,TSMM.CORP_ADDR_DETL
+			,TSMM.DELI_ZIP_NO
+			,TSMM.DELI_ADDR
+			,TSMM.DELI_ADDR_DETL
+			,TSMM.DELI_MEMO
+			,TSMM.ETC_MEMO
+			,TSMM.CDATE
+			,TSMM.MDATE
+			,TSMM.LAST_TRADE_DATE
+			,TSMM.BF_M2DATE
+			,CONCAT(CORP_NM,'[',MEM_NM,']') AS UNIQUE_MEM_NM
+		FROM 
+			T_STD_MAST_MEM TSMM
+			LEFT JOIN T_STD_MAST_CREDITLOAN_DETL 	TSMCD on TSMM.MEM_NO = TSMCD.OBJ_CD AND TSMM.ORGN_CD = TSMCD.ETC1
+			LEFT JOIN T_STD_MAST_CREDITLOAN 		TSMC on TSMCD.LOAN_CD = TSMC.LOAN_CD
+
+<!-- 			LEFT JOIN T_HR_EMP THE -->
+<!-- 			ON TSMM.RESP_USER = THE.EMP_CD -->
+			<if test='GRUP_CD != "" and GRUP_CD != null'>
+				LEFT JOIN T_STD_MEM_GRUP_DETL TSMGD
+				ON TSMM.MEM_NO = TSMGD.MEM_NO
+			</if>
+		WHERE
+			1=1
+			
+			<if test='RESP_USER_chk == "Y" and RESP_USER != ""'>
+				AND RESP_USER LIKE CONCAT('%',#{RESP_USER},'%')
+			</if>
+			
+			<if test='MEM_NM != "" and MEM_NM != null'>
+				AND (MEM_NM LIKE CONCAT('%',#{MEM_NM},'%') OR MEM_NO LIKE CONCAT('%',#{MEM_NM},'%') OR CORP_NM LIKE CONCAT('%',#{MEM_NM},'%'))
+			</if>
+			
+			<if test='ORGN_DIV_CD != ""'>
+				AND TSMM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			
+			<if test='ORGN_CD != "" and ORGN_CD != null'>
+				AND TSMM.ORGN_CD = #{ORGN_CD}
+			</if>
+			
+			<if test='MEM_STATE != "" and MEM_STATE != null'>
+				AND MEM_STATE = #{MEM_STATE}
+			</if>
+			
+			<if test='MEM_TYPE != "" and MEM_TYPE != null'>
+				AND MEM_TYPE = #{MEM_TYPE}
+			</if>
+			
+			<if test='PRICE_POLI != "" and PRICE_POLI != null'>
+				AND PRICE_POLI = #{PRICE_POLI}
+			</if>
+			
+			<if test='MEM_ABC != "" and MEM_ABC != null'>
+				AND MEM_ABC = #{MEM_ABC}
+			</if>
+			
+			<if test='GRUP_CD != "" and GRUP_CD != null'>
+				AND TSMGD.GRUP_CD = #{GRUP_CD}
+			</if>
+			
+			<if test='SMS_YN != "" and SMS_YN != null'>
+				AND SMS_YN = #{SMS_YN}
+			</if>
+			
+			<if test='CASH_RECP_YN != "" and CASH_RECP_YN != null'>
+				AND CASH_RECP_YN = #{CASH_RECP_YN}
+			</if>
+			
+			<if test='CASH_RECP_TYPE != "" and CASH_RECP_TYPE != null'>
+				AND ISNULL(CASH_RECP_TYPE,'0') = #{CASH_RECP_TYPE}
+			</if>
+			
+			<if test='LAST_CASH_RECP_NO != "" and LAST_CASH_RECP_NO != null'>
+				AND LAST_CASH_RECP_NO = #{LAST_CASH_RECP_NO}
+			</if>
+			
+			<if test='LAST_CASH_RECP_TYPE != "" and LAST_CASH_RECP_TYPE != null'>
+				AND LAST_CASH_RECP_TYPE = #{LAST_CASH_RECP_TYPE}
+			</if>
+			
+			<if test='(ZIP_NO != "" and ZIP_NO != null) or (ADDRESS != "" and ADDRESS != null)'>
+				<choose>
+					<when test='(ZIP_NO != "" and ZIP_NO != null) and (ADDRESS != "" and ADDRESS != null)'>
+						AND (
+							(CORP_ZIP_NO = #{ZIP_NO} OR CORP_R_ADDR LIKE CONCAT('%',#{ADDRESS},'%') OR CORP_L_ADDR LIKE CONCAT('%',#{ADDRESS},'%'))
+							OR
+							(DELI_ZIP_NO = #{ZIP_NO} OR DELI_ADDR LIKE CONCAT('%',#{ADDRESS},'%'))
+						)
+					</when>
+					<when test='ZIP_NO != "" and ZIP_NO != null'>
+						AND (CORP_ZIP_NO = #{ZIP_NO} OR DELI_ZIP_NO = #{ZIP_NO})
+					</when>
+					<when test='ADDRESS != "" and ADDRESS != null'>
+						AND (
+							(CORP_R_ADDR LIKE CONCAT('%',#{ADDRESS},'%') OR CORP_L_ADDR LIKE CONCAT('%',#{ADDRESS},'%'))
+							OR
+							DELI_ADDR LIKE CONCAT('%',#{ADDRESS},'%')
+						)
+					</when>
+				</choose>
+			</if>
+			
+			<if test='JOIN == "Y"'>
+				<if test='DATE_FR_JOIN != "" or DATE_TO_JOIN != ""'>
+					<choose>
+						<when test='DATE_FR_JOIN != "" and DATE_TO_JOIN != ""'>
+							AND ( #{DATE_FR_JOIN} <![CDATA[<=]]> TSMM.CDATE AND TSMM.CDATE <![CDATA[>=]]> #{DATE_TO_JOIN} )
+						</when>
+						
+						<when test='DATE_FR_JOIN != ""'>
+							AND #{DATE_FR_JOIN} <![CDATA[<=]]> TSMM.CDATE
+						</when>
+						
+						<when test='DATE_TO_JOIN != ""'>
+							AND TSMM.CDATE <![CDATA[>=]]> #{DATE_TO_JOIN} 
+						</when>
+					</choose>				
+				</if>
+			</if>
+			
+			<if test='TRANSACTION == "Y"'>
+				<if test='DATE_FR_TRANSACTION != "" or DATE_TO_TRANSACTION != ""'>
+					<choose>
+						<when test='DATE_FR_TRANSACTION != "" and DATE_TO_TRANSACTION != ""'>
+							AND ( #{DATE_FR_TRANSACTION} <![CDATA[<=]]> TSMM.LAST_TRADE_DATE AND TSMM.LAST_TRADE_DATE <![CDATA[>=]]> #{DATE_TO_TRANSACTION} )
+						</when>
+						
+						<when test='DATE_FR_TRANSACTION != ""'>
+							AND #{DATE_FR_TRANSACTION} <![CDATA[<=]]> TSMM.LAST_TRADE_DATE
+						</when>
+						
+						<when test='DATE_TO_TRANSACTION != ""'>
+							AND TSMM.LAST_TRADE_DATE <![CDATA[>=]]> #{DATE_TO_TRANSACTION} 
+						</when>
+					</choose>				
+				</if>
+			</if>
+			
+<!-- 			<if test='BIRTHDAY == "Y"'> -->
+<!-- 				<if test='DATE_FR_BIRTHDAY != "" or DATE_TO_BIRTHDAY != ""'> -->
+<!-- 					<choose> -->
+<!-- 						<when test='DATE_FR_BIRTHDAY != "" and DATE_TO_BIRTHDAY != ""'> -->
+<!-- 							AND ( #{DATE_FR_BIRTHDAY} <![CDATA[<=]]> TSMM.BIRTH_DATE AND TSMM.BIRTH_DATE <![CDATA[>=]]> #{DATE_TO_BIRTHDAY} ) -->
+<!-- 						</when> -->
+						
+<!-- 						<when test='DATE_FR_BIRTHDAY != ""'> -->
+<!-- 							AND #{DATE_FR_BIRTHDAY} <![CDATA[<=]]> TSMM.BIRTH_DATE -->
+<!-- 						</when> -->
+						
+<!-- 						<when test='DATE_TO_BIRTHDAY != ""'> -->
+<!-- 							AND TSMM.BIRTH_DATE <![CDATA[>=]]> #{DATE_TO_BIRTHDAY}  -->
+<!-- 						</when> -->
+<!-- 					</choose>				 -->
+<!-- 				</if> -->
+<!-- 			</if> -->
+		ORDER BY ORGN_CD
+	</select>
+	
+	<select id="getMemberInfo" parameterType="Map" resultType="CMap">
+		/* getMemberInfo */
+		SELECT
+			TOP 1
+			TSMM.MEM_BCD
+			,TSMM.MEM_STATE
+			,TSMM.ORGN_DIV_CD
+			,TSMM.ORGN_CD
+			,TSMM.MEM_TYPE
+			,TSMM.PRICE_POLI
+			,TSMM.MEM_ABC
+			,TSMM.RESP_USER
+<!-- 			,ISNULL(THE.EMP_NM,'') -->
+			,TSMM.MEM_NO
+			,TSMM.MEM_NM
+			,TSMM.FAMILY_CNT
+			,TSMM.SEX_TYPE
+			,TSMM.TEL_NO01
+			,TSMM.TEL_NO02
+			,TSMM.PHON_NO
+			,TSMM.EMAIL
+			,TSMM.SMS_YN
+			,TSMM.CHG_AMT_TYPE
+			,TSMM.CASH_RECP_YN
+			,TSMM.CASH_RECP_TYPE
+			,TSMM.LAST_CASH_RECP_NO
+			,TSMM.LAST_CASH_RECP_TYPE
+			,TSMM.CORP_NO
+			,TSMM.CORP_NM
+			,TSMM.TRUST_YN				/* 외상가능여부 */
+			,TSMM.LOAN_YN				/* 여신가능여부*/
+			,TSMM.TAX_YN				/* 세금계산서 발행여부*/
+			,TSMC.LOAN_AMT				/* 여신한도 */
+			,TSMC.BAL_AMT				/* 잔액 */
+			,TSMC.TRUST_CNT				/* 외상횟수*/
+			,TSMM.PAY_GRUP_CD			/* 결제유형코드 */
+			,TSMM.PAY_DATE_CD			/* 결제일 */
+			,TSMM.POINT
+			,TSMM.POINT_SUM
+			,TSMM.BUSI_COND
+			,TSMM.BUSI_TYPE
+			,TSMM.CORP_ZIP_NO
+			,TSMM.CORP_R_ADDR
+			,TSMM.CORP_L_ADDR
+			,TSMM.CORP_ADDR_DETL
+			,TSMM.DELI_ZIP_NO
+			,TSMM.DELI_ADDR
+			,TSMM.DELI_ADDR_DETL
+			,TSMM.DELI_MEMO
+			,TSMM.ETC_MEMO
+			,TSMM.CDATE
+			,TSMM.LAST_TRADE_DATE
+			,TSMC.LOAN_CD
+		FROM
+			T_STD_MAST_MEM TSMM
+			LEFT JOIN T_STD_MAST_CREDITLOAN_DETL 	TSMCD on TSMM.MEM_NO = TSMCD.OBJ_CD AND TSMM.ORGN_CD = TSMCD.ETC1
+			LEFT JOIN T_STD_MAST_CREDITLOAN 		TSMC on TSMCD.LOAN_CD = TSMC.LOAN_CD
+		WHERE
+			1=1
+			AND TSMM.MEM_NO = #{MEM_NO}
+			<if test='ORGN_DIV_CD != ""'>
+				AND TSMM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='ORGN_CD != ""'>
+				AND TSMM.ORGN_CD = #{ORGN_CD}
+			</if>
+	</select>
+	
+	<select id="getMemberGroupComboList" parameterType="Map" resultType="CMap">
+		/* getMemberGroupComboList */
+		SELECT
+			*
+			,GRUP_CD AS value
+			,GRUP_NM AS text
+		FROM T_STD_MEM_GRUP		
+	</select>
+	
+	<select id="crudMemberInfo" parameterType="Map" resultType="CMap">
+		/* crudMemberInfo */
+		EXEC SP_CRUD_MEMBER_INFO
+				#{MEM_NO}					/*회원번호*/
+				, #{MEM_BCD}				/*회원바코드*/
+				, #{MEM_STATE}				/*유효*/
+				, #{ORGN_DIV_CD}  			/*조직코드*/
+				, #{ORGN_CD}				/*직영점코드*/
+				, #{RESP_USER}				/*담당직원*/
+				, #{MEM_TYPE}				/*회원유형*/
+				, #{PRICE_POLI}				/*도매등급*/
+				, #{MEM_ABC}				/*ABC 유형*/
+				, #{MEM_NM}					/*회원명*/
+				, #{TEL_NO01}				/*전화번호1*/
+				, #{TEL_NO02}				/*전화번호2*/
+				, #{PHON_NO}				/*휴대폰번호*/
+				, #{FAMILY_CNT}				/*가족수*/
+				, #{SEX_TYPE}				/*성별*/
+<!-- 				, #{BIRTH_DATE}				/*생일*/ -->
+<!-- 				, #{BIRTH_TYPE}				/*양력/음력*/ -->
+<!-- 				, #{WED_DATE}				/*기념일*/ -->
+				, #{EMAIL}					/*이메일*/
+				, #{SMS_YN}					/*SMS 수신여부*/
+				, #{CHG_AMT_TYPE}			/*소액처리*/
+				, #{CASH_RECP_YN}			/*현금영수증 사용여부*/
+				, #{CASH_RECP_TYPE}			/*현금영수증 타입*/
+				, #{LAST_CASH_RECP_NO}		/*최종 현금영수증 승인번호*/
+				, #{LAST_CASH_RECP_TYPE}	/*(개인/사업자)*/
+				, #{CORP_NM}				/*상호명*/
+				, #{CORP_NO}				/*사업자번호*/
+				, #{BUSI_COND}				/*업태*/
+				, #{BUSI_TYPE}				/*업종*/
+				, #{LOAN_YN}				/*여신가능여부*/
+				, #{TRUST_YN}				/*외상가능여부*/
+				, #{TAX_YN}					/*세금계산서 발행여부*/
+				, #{PAY_GRUP_CD}			/*결제유형코드*/
+				, #{PAY_DATE_CD}			/*결제일*/
+				, #{POINT}					/*포인트*/
+				, #{POINT_SUM}				/*포인트 합계*/
+				, #{CORP_ZIP_NO}			/*사업장 우편번호*/
+				, #{CORP_R_ADDR}			/*사업장 도로주소*/
+				, #{CORP_L_ADDR}			/*사업장 지번주소*/
+				, #{CORP_ADDR_DETL}			/*사업장 상세주소*/
+				, #{DELI_ZIP_NO}			/*배송지 우편번호*/
+				, #{DELI_ADDR}				/*배송지 도로주소*/
+				, #{DELI_ADDR_DETL}			/*배송지 상세주소*/
+				, #{DELI_MEMO}				/*배송지 메모*/
+				, #{ETC_MEMO}				/*기타메모*/
+				, #{LOGIN_USER}				/*수정자*/
+		
+	</select>
+	
+	<select id="getTransactionHistory" parameterType="Map" resultType="CMap">
+		/* getTransactionHistory */
+		/*!@#!@# 직원테이블 생성시 추가해줘야함*/
+		SELECT
+			TSM.ORD_CD			/* 주문번호 */
+			,TSM.POS_NO			/* 포스번호 */
+			,TSM.REG_TYPE		/* 등록구분*/
+			,TSM.ORD_DATE		/* 주문일 */
+			,TSM.SALE_TYPE		/* 거래유형 */
+			,TSM.PAY_CASH		/* 현금 */
+			,TSM.PAY_CARD		/* 카드 */
+			,TSM.PAY_GIFT		/* 상품권 */
+			,TSM.PAY_POINT		/* 포인트 */
+			,TSM.PAY_TRUST		/* 외상 */
+			,TSM.ADD_POINT		/* 적립포인트 */
+			,TSM.SALE_TOT_AMT	/* 합계금액 */
+			,TSM.ORD_DATE  		/* 거래시각 */
+<!-- 			,TSE.EMP_NO			/* 사원번호 */ -->
+		FROM
+			T_SALE_MAST TSM
+<!-- 			LEFT JOIN T_STD_EMP TSE -->
+<!-- 			ON TSM.RESP_USER = TSE.EMP_CD -->
+		WHERE
+			1=1
+			AND TSM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND TSM.ORGN_CD = #{ORGN_CD}
+			AND TSM.MEM_NO = #{MEM_NO}
+			<if test='TAB_2_DATE_FR != "" or TAB_2_DATE_TO != ""'>
+				<choose>
+					<when test='TAB_2_DATE_FR != "" and TAB_2_DATE_TO != ""'>
+						AND ( #{TAB_2_DATE_FR} <![CDATA[<=]]> TSM.ORD_DATE AND TSM.ORD_DATE <![CDATA[<=]]> #{TAB_2_DATE_TO} )
+					</when>
+					
+					<when test='TAB_2_DATE_FR != ""'>
+						AND #{TAB_2_DATE_FR} <![CDATA[<=]]> TSM.ORD_DATE
+					</when>
+					
+					<when test='TAB_2_DATE_TO != ""'>
+						AND TSM.ORD_DATE <![CDATA[>=]]> #{TAB_2_DATE_TO} 
+					</when>
+				</choose>				
+			</if>
+	</select>
+	
+	<select id="getTaxExemptAmount" parameterType="Map" resultType="CMap">
+		/* getTaxExemptAmount */
+		/*!@#!@# 연관테이블 생성 완료시 필요한 데이터들 포함해서 수정해야함*/
+		SELECT 
+			*
+		FROM
+			T_SALE_MAST
+	</select>
+	
+	<select id="getMemberBestGoodsList" parameterType="Map" resultType="CMap">
+		/* getMemberBestGoodsList */
+		SELECT
+			<if test='TOP_COUNT_TAB_3_chk == "Y" and TOP_COUNT_TAB_3 != ""'>
+				TOP ${TOP_COUNT_TAB_3}
+			</if>
+			  TSMG.GOODS_NO
+			, TSMG.GOODS_NM
+			, TSMB.BCD_CD
+			, TSMG.TAX_TYPE
+			, TSMG.GOODS_PUR_CD
+			, COUNT(TSM.ORD_CD)							ORD_CNT				/*주문횟수*/
+			, SUM(TSMD.SALE_AMT)						SUM_AMT				/*총금액*/
+			, SUM(TSMD.SALE_QTY)						SUM_QTY				/*총수량*/
+			, SUM(TSMD.SALE_AMT)/COUNT(TSM.ORD_CD) 		AVG_AMT				/*1회평균주문금액*/
+			, SUM(TSMD.SALE_QTY)/COUNT(TSM.ORD_CD) 		AVG_QTY				/*1회평균주문수량*/
+			, MIN(TSM.ORD_DATE)							ORD_MIN_DATE		/*최초 주문일*/
+			, MAX(TSM.ORD_DATE)							ORD_MAX_DATE		/*마지막 주문일*/
+		FROM
+			T_SALE_MAST TSM
+			LEFT JOIN T_SALE_MAST_DETL TSMD
+			ON TSM.ORD_CD = TSMD.ORD_CD
+			LEFT JOIN T_STD_MAST_BCD TSMB
+			ON TSMD.GOODS_NO = TSMB.GOODS_NO
+			LEFT JOIN T_STD_MAST_GOODS TSMG
+			ON TSMB.GOODS_NO = TSMG.GOODS_NO
+		WHERE
+			1=1
+			AND TSM.MEM_NO = #{MEM_NO}
+			<if test='TAB_3_DATE_FR != "" or TAB_3_DATE_TO != ""'>
+				<choose>
+					<when test='TAB_3_DATE_FR != "" and TAB_3_DATE_TO != ""'>
+						AND ( #{TAB_3_DATE_FR} <![CDATA[<=]]> TSM.ORD_DATE AND TSM.ORD_DATE <![CDATA[<=]]> #{TAB_3_DATE_TO} )
+					</when>
+					
+					<when test='TAB_3_DATE_FR != ""'>
+						AND #{TAB_3_DATE_FR} <![CDATA[<=]]> TSM.ORD_DATE
+					</when>
+					
+					<when test='TAB_3_DATE_TO != ""'>
+						AND TSM.ORD_DATE <![CDATA[>=]]> #{TAB_3_DATE_TO} 
+					</when>
+				</choose>				
+			</if>
+			
+		GROUP BY
+			  TSMG.GOODS_NO
+			, TSMG.TAX_TYPE
+			, TSMG.GOODS_NM
+			, TSMG.GOODS_PUR_CD
+			, TSMB.BCD_CD
+		ORDER BY
+			<choose>
+				<when test='ORDER_BY == "BEST_GOODS_PRICE" '>
+					SUM(TSMD.SALE_AMT) DESC
+					, SUM(TSMD.SALE_QTY) DESC
+				</when>
+				<otherwise>
+					SUM(TSMD.SALE_QTY) DESC
+					, SUM(TSMD.SALE_AMT) DESC
+				</otherwise>
+			</choose>
+	</select>
+	
+	<select id="getBestMemberList" parameterType="Map" resultType="CMap">
+		/* getBestMemberList */
+		/*!@#!@# 연관테이블 생성 완료시 필요한 데이터들 포함해서 수정해야함*/
+		SELECT
+			<choose>
+				<when test='TOP_COUNT_chk == "Y" and TOP_COUNT != ""'>
+					TOP ${TOP_COUNT}
+				</when>
+				<otherwise>
+<!-- 					TOP 5000 -->
+				</otherwise>
+			</choose>
+			  M.MEM_NO			/* 회원번호  */
+			, CONCAT(M.ORGN_CD,'_',M.MEM_NO) AS UNIQUE_MEM_NO
+			, MEM_NM			/* 회원명 */
+			, BUSI_COND			/* 업태 */
+			, BUSI_TYPE			/* 업종 */
+			, MEM_STATE
+			, MEM_ABC
+			, MEM_BCD
+			, CORP_NO
+			, SUM(S.SALE_AMT)  	SUM_SALE_AMT	/* 판매금액(공급가액)합 */
+			, SUM(S2.INSP_QTY) 	SUM_INSP_QTY	/* 단위수량합 */
+			, SUM(PUR_AMT)     	SUM_PUR_AMT		/* 매입금액 합*/
+			, COUNT(S.ORD_CD)  	COUNT_ORD_CD	/* 주문횟수 */
+			, (SELECT POINT FROM T_STD_MAST_MEM WHERE ORGN_DIV_CD = M.ORGN_DIV_CD AND ORGN_CD = M.ORGN_CD AND MEM_NO = M.MEM_NO) AS POINT
+			, (SELECT POINT_SUM FROM T_STD_MAST_MEM WHERE ORGN_DIV_CD = M.ORGN_DIV_CD AND ORGN_CD = M.ORGN_CD AND MEM_NO = M.MEM_NO) AS POINT_SUM
+			, MIN(M.CDATE)		CDATE			/* 가입일 */
+			, MIN(S.ORD_DATE)	MIN_ORD_DATE	/* 최초주문일 */
+			, MAX(S.ORD_DATE)	MAX_ORD_DATE	/* 마지막주문일 */
+			, M.ORGN_DIV_CD
+			, M.ORGN_CD
+			, M.CORP_NM
+			, M.MEM_ABC
+			, M.PHON_NO
+			, C.ORGN_NM
+		FROM
+			T_STD_MAST_MEM M
+			LEFT JOIN T_SALE_MAST S
+			ON 
+				M.ORGN_DIV_CD = S.ORGN_CD
+				AND M.ORGN_CD = S.ORGN_CD
+				AND M.MEM_NO = S.MEM_NO
+			LEFT JOIN T_SALE_MAST_DETL S2
+			ON
+				S.ORGN_DIV_CD = S2.ORGN_DIV_CD
+				AND S.ORGN_CD = S2.ORGN_CD
+				AND S.ORD_CD = S2.ORD_CD
+			INNER JOIN COM_ORGN_INFO C
+			ON M.ORGN_CD = C.ORGN_CD
+		WHERE
+			1=1
+			<if test = 'ORGN_DIV_CD != ""'>
+				AND M.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			
+			<if test='ORGN_CD != "" and ORGN_CD != null'>
+				AND M.ORGN_CD = #{ORGN_CD}
+			</if>
+			
+			<if test='RESP_USER_chk == "Y" and RESP_USER != ""'>
+				AND RESP_USER LIKE CONCAT('%',#{RESP_USER},'%')
+			</if>
+			
+			<if test='MEM_STATE != ""'>
+				AND MEM_STATE = #{MEM_STATE}
+			</if>
+			
+			<if test='MEM_TYPE != ""'>
+				AND MEM_TYPE = #{MEM_TYPE}
+			</if>
+			
+			<if test='PRICE_POLI != ""'>
+				AND PRICE_POLI = #{PRICE_POLI}
+			</if>
+			
+			<if test='MEM_ABC != ""'>
+				AND MEM_ABC = #{MEM_ABC}
+			</if>
+			
+			<if test='GRUP_CD != ""'>
+				AND TSMGD.GRUP_CD = #{GRUP_CD}
+			</if>
+			
+			<if test='ZIP_NO != ""'>
+				AND (CORP_ZIP_NO = #{ZIP_NO} OR DELI_ZIP_NO = #{ZIP_NO})
+			</if>
+			
+			<if test='TRANSACTION == "Y"'>
+				<if test='DATE_FR_TRANSACTION != "" or DATE_TO_TRANSACTION != ""'>
+					<choose>
+						<when test='DATE_FR_TRANSACTION != "" and DATE_TO_TRANSACTION != ""'>
+							AND ( #{DATE_FR_TRANSACTION} <![CDATA[<=]]> M.LAST_TRADE_DATE AND M.LAST_TRADE_DATE <![CDATA[>=]]> #{DATE_TO_TRANSACTION} )
+						</when>
+						
+						<when test='DATE_FR_TRANSACTION != ""'>
+							AND #{DATE_FR_TRANSACTION} <![CDATA[<=]]> M.LAST_TRADE_DATE
+						</when>
+						
+						<when test='DATE_TO_TRANSACTION != ""'>
+							AND M.LAST_TRADE_DATE <![CDATA[>=]]> #{DATE_TO_TRANSACTION} 
+						</when>
+					</choose>				
+				</if>
+			</if>
+			
+			<if test='JOIN == "Y"'>
+				<if test='DATE_FR_JOIN != "" or DATE_TO_JOIN != ""'>
+					<choose>
+						<when test='DATE_FR_JOIN != "" and DATE_TO_JOIN != ""'>
+							AND ( #{DATE_FR_JOIN} <![CDATA[<=]]> M.CDATE AND M.CDATE <![CDATA[>=]]> #{DATE_TO_JOIN} )
+						</when>
+						
+						<when test='DATE_FR_JOIN != ""'>
+							AND #{DATE_FR_JOIN} <![CDATA[<=]]> M.CDATE
+						</when>
+						
+						<when test='DATE_TO_JOIN != ""'>
+							AND M.CDATE <![CDATA[>=]]> #{DATE_TO_JOIN} 
+						</when>
+					</choose>				
+				</if>
+			</if>
+		GROUP BY
+			  M.MEM_NO
+			, MEM_NM
+			, BUSI_COND
+			, BUSI_TYPE
+			, MEM_STATE
+			, MEM_ABC
+			, MEM_BCD
+			, CORP_NO
+			, M.CDATE
+			, M.ORGN_DIV_CD
+			, M.ORGN_CD
+			, M.CORP_NM
+			, M.MEM_ABC
+			, M.PHON_NO
+			, C.ORGN_NM
+<!-- 		ORDER BY -->
+<!-- 			<choose> -->
+<!-- 				<when test=''></when> -->
+<!-- 				<when test=''></when> -->
+<!-- 				<when test=''></when> -->
+<!-- 			</choose> -->
+		
+		<if test='TRADE_COUNT != ""'>
+		HAVING
+			COUNT(S.ORD_CD) >= #{TRADE_COUNT}
+		</if>
+		
+	</select>
+	
+	<select id="getMemberMonthlyTrend" parameterType="Map" resultType="CMap">
+		/* getMemberMonthlyTrend 월별추이 전체 데이타 */
+		SELECT
+			CONVERT(NVARCHAR(7), ORD_DATE, 23) AS BY_MONTH
+			,ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+			,SUM(PAY_CASH) PAY_CASH				/* 현금 */
+			,SUM(PAY_CARD) PAY_CARD				/* 카드 */
+			,SUM(PAY_GIFT) PAY_GIFT				/* 상품권 */
+			,SUM(PAY_POINT) PAY_POINT			/* 포인트 */
+			,SUM(ADD_POINT) ADD_POINT			/* 적립포인트 */
+			,SUM(SALE_AMT) SALE_AMT				/* 공급가액 */
+			,SUM(SALE_VAT_AMT) SALE_VAT_AMT		/* 부가세액 */
+			,SUM(SALE_TOT_AMT) SALE_TOT_AMT		/* 판매금액 */
+		FROM T_SALE_MAST 
+		WHERE
+			1=1
+			<if test='TAB_4_DATE_FR != "" or TAB_4_DATE_TO != ""'>
+				<choose>
+					<when test='TAB_4_DATE_FR != "" and TAB_4_DATE_TO != ""'>
+						AND ( #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE AND ORD_DATE <![CDATA[<=]]> #{TAB_4_DATE_TO} )
+					</when>
+					
+					<when test='TAB_4_DATE_FR != ""'>
+						AND #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE
+					</when>
+					
+					<when test='TAB_4_DATE_TO != ""'>
+						AND ORD_DATE <![CDATA[>=]]> #{TAB_4_DATE_TO} 
+					</when>
+				</choose>				
+			</if>
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+		GROUP BY
+			CONVERT(NVARCHAR(7), ORD_DATE, 23)
+			,ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+		ORDER BY BY_MONTH DESC
+	</select>
+	
+	<select id="getMemberMonthlyTrend_sum" parameterType="Map" resultType="CMap">
+		/* getMemberMonthlyTrend_sum 합계 */
+		SELECT
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+			,SUM(PAY_CASH) PAY_CASH				/* 현금 */
+			,SUM(PAY_CARD) PAY_CARD				/* 카드 */
+			,SUM(PAY_GIFT) PAY_GIFT				/* 상품권 */
+			,SUM(PAY_POINT) PAY_POINT			/* 포인트 */
+			,SUM(ADD_POINT) ADD_POINT			/* 적립포인트 */
+			,SUM(SALE_AMT) SALE_AMT				/* 공급가액 */
+			,SUM(SALE_VAT_AMT) SALE_VAT_AMT		/* 부가세액 */
+			,SUM(SALE_TOT_AMT) SALE_TOT_AMT		/* 판매금액 */
+			,COUNT(BILL_NO) BILL_NO_CNT			/* 방문수 */
+		FROM 
+			T_SALE_MAST
+		WHERE
+			1=1
+			<if test='TAB_4_DATE_FR != "" or TAB_4_DATE_TO != ""'>
+				<choose>
+					<when test='TAB_4_DATE_FR != "" and TAB_4_DATE_TO != ""'>
+						AND ( #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE AND ORD_DATE <![CDATA[<=]]> #{TAB_4_DATE_TO} )
+					</when>
+					
+					<when test='TAB_4_DATE_FR != ""'>
+						AND #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE
+					</when>
+					
+					<when test='TAB_4_DATE_TO != ""'>
+						AND ORD_DATE <![CDATA[>=]]> #{TAB_4_DATE_TO} 
+					</when>
+				</choose>				
+			</if>
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+		GROUP BY
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+	</select>
+	
+	<select id="getMemberMonthlyTrend_average_byMonth" parameterType="Map" resultType="CMap">
+		/* getMemberMonthlyTrend_average_byMonth 월평균 */
+		SELECT
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+			,(SUM(PAY_CASH)/COUNT(*)) AS AVG_PAY_CASH_BYMONTH
+			,(SUM(PAY_CARD)/COUNT(*)) AS AVG_PAY_CARD_BYMONTH
+			,(SUM(PAY_GIFT)/COUNT(*)) AS AVG_PAY_GIFT_BYMONTH
+			,(SUM(PAY_POINT)/COUNT(*)) AS AVG_PAY_POINT_BYMONTH
+			,(SUM(ADD_POINT)/COUNT(*)) AS AVG_ADD_POINT_BYMONTH
+			,(SUM(SALE_AMT)/COUNT(*)) AS AVG_SALE_AMT_BYMONTH
+			,(SUM(SALE_VAT_AMT)/COUNT(*)) AS AVG_SALE_VAT_AMT_BYMONTH
+			,(SUM(SALE_TOT_AMT)/COUNT(*)) AS AVG_SALE_TOT_AMT_BYMONTH
+			,(SUM(BILL_NO_CNT)/COUNT(*)) AS AVG_BILL_NO_CNT_BYMONTH
+		FROM (
+				SELECT
+					CONVERT(NVARCHAR(7), ORD_DATE, 23) AS BY_MONTH
+					,ORGN_DIV_CD
+					,ORGN_CD
+					,MEM_NO
+					,SUM(PAY_CASH) PAY_CASH				/* 현금 */
+					,SUM(PAY_CARD) PAY_CARD				/* 카드 */
+					,SUM(PAY_GIFT) PAY_GIFT				/* 상품권 */
+					,SUM(PAY_POINT) PAY_POINT			/* 포인트 */
+					,SUM(ADD_POINT) ADD_POINT			/* 적립포인트 */
+					,SUM(SALE_AMT) SALE_AMT				/* 공급가액 */
+					,SUM(SALE_VAT_AMT) SALE_VAT_AMT		/* 부가세액 */
+					,SUM(SALE_TOT_AMT) SALE_TOT_AMT		/* 판매금액 */
+					,COUNT(BILL_NO) BILL_NO_CNT			/* 방문수 */
+				FROM T_SALE_MAST 
+				WHERE
+					1=1
+					<if test='TAB_4_DATE_FR != "" or TAB_4_DATE_TO != ""'>
+						<choose>
+							<when test='TAB_4_DATE_FR != "" and TAB_4_DATE_TO != ""'>
+								AND ( #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE AND ORD_DATE <![CDATA[<=]]> #{TAB_4_DATE_TO} )
+							</when>
+							
+							<when test='TAB_4_DATE_FR != ""'>
+								AND #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE
+							</when>
+							
+							<when test='TAB_4_DATE_TO != ""'>
+								AND ORD_DATE <![CDATA[>=]]> #{TAB_4_DATE_TO} 
+							</when>
+						</choose>				
+					</if>
+					AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+					AND ORGN_CD = #{ORGN_CD}
+					AND MEM_NO = #{MEM_NO}
+				GROUP BY
+					CONVERT(NVARCHAR(7), ORD_DATE, 23)
+					,ORGN_DIV_CD
+					,ORGN_CD
+					,MEM_NO
+			) AA
+		GROUP BY
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+	</select>
+	
+	<select id="getMemberMonthlyTrend_average_byCount" parameterType="Map" resultType="CMap">
+		/* getMemberMonthlyTrend_average_byCount 1회평균 */
+		SELECT
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+			,(SUM(PAY_CASH)/COUNT(*)) AS AVG_PAY_CASH_BYCOUNT
+			,(SUM(PAY_CARD)/COUNT(*)) AS AVG_PAY_CARD_BYCOUNT
+			,(SUM(PAY_GIFT)/COUNT(*)) AS AVG_PAY_GIFT_BYCOUNT
+			,(SUM(PAY_POINT)/COUNT(*)) AS AVG_PAY_POINT_BYCOUNT
+			,(SUM(ADD_POINT)/COUNT(*)) AS AVG_ADD_POINT_BYCOUNT
+			,(SUM(SALE_AMT)/COUNT(*)) AS AVG_SALE_AMT_BYCOUNT
+			,(SUM(SALE_VAT_AMT)/COUNT(*)) AS AVG_SALE_VAT_AMT_BYCOUNT
+			,(SUM(SALE_TOT_AMT)/COUNT(*)) AS AVG_SALE_TOT_AMT_BYCOUNT
+		FROM (
+				SELECT
+					BILL_NO
+					,ORGN_DIV_CD
+					,ORGN_CD
+					,MEM_NO
+					,SUM(PAY_CASH) PAY_CASH				/* 현금 */
+					,SUM(PAY_CARD) PAY_CARD				/* 카드 */
+					,SUM(PAY_GIFT) PAY_GIFT				/* 상품권 */
+					,SUM(PAY_POINT) PAY_POINT			/* 포인트 */
+					,SUM(ADD_POINT) ADD_POINT			/* 적립포인트 */
+					,SUM(SALE_AMT) SALE_AMT				/* 공급가액 */
+					,SUM(SALE_VAT_AMT) SALE_VAT_AMT		/* 부가세액 */
+					,SUM(SALE_TOT_AMT) SALE_TOT_AMT		/* 판매금액 */
+				FROM T_SALE_MAST 
+				WHERE
+					1=1
+					<if test='TAB_4_DATE_FR != "" or TAB_4_DATE_TO != ""'>
+						<choose>
+							<when test='TAB_4_DATE_FR != "" and TAB_4_DATE_TO != ""'>
+								AND ( #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE AND ORD_DATE <![CDATA[<=]]> #{TAB_4_DATE_TO} )
+							</when>
+							
+							<when test='TAB_4_DATE_FR != ""'>
+								AND #{TAB_4_DATE_FR} <![CDATA[<=]]> ORD_DATE
+							</when>
+							
+							<when test='TAB_4_DATE_TO != ""'>
+								AND ORD_DATE <![CDATA[>=]]> #{TAB_4_DATE_TO} 
+							</when>
+						</choose>				
+					</if>
+					AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+					AND ORGN_CD = #{ORGN_CD}
+					AND MEM_NO = #{MEM_NO}
+				GROUP BY
+					BILL_NO
+					,ORGN_DIV_CD
+					,ORGN_CD
+					,MEM_NO
+			) AA
+		GROUP BY
+			ORGN_DIV_CD
+			,ORGN_CD
+			,MEM_NO
+	</select>
+	
+	<select id="getMemberGoodsPrice" parameterType="Map" resultType="CMap">
+		/* getMemberGoodsPrice */
+		SELECT 
+			  MM.ORGN_DIV_CD			ORGN_DIV_CD
+			, MM.ORGN_CD				ORGN_CD
+			, MM.MEM_NO					MEM_NO
+			, MM.MEM_NM					MEM_NM
+			, B.BCD_CD					BCD_CD
+			, B.BCD_NM					BCD_NM
+			, B.DIMEN_NM				DIMEN_NM
+			, PP.GOODS_NO				GOODS_NO
+			, MG.GOODS_NM				GOODS_NM
+			, MPP.PUR_PRICE				PUR_PRICE
+			, MSP.RCMD_SALE_PRICE		RCMD_SALE_PRICE
+			, MSP.SALE_PRICE			SALE_PRICE
+			, MM.PRICE_POLI				PRICE_POLI
+			, MSP.PROF_RATE 			PROF_RATE
+			, PP.PRICE_POLI_TYPE		PRICE_POLI_TYPE
+			, PP.PROF_RATE 				MEM_PROF_RATE
+			, PP.SALE_PRICE				MEM_SALE_PRICE
+			, CASE
+				WHEN MM.PRICE_POLI = '1' THEN MSP.WSALE_PRICE_01
+				WHEN MM.PRICE_POLI = '2' THEN MSP.WSALE_PRICE_02
+				WHEN MM.PRICE_POLI = '3' THEN MSP.WSALE_PRICE_03
+				WHEN MM.PRICE_POLI = '4' THEN MSP.WSALE_PRICE_04
+				WHEN MM.PRICE_POLI = '5' THEN MSP.WSALE_PRICE_05
+				END AS 					WSALE_PRICE
+			, PP.USE_YN					USE_YN
+			, PP.CDATE 					CDATE
+			, PP.MDATE 					MDATE
+		FROM (SELECT * FROM T_MEM_PRICE_POLI WHERE ORGN_CD = #{ORGN_CD} AND MEM_NO = #{MEM_NO}) PP
+			INNER JOIN T_STD_MAST_BCD B
+				ON PP.GOODS_NO = B.GOODS_NO
+				AND PP.BCD_CD = B.BCD_CD
+			INNER JOIN T_STD_MAST_GOODS MG
+				ON PP.GOODS_NO = MG.GOODS_NO
+			INNER JOIN T_STD_MAST_MEM MM
+				ON PP.ORGN_CD = MM.ORGN_CD
+				AND PP.MEM_NO = MM.MEM_NO
+			INNER JOIN (
+				SELECT
+					*
+				FROM(
+						SELECT
+							ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY CDATE DESC, PUR_PRICE DESC) AS NUM
+							,*
+						FROM
+							T_STD_MAST_PUR_PRICE
+						WHERE USE_YN = 'Y'
+					) TEMP
+				WHERE NUM = 1
+			) MPP
+				ON PP.BCD_CD = MPP.BCD_CD
+			INNER JOIN T_STD_MAST_SALE_PRICE MSP
+				ON PP.ORGN_CD = MSP.ORGN_CD
+				AND PP.BCD_CD = MSP.BCD_CD 
+			INNER JOIN T_STD_CUSTMR_MK CM
+				ON MSP.ORGN_CD = CM.ORGN_CD
+				AND MPP.CUSTMR_CD = CM.CUSTMR_CD
+		ORDER BY BCD_CD
+	</select>
+	
+	<insert id="insertMemberGoodsPrice" parameterType="Map">
+		/* insertMemberGoodsPrice */
+		INSERT INTO T_MEM_PRICE_POLI(
+			ORGN_DIV_CD				/* 조직구분코드 */
+			, ORGN_CD				/* 조직코드 */
+			, MEM_NO				/* 회원번호 */
+			, BCD_CD				/* 상품바코드 */
+			, GOODS_NO				/* 상품번호 */
+			, PRICE_POLI_TYPE		/* 가격정책유형 */
+			, PROF_RATE				/* 회원지정율 */
+			, SALE_PRICE			/* 회원지정가 */
+			, USE_YN				/* 사용여부 */
+			, CUSER
+			, CDATE
+			, MPROGRM
+		)VALUES(
+			#{ORGN_DIV_CD}
+			, #{ORGN_CD}
+			, #{MEM_NO}
+			, #{BCD_CD}
+			, #{GOODS_NO}
+			, #{PRICE_POLI_TYPE}
+			<choose>
+				<when test='PRICE_POLI_TYPE == "0"'>
+					, #{MEM_PROF_RATE}
+					, NULL
+				</when>
+				<when test='PRICE_POLI_TYPE == "1"'>
+					, NULL
+					, #{MEM_SALE_PRICE}
+				</when>
+			</choose>
+			, #{USE_YN}
+			, #{LUI_emp_no}
+			, GETDATE()
+			, 'WINPLUS_SIS'
+		)
+	</insert>
+	
+	<update id="updateMemberGoodsPrice" parameterType="Map">
+		/* updateMemberGoodsPrice */
+		UPDATE T_MEM_PRICE_POLI
+		SET
+			PRICE_POLI_TYPE = #{PRICE_POLI_TYPE}
+			<choose>
+				<when test='PRICE_POLI_TYPE == "0"'>
+					, PROF_RATE = #{MEM_PROF_RATE}
+					, SALE_PRICE = NULL
+				</when>
+				<when test='PRICE_POLI_TYPE == "1"'>
+					, PROF_RATE = NULL
+					, SALE_PRICE = #{MEM_SALE_PRICE}
+				</when>
+			</choose>
+			, USE_YN = #{USE_YN}
+			, MUSER = #{LUI_emp_no}
+			, MDATE = GETDATE()
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+			AND BCD_CD = #{BCD_CD}
+			AND GOODS_NO = #{GOODS_NO}
+	</update>
+	
+	<update id="deleteMemberGoodsPrice" parameterType="Map">
+		/* deleteMemberGoodsPricePoli */
+		UPDATE T_MEM_PRICE_POLI
+		SET
+			USE_YN = 'N'
+			, MUSER = #{LUI_emp_no}
+			, MDATE = GETDATE()
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+			AND BCD_CD = #{BCD_CD}
+			AND GOODS_NO = #{GOODS_NO}
+	</update>
+	
+	<select id="getMemberTransactionLedgerList" parameterType="Map" resultType="CMap">
+		/* getMemberTransactionLedgerList */
+		/* !@#!@# 쿼리 수정해야함 컬럼들이 많이 바뀐거같음 조회안됨 일단 조회 안되는 컬럼만 삭제해둠 */
+		SELECT 
+			 M.ORGN_DIV_CD
+			,M.ORGN_CD
+			,M.MEM_NO
+			,ORD_DATE
+			,SALE_TYPE
+			,REG_TYPE
+			,SALE_TOT_AMT
+			,RESN_CD
+		FROM
+			T_SALE_MAST S
+			INNER JOIN T_STD_MAST_MEM M
+			ON S.MEM_NO = M.MEM_NO
+		WHERE
+			1=1
+		
+			<if test='ORGN_DIV_CD != ""'>
+				AND M.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='ORGN_CD != ""'>
+				AND M.ORGN_CD = #{ORGN_CD}
+			</if>
+			
+			AND M.MEM_NO = #{MEM_NO}
+			
+			<if test='MONTH == "Y"'>
+				<if test='MONTH_FR != "" or MONTH_TO != ""'>
+					<choose>
+						<when test='MONTH_FR != "" and MONTH_TO != ""'>
+							AND ( #{MONTH_FR} <![CDATA[<=]]> LEFT(CONVERT(date,S.ORD_DATE),7) AND LEFT(CONVERT(date,S.ORD_DATE),7) <![CDATA[>=]]> #{MONTH_TO} )
+						</when>
+						
+						<when test='MONTH_FR != ""'>
+							AND #{MONTH_FR} <![CDATA[<=]]> LEFT(CONVERT(date,S.ORD_DATE),7)
+						</when>
+						
+						<when test='MONTH_TO != ""'>
+							AND LEFT(CONVERT(date,S.ORD_DATE),7) <![CDATA[>=]]> #{MONTH_TO} 
+						</when>
+					</choose>				
+				</if>
+			</if>
+			
+			
+			<if test='DATE == "Y"'>
+				<if test='DATE_FR != "" or DATE_TO != ""'>
+					<choose>
+						<when test='DATE_FR != "" and DATE_TO != ""'>
+							AND ( #{DATE_FR} <![CDATA[<=]]> S.ORD_DATE AND S.ORD_DATE <![CDATA[>=]]> #{DATE_TO} )
+						</when>
+						
+						<when test='DATE_FR != ""'>
+							AND #{DATE_FR} <![CDATA[<=]]> S.ORD_DATE
+						</when>
+						
+						<when test='DATE_TO != ""'>
+							AND S.ORD_DATE <![CDATA[>=]]> #{DATE_TO} 
+						</when>
+					</choose>				
+				</if>
+			</if>
+			
+			<if test='SALE_TYPE_chk == "Y"'>
+				AND SALE_TYPE = #{SALE_TYPE}
+			</if>
+			
+			<if test='REG_TYPE_chk == "Y"'>
+				AND REG_TYPE = #{REG_TYPE}
+			</if>
+	</select>
+	
+	<select id="memberSearch" parameterType="Map" resultType="CMap">
+		/* memberSearch */
+		SELECT
+				TT.ORGN_DIV_CD
+				,TT.ORGN_CD
+				,TT.UNIQUE_MEM_NM
+				,TT.MEM_NM
+				,TT.MEM_NO
+				,TT.MEM_BCD
+				,TT.PHON_NO
+				,TT.TEL_NO01
+				,TT.TEL_NO02
+				,TT.LAST_TRADE_DATE
+		FROM
+			(
+				SELECT
+						ORGN_DIV_CD
+						, ORGN_CD
+						, MEM_NO
+						, MEM_NM
+						, CONCAT(CORP_NM,'[',MEM_NM,']') AS UNIQUE_MEM_NM
+						, MEM_BCD
+						, SUBSTRING(PHON_NO,1,3) + '-' + SUBSTRING(PHON_NO,4,4) + '-' + SUBSTRING(PHON_NO,8,4) AS PHON_NO
+						, CASE
+							WHEN LEN(TEL_NO01) = 11
+								THEN SUBSTRING(TEL_NO01,1,3) + '-' + SUBSTRING(TEL_NO01,4,4) + '-' + SUBSTRING(TEL_NO01,8,4)
+							WHEN LEN(TEL_NO01) = 10
+								THEN SUBSTRING(TEL_NO01,1,2) + '-' + SUBSTRING(TEL_NO01,3,4) + '-' + SUBSTRING(TEL_NO01,7,4)
+							ELSE
+								TEL_NO01
+						  END TEL_NO01
+						, CASE
+							WHEN LEN(TEL_NO02) = 11
+								THEN SUBSTRING(TEL_NO02,1,3) + '-' + SUBSTRING(TEL_NO02,4,4) + '-' + SUBSTRING(TEL_NO02,8,4)
+							WHEN LEN(TEL_NO02) = 10
+								THEN SUBSTRING(TEL_NO02,1,2) + '-' + SUBSTRING(TEL_NO02,3,4) + '-' + SUBSTRING(TEL_NO02,7,4)
+							ELSE
+								TEL_NO02
+						  END TEL_NO02
+						, LAST_TRADE_DATE
+						, MEM_STATE
+					FROM
+						T_STD_MAST_MEM
+			) TT
+		WHERE
+			1=1
+		<if test='ORGN_CD != "" and ORGN_CD != null'>
+			AND ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test= 'ORGN_DIV_CD != ""'>
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+		</if>
+		<if test='MEM_NM != ""'>
+			AND UNIQUE_MEM_NM LIKE CONCAT('%[',#{MEM_NM},']%')
+		</if>
+			AND (MEM_STATE = 'Y'
+		<if test='MEM_STATE_N_INCLUDE == "Y"'>
+			OR MEM_STATE = 'N'
+		</if>
+			)
+	</select>
+	
+	<update id="updateMemberType" parameterType="Map">
+		UPDATE T_STD_MAST_MEM
+		SET
+			MEM_TYPE = #{updateMEM_TYPE}
+		WHERE 
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+	</update>
+	
+	<update id="updateMemberABC" parameterType="Map" >
+		UPDATE T_STD_MAST_MEM
+		SET
+			MEM_ABC = #{updateMEM_ABC}
+		WHERE 
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+	</update>
+	
+	<update id="updateMemberState" parameterType="Map" >
+		UPDATE T_STD_MAST_MEM
+		SET
+			MEM_STATE = #{updateMEM_STATE}
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+	</update>
+	
+	<update id="updateMemberTaxYN" parameterType="Map" >
+		UPDATE T_STD_MAST_MEM
+		SET
+			TAX_YN = #{updateCUST_TAX_YN}
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+	</update>
+	
+	<update id="updateMemberChgAmtType" parameterType="Map" >
+		UPDATE T_STD_MAST_MEM
+		SET
+			CHG_AMT_TYPE = #{updateCHG_AMT_TYPE}
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND MEM_NO = #{MEM_NO}
+	</update>
+	
+	<select id="getMemberDesignationList" parameterType="Map" resultType="CMap">
+		/* getMemberDesignationList */
+		SELECT 
+			  MM.ORGN_DIV_CD			ORGN_DIV_CD
+			, MM.ORGN_CD				ORGN_CD
+			, MM.MEM_NO					MEM_NO
+			, MM.MEM_NM					MEM_NM
+			, PP.GOODS_NO				GOODS_NO
+			, MG.GOODS_NM				GOODS_NM
+			, B.BCD_CD					BCD_CD
+			, MPP.PUR_PRICE				PUR_PRICE	
+			, MSP.SALE_PRICE			SALE_PRICE
+			, MM.PRICE_POLI				PRICE_POLI
+			, MSP.PROF_RATE 			PROF_RATE
+			, PP.PRICE_POLI_TYPE		PRICE_POLI_TYPE
+			, PP.PROF_RATE 				MEM_PROF_RATE
+			, PP.SALE_PRICE				MEM_SALE_PRICE
+			, MM.MEM_ABC				MEM_ABC
+			, B.BCD_NM					BCD_NM
+			, PP.SALE_PRICE				SALE_PRICE
+			, MG.GOODS_NO				GOODS_NO
+			, CASE
+				WHEN MM.PRICE_POLI = '1' THEN MSP.WSALE_PRICE_01
+				WHEN MM.PRICE_POLI = '2' THEN MSP.WSALE_PRICE_02
+				WHEN MM.PRICE_POLI = '3' THEN MSP.WSALE_PRICE_03
+				WHEN MM.PRICE_POLI = '4' THEN MSP.WSALE_PRICE_04
+				WHEN MM.PRICE_POLI = '5' THEN MSP.WSALE_PRICE_05
+			  END AS 					WSALE_PRICE
+			, PP.CDATE 					CDATE
+			, PP.MDATE 					MDATE
+			,*
+		FROM T_MEM_PRICE_POLI PP
+			INNER JOIN T_STD_MAST_BCD B
+				ON PP.GOODS_NO = B.GOODS_NO
+				AND PP.BCD_CD = B.BCD_CD
+			INNER JOIN T_STD_MAST_GOODS MG
+				ON PP.GOODS_NO = MG.GOODS_NO
+			INNER JOIN T_STD_MAST_MEM MM
+				ON PP.ORGN_CD = MM.ORGN_CD
+				AND PP.MEM_NO = MM.MEM_NO
+			INNER JOIN (
+				SELECT
+					*
+				FROM(
+						SELECT
+							ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY CDATE DESC, PUR_PRICE DESC) AS NUM
+							,*
+						FROM
+							T_STD_MAST_PUR_PRICE
+						WHERE USE_YN = 'Y'
+					) TEMP
+				WHERE NUM = 1
+			) MPP
+				ON PP.BCD_CD = MPP.BCD_CD
+			INNER JOIN T_STD_MAST_SALE_PRICE MSP
+				ON PP.ORGN_CD = MSP.ORGN_CD
+				AND PP.BCD_CD = MSP.BCD_CD 
+			INNER JOIN T_STD_CUSTMR_MK CM
+				ON MSP.ORGN_CD = CM.ORGN_CD
+				AND MPP.CUSTMR_CD = CM.CUSTMR_CD
+		WHERE 
+			1=1
+			<if test='ORGN_DIV_CD != ""'>
+				AND MM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			
+			<if test ='ORGN_CD != null and ORGN_CD != ""'>
+				AND MM.ORGN_CD = #{ORGN_CD}
+			</if>
+			
+			<choose>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+				AND MG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MG.GRUP_MID_CD != '0' AND MG.GRUP_BOT_CD != '0' /*대분류눌렀을때*/ 
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+				AND MG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MG.GRUP_MID_CD = #{GRUP_MID_CD} AND MG.GRUP_BOT_CD != 0  /*중분류눌렀을때*/  
+				</when>
+				<when test='GRUP_TOP_CD != "" and GRUP_MID_CD != "" and GRUP_BOT_CD != ""'>
+				AND MG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND MG.GRUP_MID_CD = #{GRUP_MID_CD} AND MG.GRUP_BOT_CD = #{GRUP_BOT_CD} /*소분류눌렀을때*/
+				</when>
+			</choose>
+			
+			<if test='CUSTMR_CD != ""'>
+				AND MSP.CUSTMR_CD = #{CUSTMR_CD}
+			</if>
+			
+			<if test='SEARCH_WORD != ""'>
+				AND (MM.MEM_NM LIKE CONCAT('%',#{SEARCH_WORD},'%') OR MG.GOODS_NM LIKE CONCAT('%',#{SEARCH_WORD},'%'))
+			</if>
+
+			<if test='GOODS_UNIT_TYPE_chk == "Y"'>
+				AND MG.GOODS_SALE_TYPE = #{GOODS_UNIT_TYPE}
+			</if>
+			
+			<if test='GOODS_SALES_TYPE_chk == "Y"'>
+				AND MG.GOODS_PUR_CD = #{GOODS_SALES_TYPE}
+			</if>
+			
+			<if test='GOODS_TAX_YN_chk == "Y"'>
+				AND MG.TAX_TYPE = #{GOODS_TAX_YN}
+			</if>
+		ORDER BY MM.MEM_NO, PP.BCD_CD, MPP.PUR_PRICE,MM.ORGN_CD
+	</select>
+	
+	<select id="getMemberGroupList" parameterType="Map" resultType="CMap">
+		/*getMemberGroupList*/
+		SELECT
+			GRUP_CD
+			, GRUP_NM
+			, ORGN_DIV_CD
+			, ORGN_CD
+			, USE_YN
+		FROM T_STD_MEM_GRUP
+		WHERE
+			1=1
+			<if test='ORGN_DIV_CD != ""'>
+				AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='ORGN_CD != "" and ORGN_CD != null'>
+				AND ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test='GRUP_NM != ""'>
+				AND GRUP_NM LIKE CONCAT('%', #{GRUP_NM}, '%')
+			</if>
+			
+	</select>
+	
+	<insert id="insertMemberGroup" parameterType="Map">
+		/* insertMemberGroup */
+		DECLARE @TEMP_SEQ BIGINT
+		SELECT @TEMP_SEQ = NEXT VALUE FOR SEQ_T_STD_MEM_GRUP
+		
+		INSERT INTO T_STD_MEM_GRUP(
+			ORGN_DIV_CD
+			, ORGN_CD
+			, GRUP_CD
+			, GRUP_NM
+			, RESP_USER
+			, USE_YN
+			, CPROGRM
+			, CUSER
+			, CDATE
+		)VALUES(
+			#{ORGN_DIV_CD}
+			, #{ORGN_CD}
+			, @TEMP_SEQ
+			, #{GRUP_NM}
+			, #{LUI_emp_no}
+			, 'Y'
+			, 'SIS'
+			, #{LUI_emp_no}
+			, GETDATE()
+		)
+	</insert>
+	
+	<update id="updateMemberGroup" parameterType="Map">
+		/* updateMemberGroup */
+		UPDATE T_STD_MEM_GRUP
+		SET
+			USE_YN = #{USE_YN}
+			, GRUP_NM = #{GRUP_NM}
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND GRUP_CD = #{GRUP_CD}
+	</update>
+	
+	<update id="deleteMemberGroup" parameterType="Map">
+		/* deleteMemberGroup */
+		UPDATE T_STD_MEM_GRUP
+		SET
+			USE_YN = 'N'
+		WHERE
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND GRUP_CD = #{GRUP_CD}
+	</update>
+	
+	<select id="getMemberListInGroup" parameterType="Map" resultType="CMap">
+		/* getMemberListInGroup */
+		SELECT
+			T1.GRUP_CD
+			, T1.GRUP_NM
+			, T2.MEM_NO
+			, M.MEM_NM
+			, M.MEM_BCD
+			, M.CORP_NM
+			, T1.ORGN_DIV_CD
+			, T1.ORGN_CD
+			, T2.USE_YN
+		FROM
+			T_STD_MEM_GRUP T1
+			INNER JOIN T_STD_MEM_GRUP_DETL T2
+			ON T1.GRUP_CD = T2.GRUP_CD
+			INNER JOIN T_STD_MAST_MEM M
+			ON T2.MEM_NO = M.MEM_NO
+		WHERE
+			1=1
+			<if test='ORGN_DIV_CD != ""'>
+				AND M.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test='ORGN_CD != ""'>
+				AND M.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test='GRUP_CD != ""'>
+				AND T1.GRUP_CD = #{GRUP_CD}
+			</if>
+			<if test='MEM_NM_IN_GROUP != ""'>
+				AND MEM_NM LIKE CONCAT('%',#{MEM_NM_IN_GROUP},'%')
+			</if>
+	</select>
+	
+	<insert id="insertMemberListInGroup" parameterType="Map">
+		/*insertMemberListInGroup*/
+		INSERT INTO T_STD_MEM_GRUP_DETL(
+			ORGN_DIV_CD
+			, ORGN_CD
+			, GRUP_CD
+			, MEM_NO
+			, USE_YN
+			, CPROGRM
+			, CUSER
+			, CDATE
+		)VALUES(
+			#{ORGN_DIV_CD}
+			, #{ORGN_CD}
+			, #{GRUP_CD}
+			, #{MEM_NO}
+			, 'Y'
+			, 'SIS'
+			, #{LUI_emp_no}
+			, GETDATE()
+		)
+	</insert>
+	
+	<update id="updateMemberListInGroup" parameterType="Map">
+		/*updateMemberListInGroup*/
+		UPDATE T_STD_MEM_GRUP_DETL
+		SET
+			USE_YN = #{USE_YN}
+		WHERE 
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND GRUP_CD = #{GRUP_CD}
+			AND MEM_NO = #{MEM_NO}
+	</update>
+	
+	<update id="deleteMemberListInGroup" parameterType="Map">
+		/*deleteMemberListInGroup*/
+		UPDATE T_STD_MEM_GRUP_DETL
+		SET 
+			USE_YN = 'N'
+		WHERE 
+			1=1
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND GRUP_CD = #{GRUP_CD}
+			AND MEM_NO = #{MEM_NO}
+	</update>
+	
+	<select id="getMemberWSalePrice" parameterType="Map" resultType="CMap">
+		/* getMemberWSalePrice */
+		<if test='list.size > 0'>
+			SELECT 
+				  B.BCD_CD					BCD_CD
+				, B.BCD_NM					BCD_NM
+				, B.DIMEN_NM				DIMEN_NM
+				, PP.GOODS_NO				GOODS_NO
+				, MG.GOODS_NM				GOODS_NM
+				, MPP.PUR_PRICE				PUR_PRICE
+				, MSP.RCMD_SALE_PRICE		RCMD_SALE_PRICE
+				, MSP.SALE_PRICE			SALE_PRICE
+				, MM.PRICE_POLI				PRICE_POLI
+				, MSP.PROF_RATE 			PROF_RATE
+				, CASE
+					WHEN MM.PRICE_POLI = '1' THEN MSP.WSALE_PRICE_01
+					WHEN MM.PRICE_POLI = '2' THEN MSP.WSALE_PRICE_02
+					WHEN MM.PRICE_POLI = '3' THEN MSP.WSALE_PRICE_03
+					WHEN MM.PRICE_POLI = '4' THEN MSP.WSALE_PRICE_04
+					WHEN MM.PRICE_POLI = '5' THEN MSP.WSALE_PRICE_05
+					END AS 					WSALE_PRICE
+				, PP.USE_YN					USE_YN
+				, PP.CDATE 					CDATE
+				, PP.MDATE 					MDATE
+			FROM (SELECT * FROM T_MEM_PRICE_POLI WHERE ORGN_CD = #{list[0].ORGN_CD} AND MEM_NO = #{list[0].MEM_NO}) PP
+				INNER JOIN T_STD_MAST_BCD B
+					ON PP.GOODS_NO = B.GOODS_NO
+					AND PP.BCD_CD = B.BCD_CD
+				INNER JOIN T_STD_MAST_GOODS MG
+					ON PP.GOODS_NO = MG.GOODS_NO
+				INNER JOIN T_STD_MAST_MEM MM
+					ON PP.ORGN_CD = MM.ORGN_CD
+					AND PP.MEM_NO = MM.MEM_NO
+				INNER JOIN (
+					SELECT
+						*
+					FROM(
+							SELECT
+								ROW_NUMBER() OVER(PARTITION BY BCD_CD ORDER BY CDATE DESC, PUR_PRICE DESC) AS NUM
+								,*
+							FROM
+								T_STD_MAST_PUR_PRICE
+							WHERE USE_YN = 'Y'
+						) TEMP
+					WHERE NUM = 1
+				) MPP
+					ON PP.BCD_CD = MPP.BCD_CD
+				INNER JOIN (
+					SELECT 
+							* 
+					FROM T_STD_MAST_SALE_PRICE 
+					WHERE 
+						1=1
+						AND ORGN_CD = #{list[0].ORGN_CD}
+						AND BCD_CD IN
+						<foreach collection="list" item="map" open="(" separator="," close=")">
+							#{map.BCD_CD}
+						</foreach>
+				) MSP
+					ON PP.ORGN_CD = MSP.ORGN_CD
+					AND PP.BCD_CD = MSP.BCD_CD 
+				INNER JOIN T_STD_CUSTMR_MK CM
+					ON MSP.ORGN_CD = CM.ORGN_CD
+					AND MPP.CUSTMR_CD = CM.CUSTMR_CD
+		</if>
+	</select>
+	
+	<select id="getMemberInfoLog" parameterType="Map" resultType="CMap">
+		/* getMemberInfoLog - 수정필요 */ 
+<!-- 		SELECT -->
+<!-- 			ORGN_DIV_CD -->
+<!-- 			, ORGN_CD -->
+<!-- 			, MEM_NO -->
+<!-- 		FROM -->
+<!-- 			T_STD_MAST_MEM_LOG -->
+<!-- 		WHERE 1=1 -->
+<!-- 			AND ORGN_DIV_CD =#{ORGN_DIV_CD} -->
+<!-- 			AND ORGN_CD =#{ORGN_CD} -->
+<!-- 			AND MEM_NO =#{MEM_NO} -->
+	</select>
+</mapper>

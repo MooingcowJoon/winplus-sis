@@ -1,0 +1,1241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.standardInfo.dao.GoodsInformationDao">
+	<select id="getGoodsInformationList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsInformationList */
+		DECLARE @GRUP_TOP_CD NVARCHAR(4)
+				,@GRUP_MID_CD NVARCHAR(4)
+				,@GRUP_BOT_CD NVARCHAR(4)
+		
+		<if test="GOODS_CATEG_CD != null and GOODS_CATEG_CD != '' and GOODS_CATEG_CD != 'ALL'">
+			SELECT
+				@GRUP_TOP_CD = GRUP_TOP_CD
+				,@GRUP_MID_CD = GRUP_MID_CD
+				,@GRUP_BOT_CD = GRUP_BOT_CD
+			FROM T_STD_GOODSGRUP
+			WHERE GRUP_CD = #{GOODS_CATEG_CD}
+		</if>
+		
+		IF(@GRUP_TOP_CD = '0')
+			BEGIN
+				SET @GRUP_TOP_CD = NULL
+			END
+		IF(@GRUP_MID_CD = '0')
+			BEGIN
+				SET @GRUP_MID_CD = NULL
+			END
+		IF(@GRUP_BOT_CD = '0')
+			BEGIN
+				SET @GRUP_BOT_CD = NULL
+			END
+		
+		SELECT *
+		FROM (
+			SELECT
+				A.[GOODS_NO]
+				,A.[GRUP_TOP_CD]
+				,A.[GRUP_MID_CD]
+				,A.[GRUP_BOT_CD]
+				,A.[GOODS_NM]
+				,B.[BCD_NM]
+				,B.[DIMEN_NM]
+				,B.[BCD_CD]
+				,B.[BCD_M_CD]
+				,B.[BCD_MS_TYPE]
+				,B.[UNIT_CD]
+				,B.[UNIT_QTY]
+				,B.[CONV_QTY]
+				,A.[GOODS_PUR_CD]
+				,A.[GOODS_SALE_TYPE]
+				,A.[ITEM_TYPE]
+				,A.[POINT_SAVE_RATE]
+				,A.[TAX_TYPE]
+				,A.[GOODS_STATE]
+				,A.[MAT_TEMPER_INFO]
+				,A.[GOODS_SET_TYPE]
+				,A.[MIN_PUR_QTY]
+				,A.[MIN_PUR_UNIT]
+				,A.[MIN_ORD_UNIT]
+				,A.[MIN_ORD_QTY]
+				,A.[MIN_UNIT_QTY]
+				,A.[GOODS_DESC]
+				,A.[GOODS_KEYWD]
+				,A.[RESP_USER]
+				,A.[GOODS_LOAD_CD]
+				,A.[GOODS_EXP_CD]
+				,A.[GOODS_EXP_DATE]
+				,A.[PUR_DSCD_TYPE]
+				,A.[SALE_DSCD_TYPE]
+				,A.[DELI_DD_YN]
+				,A.[GOODS_TC_TYPE]
+				,A.[DELI_AREA_YN]
+				,A.[GOODS_STOCK_TYPE]
+				,A.[POLI_TYPE]
+				,A.[STOCK_CONF_DATE]
+				,A.[BRADN_TYPE]
+				,A.[STORE_TYPE]
+			FROM T_STD_MAST_GOODS A
+			INNER JOIN T_STD_MAST_BCD B ON A.GOODS_NO = B.GOODS_NO
+			WHERE 1=1
+			<if test='GOODS_CATEG_CD != "ALL"'>
+				AND (@GRUP_TOP_CD IS NULL OR GRUP_TOP_CD = @GRUP_TOP_CD)
+				AND (@GRUP_MID_CD IS NULL OR GRUP_MID_CD = @GRUP_MID_CD)
+				AND (@GRUP_BOT_CD IS NULL OR GRUP_BOT_CD = @GRUP_BOT_CD)
+			</if>
+			AND (A.GOODS_NM LIKE '%'+#{KEY_WORD}+'%' OR B.BCD_CD LIKE '%'+#{KEY_WORD}+'%' OR B.BCD_NM LIKE '%'+#{KEY_WORD}+'%')
+		) AS AA
+		WHERE 1=1
+		<if test="USE_YN != null and USE_YN != ''">
+			AND AA.GOODS_STATE = #{USE_YN}
+		</if>
+		<if test="PUR_TYPE != null and PUR_TYPE != ''">
+			AND AA.GOODS_PUR_CD = #{PUR_TYPE}
+		</if>
+		<if test="ITEM_TYPE != null and ITEM_TYPE != ''">
+			AND AA.ITEM_TYPE = #{ITEM_TYPE}
+		</if>
+		<if test="TAX_TYPE != null and TAX_TYPE != ''">
+			AND AA.TAX_TYPE = #{TAX_TYPE}
+		</if>
+		<if test="MAT_TEMPER_INFO != null and MAT_TEMPER_INFO != ''">
+			AND AA.MAT_TEMPER_INFO = #{MAT_TEMPER_INFO}
+		</if>
+		<if test="GOODS_TC_TYPE != null and GOODS_TC_TYPE != ''">
+			AND AA.GOODS_TC_TYPE = #{GOODS_TC_TYPE}
+		</if>
+		<if test="GOODS_SALE_TYPE != null and GOODS_SALE_TYPE != ''">
+			AND AA.GOODS_SALE_TYPE = #{GOODS_SALE_TYPE}
+		</if>
+		<if test="DELI_AREA_YN != null and DELI_AREA_YN != ''">
+			AND AA.DELI_AREA_YN = #{DELI_AREA_YN}
+		</if>
+		<if test="GOODS_STOCK_TYPE != null and GOODS_STOCK_TYPE != ''">
+			AND AA.GOODS_STOCK_TYPE = #{GOODS_STOCK_TYPE}
+		</if>
+		<if test="GOODS_SET_TYPE != null and GOODS_SET_TYPE != ''">
+			AND AA.GOODS_SET_TYPE = #{GOODS_SET_TYPE}
+		</if>
+		<if test="DELI_DD_YN != null and DELI_DD_YN != ''">
+			AND AA.DELI_DD_YN = #{DELI_DD_YN}
+		</if>
+		<if test="PB_TYPE != null and PB_TYPE != ''">
+			AND AA.PB_TYPE = #{PB_TYPE}
+		</if>
+		ORDER BY BCD_M_CD, BCD_MS_TYPE, BCD_NM ASC
+	</select>
+	
+	<select id="getGoodsInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsInformation */
+		SELECT
+			GOODS_NO
+			,GOODS_NM
+		FROM T_STD_MAST_GOODS
+		WHERE GOODS_NO = #{GOODS_NO}
+	</select>
+	
+	<select id="updateGoodsInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateGoodsInformation */
+		DECLARE @GOODS_NO NVARCHAR(10)
+				,@GRUP_TOP_CD NVARCHAR(4)
+				,@GRUP_MID_CD NVARCHAR(4)
+				,@GRUP_BOT_CD NVARCHAR(4)
+				
+		SET @GOODS_NO = (
+							SELECT
+								CONCAT('S',REPLICATE('0',9 - LEN(COUNT(GOODS_NO)+1)),COUNT(GOODS_NO)+1) AS GOODS_NO
+							FROM T_STD_MAST_GOODS
+						)
+		SELECT
+			@GRUP_TOP_CD = GRUP_TOP_CD
+			,@GRUP_MID_CD = GRUP_MID_CD
+			,@GRUP_BOT_CD = GRUP_BOT_CD
+		FROM T_STD_GOODSGRUP
+		WHERE GRUP_CD = #{GRUP_CD}
+		
+		IF EXISTS(
+					SELECT
+						GOODS_NO
+					FROM T_STD_MAST_GOODS
+					WHERE GOODS_NO = #{GOODS_NO} 
+				)
+			BEGIN
+				UPDATE T_STD_MAST_GOODS
+				SET GOODS_NM = #{GOODS_NM}
+					,GRUP_TOP_CD = @GRUP_TOP_CD
+					,GRUP_MID_CD = @GRUP_MID_CD
+					,GRUP_BOT_CD = @GRUP_BOT_CD
+					,GOODS_STATE = #{GOODS_STATE}
+					,GOODS_PUR_CD = #{GOODS_PUR_CD}
+					,GOODS_SALE_TYPE = #{GOODS_SALE_TYPE}
+					,ITEM_TYPE = #{ITEM_TYPE}
+					,POINT_SAVE_RATE = #{POINT_SAVE_RATE}
+					,TAX_TYPE = #{TAX_TYPE}
+					,MAT_TEMPER_INFO = #{MAT_TEMPER_INFO}
+					,GOODS_SET_TYPE = #{GOODS_SET_TYPE}
+<!-- 					,MIN_PUR_QTY = #{MIN_PUR_QTY} -->
+<!-- 					,MIN_PUR_UNIT = #{MIN_PUR_UNIT} -->
+					,MIN_ORD_UNIT = #{MIN_ORD_UNIT}
+					,MIN_ORD_QTY = #{MIN_ORD_QTY}
+					,MIN_UNIT_QTY = #{MIN_UNIT_QTY}
+					,GOODS_DESC = #{GOODS_DESC}
+<!-- 					,GOODS_KEYWD = #{GOODS_KEYWD} -->
+					,RESP_USER = #{RESP_USER}
+<!-- 					,GOODS_LOAD_CD = #{GOODS_LOAD_CD} -->
+					,GOODS_EXP_CD = #{GOODS_EXP_CD}
+					,GOODS_EXP_TYPE = #{GOODS_EXP_TYPE}
+					,GOODS_EXP_DATE = #{GOODS_EXP_DATE}
+					,USE_EXP_TYPE = #{USE_EXP_TYPE}
+					,USE_EXP_DATE = #{USE_EXP_DATE}
+					,PUR_DSCD_TYPE = #{PUR_DSCD_TYPE}
+					,SALE_DSCD_TYPE = #{SALE_DSCD_TYPE}
+					,DELI_DD_YN = #{DELI_DD_YN}
+					,GOODS_TC_TYPE = #{GOODS_TC_TYPE}
+					,DELI_AREA_YN = #{DELI_AREA_YN}
+					,GOODS_STOCK_TYPE = #{GOODS_STOCK_TYPE}
+<!-- 					,POLI_TYPE = #{POLI_TYPE} -->
+<!-- 					,STOCK_CONF_DATE = #{STOCK_CONF_DATE} -->
+<!-- 					,EMPTY_BOTTLE_YN = #{EMPTY_BOTTLE_YN} -->
+<!-- 					,BRADN_TYPE = #{BRADN_TYPE} -->
+<!-- 					,STORE_TYPE = #{STORE_TYPE} -->
+					,PB_TYPE = #{PB_TYPE}
+					,MPROGRM = #{PROGRM}
+					,MUSER = #{EMP_NO}
+					,MDATE = GETDATE()
+				WHERE GOODS_NO = #{GOODS_NO}
+				
+				UPDATE T_STD_MAST_BCD
+				SET BCD_CD = #{BCD_CD}
+					<if test="GOODS_IMG_PATH1 != ''">
+					,GOODS_IMG_PATH1 = #{GOODS_IMG_PATH1}
+					</if>
+					<if test="GOODS_IMG_PATH2 != ''">
+					,GOODS_IMG_PATH2 = #{GOODS_IMG_PATH2}
+					</if>
+					<if test="GOODS_IMG_PATH3 != ''">
+					,GOODS_IMG_PATH3 = #{GOODS_IMG_PATH3}
+					</if>
+				WHERE BCD_CD = #{BCD_CD}
+				
+				SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				INSERT INTO T_STD_MAST_GOODS (
+					[GOODS_NO]
+					,[GRUP_TOP_CD]
+					,[GRUP_MID_CD]
+					,[GRUP_BOT_CD]
+					,[GOODS_NM]
+					,[GOODS_PUR_CD]
+					,[GOODS_SALE_TYPE]
+					,[ITEM_TYPE]
+					,[POINT_SAVE_RATE]
+					,[TAX_TYPE]
+					,[GOODS_STATE]
+					,[MAT_TEMPER_INFO]
+					,[GOODS_SET_TYPE]
+					,[MIN_PUR_QTY]
+					,[MIN_PUR_UNIT]
+					,[MIN_ORD_UNIT]
+					,[MIN_ORD_QTY]
+					,[MIN_UNIT_QTY]
+					,[GOODS_DESC]
+					,[GOODS_KEYWD]
+					,[RESP_USER]
+					,[GOODS_LOAD_CD]
+					,[GOODS_EXP_CD]
+					,[PUR_DSCD_TYPE]
+					,[SALE_DSCD_TYPE]
+					,[DELI_DD_YN]
+					,[GOODS_TC_TYPE]
+					,[DELI_AREA_YN]
+					,[GOODS_STOCK_TYPE]
+					,[POLI_TYPE]
+					,[BRADN_TYPE]
+					,[STORE_TYPE]
+					,[CPROGRM]
+					,[CUSER]
+					,[CDATE]
+				) VALUES (
+					@GOODS_NO
+					,@GRUP_TOP_CD
+					,@GRUP_MID_CD
+					,@GRUP_BOT_CD
+					,#{GOODS_NM}
+					,#{GOODS_PUR_CD}
+					,#{GOODS_SALE_TYPE}
+					,#{ITEM_TYPE}
+					<if test="POINT_SAVE_RATE != null and POINT_SAVE_RATE != ''">
+						,#{POINT_SAVE_RATE}
+					</if>
+					<if test="POINT_SAVE_RATE == null or POINT_SAVE_RATE == ''">
+						,0
+					</if>
+					,#{TAX_TYPE}
+					,#{GOODS_STATE}
+					,#{MAT_TEMPER_INFO}
+					,#{GOODS_SET_TYPE}
+					,#{MIN_PUR_QTY}
+					,#{MIN_PUR_UNIT}
+					,#{MIN_ORD_UNIT}
+					,#{MIN_ORD_QTY}
+					,#{MIN_UNIT_QTY}
+					,#{GOODS_DESC}
+					,#{GOODS_KEYWD}
+					,#{RESP_USER}
+					,#{GOODS_LOAD_CD}
+					,#{GOODS_EXP_CD}
+					,#{PUR_DSCD_TYPE}
+					,#{SALE_DSCD_TYPE}
+					,#{DELI_DD_YN}
+					,#{GOODS_TC_TYPE}
+					,#{DELI_AREA_YN}
+					,#{GOODS_STOCK_TYPE}
+					,#{POLI_TYPE}
+					,#{BRADN_TYPE}
+					,#{STORE_TYPE}
+					,#{PROGRM}
+					,#{EMP_NO}
+					,GETDATE()
+				)
+				
+				SELECT 'INS_SUCCESS' AS RESULT_MSG, @GOODS_NO AS INS_GOODS_NO
+			END
+	</select>
+	
+	<select id="deleteGoodsInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* deleteGoodsInformation */
+		UPDATE T_STD_MAST_GOODS
+		SET GOODS_STATE = 'N'
+		WHERE GOODS_NO = #{GOODS_NO}
+		
+		SELECT 'DEL_SUCCESS' AS RESULT_MSG
+	</select>
+	
+	<select id="getGoodsInformationFromBarcode" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsInformationFromBarcode */
+		SELECT
+			A.BCD_CD
+			,A.BCD_M_CD
+			,A.BCD_NM
+			,'기존상품' AS OLD_NEW
+			,A.DIMEN_NM
+			,B.GOODS_NO
+			,B.GOODS_NO AS GOODS_CD
+			,B.GOODS_NM
+			,B.GOODS_SALE_TYPE
+			,ISNULL(B.TAX_TYPE, '') AS TAX_TYPE
+			,C.CUSTMR_NM
+			,C.CUSTMR_CD
+			,C.PUR_PRICE
+			,D.SALE_PRICE
+			,B.[GRUP_TOP_CD]
+			,(
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = B.GRUP_TOP_CD
+				AND GRUP_MID_CD = '0'
+				AND GRUP_BOT_CD = '0'
+			) AS GRUP_TOP_NM
+			,B.[GRUP_MID_CD]
+			,ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = B.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = B.GRUP_MID_CD)
+				AND GRUP_BOT_CD = '0'
+			),'') AS GRUP_MID_NM
+			,B.[GRUP_BOT_CD]
+			,ISNULL((
+				SELECT
+					GRUP_NM
+				FROM T_STD_GOODSGRUP
+				WHERE GRUP_TOP_CD = B.GRUP_TOP_CD
+				AND (GRUP_MID_CD != '0' AND GRUP_MID_CD = B.GRUP_MID_CD)
+				AND (GRUP_BOT_CD != '0' AND GRUP_BOT_CD = B.GRUP_BOT_CD)
+			),'') AS GRUP_BOT_NM
+		FROM T_STD_MAST_BCD A
+		INNER JOIN T_STD_MAST_GOODS B
+		ON A.GOODS_NO = B.GOODS_NO
+		LEFT OUTER JOIN (
+			SELECT TOP 1 PP.CUSTMR_CD
+				, MC.CUSTMR_NM
+				, BCD_CD 
+				, MIN(PUR_PRICE) AS PUR_PRICE
+			FROM T_STD_MAST_PUR_PRICE AS PP
+			INNER JOIN T_STD_MAST_CUSTMR AS MC ON PP.CUSTMR_CD = MC.CUSTMR_CD
+			WHERE PP.BCD_CD = #{BCD_CD}
+			GROUP BY PP.CUSTMR_CD,PP.BCD_CD, MC.CUSTMR_NM
+			ORDER BY PUR_PRICE ASC
+		) C ON C.BCD_CD = A.BCD_CD
+		LEFT OUTER JOIN (
+			SELECT BCD_CD
+				,MIN(SALE_PRICE) AS SALE_PRICE
+			FROM T_STD_MAST_SALE_PRICE
+			WHERE BCD_CD = #{BCD_CD} 
+			<if test='ORGN_CD != "" and ORGN_CD != "200000"'>
+			AND ORGN_CD = #{ORGN_CD}
+			</if>
+			GROUP BY BCD_CD
+		) D ON D.BCD_CD = A.BCD_CD 
+		WHERE A.BCD_CD = #{BCD_CD}
+	</select>
+	
+	<select id="getAllOrgnCdList" resultType="java.util.Map">
+		/* getAllOrgnCdList */
+		SELECT
+			CMMN_DETAIL_CD AS ORGN_CD
+			,CMMN_DETAIL_CD_NM AS ORGN_NM
+		FROM COM_CMMN_CODE_DETAIL
+		WHERE CMMN_CD = 'MK_CD'
+	</select>
+	
+	<select id="updateBatchGoodsInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateBatchGoodsInformation */
+		DECLARE @GOODS_NO NVARCHAR(10)
+				,@GRUP_TOP_CD NVARCHAR(30)
+				,@GRUP_MID_CD NVARCHAR(30)
+				,@GRUP_BOT_CD NVARCHAR(30)
+				
+		SET @GOODS_NO = (
+							SELECT
+								CONCAT('S',REPLICATE('0',9 - LEN(COUNT(GOODS_NO)+1)) + COUNT(GOODS_NO)+1) AS GOODS_NO
+							FROM T_STD_MAST_GOODS
+						)
+		
+		SET @GRUP_TOP_CD = (
+							SELECT
+								GRUP_TOP_CD
+							FROM T_STD_GOODSGRUP
+							WHERE GRUP_TOP_CD != '0'
+							AND GRUP_MID_CD = '0'
+							AND GRUP_BOT_CD = '0'
+							AND GRUP_NM = #{GRUP_TOP_NM}
+						)
+		
+		SET @GRUP_MID_CD = (
+							SELECT
+								GRUP_MID_CD
+							FROM T_STD_GOODSGRUP
+							WHERE GRUP_TOP_CD = @GRUP_TOP_CD
+							AND GRUP_MID_CD != '0'
+							AND GRUP_BOT_CD = '0'
+							AND GRUP_NM = #{GRUP_MID_NM}
+						)
+		
+		SET @GRUP_BOT_CD = (
+							SELECT
+								GRUP_BOT_CD
+							FROM T_STD_GOODSGRUP
+							WHERE GRUP_TOP_CD = @GRUP_TOP_CD
+							AND GRUP_MID_CD = @GRUP_MID_CD
+							AND GRUP_BOT_CD != '0'
+							AND GRUP_NM = #{GRUP_BOT_NM}
+						)
+		
+		IF(
+			(ISNULL(@GRUP_TOP_CD,'') = '')
+				OR
+			(ISNULL(@GRUP_MID_CD,'') = '')
+				OR
+			(ISNULL(@GRUP_BOT_CD,'') = '')
+		)
+			BEGIN
+				SELECT '분류코드가 정확하지 않습니다.' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				IF EXISTS(
+							SELECT
+								GOODS_NO
+							FROM T_STD_MAST_GOODS
+							WHERE GOODS_NO = #{GOODS_NO} 
+						)
+					BEGIN
+						UPDATE T_STD_MAST_GOODS
+						SET GOODS_NM = #{GOODS_NM}
+							,GRUP_TOP_CD = @GRUP_TOP_CD
+							,GRUP_MID_CD = @GRUP_MID_CD
+							,GRUP_BOT_CD = @GRUP_BOT_CD
+							,GOODS_STATE = 'Y'
+							,MPROGRM = #{PROGRM}
+							,MUSER = #{EMP_NO}
+							,MDATE = GETDATE()
+						WHERE GOODS_NO = #{GOODS_NO}
+						
+						SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+					END
+				ELSE
+					BEGIN
+						INSERT INTO T_STD_MAST_GOODS (
+							[GOODS_NO]
+							,[GRUP_TOP_CD]
+							,[GRUP_MID_CD]
+							,[GRUP_BOT_CD]
+							,[GOODS_NM]
+							,[GOODS_STATE]
+							,[CPROGRM]
+							,[CUSER]
+							,[CDATE]
+						) VALUES (
+							@GOODS_NO
+							,@GRUP_TOP_CD
+							,@GRUP_MID_CD
+							,@GRUP_BOT_CD
+							,#{GOODS_NM}
+							,#{GOODS_STATE}
+							,#{PROGRM}
+							,#{EMP_NO}
+							,GETDATE()
+						)
+						
+						SELECT 'INS_SUCCESS' AS RESULT_MSG, @GOODS_NO AS INS_GOODS_NO, #{BCD_CD} AS BCD_CD
+					END
+			END
+	</select>
+	
+	<select id="updateBatchBarcodeInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateBatchBarcodeInformation */
+		IF EXISTS(
+					SELECT
+						BCD_CD
+					FROM T_STD_MAST_BCD
+					WHERE BCD_CD = #{BCD_CD} 
+				)
+			BEGIN
+				UPDATE T_STD_MAST_BCD
+				SET BCD_M_CD = #{BCD_M_CD}
+					,BCD_MS_TYPE = #{BCD_MS_TYPE}
+					,GOODS_NO = #{GOODS_NO}
+					,BCD_NM = #{BCD_NM}
+					,USE_YN = 'Y'
+					,MPROGRM = #{PROGRM}
+					,MUSER = #{EMP_NO}
+					,MDATE = GETDATE()
+				WHERE BCD_CD = #{BCD_CD} 
+				
+				SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				INSERT INTO T_STD_MAST_BCD (
+					[BCD_CD]
+					,[BCD_M_CD]
+					,[BCD_MS_TYPE]
+					,[GOODS_NO]
+					,[BCD_NM]
+					,[USE_YN]
+					,[CPROGRM]
+					,[CUSER]
+					,[CDATE]
+				) VALUES (
+					#{BCD_CD}
+					,#{BCD_M_CD}
+					,#{BCD_MS_TYPE}
+					,#{GOODS_NO}
+					,#{BCD_NM}
+					,'Y'
+					,#{PROGRM}
+					,#{EMP_NO}
+					,GETDATE()
+				)
+				
+				SELECT 'INS_SUCCESS' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="getGoodsRegistInformationList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsRegistInformationList */
+		SELECT
+			[REG_DATE]
+			,[SEQ]
+			,[ORGN_DIV_CD]
+			,[ORGN_CD]
+			,[ORGN_NM]
+			,[BCD_CD]
+			,[BCD_M_CD]
+			,[GOODS_NO]
+			,[BCD_NM]
+			,[GOODS_NM]
+			,[GRUP_CD]
+			,[GRUP_BOT_NM]
+			,[DIMEN_NM]
+			,[GOODS_EXP_CD]
+			,[MAT_TEMPER_INFO]
+			,[TAX_TYPE]
+			,[CUSTMR_CD]
+			,[CUSTMR_NM]
+			,[PUR_PRICE]
+			,[SALE_PRICE]
+			,[GOODS_STATE]
+			,[GOODS_EXP_TYPE]
+			,[GOODS_PUR_CD]
+			,[GOODS_SALE_TYPE]
+			,[ITEM_TYPE]
+			,[POINT_SAVE_RATE]
+			,[MIN_PUR_QTY]
+			,[MIN_PUR_UNIT]
+			,[MIN_ORD_UNIT]
+			,[MIN_ORD_QTY]
+			,[MIN_UNIT_QTY]
+			,[RESP_USER]
+			,[PUR_DSCD_TYPE]
+			,[SALE_DSCD_TYPE]
+			,[DELI_DD_YN]
+			,[GOODS_TC_TYPE]
+			,[DELI_AREA_YN]
+			,[RESN]
+			,[VALID_MSG]
+			,[PROC_STATE]
+			,[CPROGRM]
+			,[CUSER]
+			,CONVERT(NVARCHAR(19),[CDATE], 20) AS CDATE
+			,[MPROGRM]
+			,[MUSER]
+			,[MDATE]
+		FROM T_GOODS_REG_MNG
+		WHERE REG_DATE BETWEEN #{searchDateFrom} AND #{searchDateTo}
+		AND (ISNULL(#{orgn_cd},'') = '' OR ORGN_CD = #{orgn_cd})
+		AND (ISNULL(#{proc_state},'') = '' OR PROC_STATE = #{proc_state})
+		ORDER BY CDATE DESC, ORGN_CD
+	</select>
+	
+	<select id="updateGoodsRegistInformation" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateGoodsRegistInformation */
+		<if test='CRUD != null and CRUD != "D"'>
+			DECLARE @SEQ INT
+					
+			SET @SEQ = (
+							SELECT
+								(COUNT(SEQ)+1) AS SEQ
+							FROM T_GOODS_REG_MNG
+							WHERE REG_DATE = CONVERT(NVARCHAR(10),GETDATE(),120)
+						)
+							
+			IF EXISTS(
+						SELECT
+							REG_DATE
+						FROM T_GOODS_REG_MNG
+						WHERE REG_DATE = #{REG_DATE}
+						AND SEQ = #{SEQ}
+					)
+				BEGIN
+					UPDATE T_GOODS_REG_MNG
+					SET ORGN_CD = #{ORGN_CD}
+						,BCD_CD = #{BCD_CD}
+						,BCD_M_CD = #{BCD_M_CD}
+						,BCD_NM = #{BCD_NM}
+						,GOODS_NM = #{GOODS_NM}
+						,GRUP_BOT_NM = #{GRUP_BOT_NM}
+						,DIMEN_NM = #{DIMEN_NM}
+						,GOODS_EXP_CD = #{GOODS_EXP_CD}
+						,MAT_TEMPER_INFO = #{MAT_TEMPER_INFO}
+						,TAX_TYPE = #{TAX_TYPE}
+						,CUSTMR_NM = #{CUSTMR_NM}
+						,PUR_PRICE = #{PUR_PRICE}
+						,SALE_PRICE = #{SALE_PRICE}
+						,GOODS_STATE = #{GOODS_STATE}
+						,GOODS_EXP_TYPE = #{GOODS_EXP_TYPE}
+						,GOODS_PUR_CD = #{GOODS_PUR_CD}
+						,GOODS_SALE_TYPE = #{GOODS_SALE_TYPE}
+						,ITEM_TYPE = #{ITEM_TYPE}
+						,POINT_SAVE_RATE = #{POINT_SAVE_RATE}
+						,MIN_PUR_QTY = #{MIN_PUR_QTY}
+						,MIN_PUR_UNIT = #{MIN_PUR_UNIT}
+						,MIN_ORD_UNIT = #{MIN_ORD_UNIT}
+						,MIN_ORD_QTY = #{MIN_ORD_QTY}
+						,MIN_UNIT_QTY = #{MIN_UNIT_QTY}
+						,RESP_USER = #{RESP_USER}
+						,PUR_DSCD_TYPE = #{PUR_DSCD_TYPE}
+						,SALE_DSCD_TYPE = #{SALE_DSCD_TYPE}
+						,DELI_DD_YN = #{DELI_DD_YN}
+						,GOODS_TC_TYPE = #{GOODS_TC_TYPE}
+						,DELI_AREA_YN = #{DELI_AREA_YN}
+						,RESN = #{RESN}
+						,PROC_STATE = #{PROC_STATE}
+						,VALID_MSG = #{VALID_MSG}
+						,MPROGRM = #{PROGRM}
+						,MUSER = #{EMP_NO}
+						,MDATE = GETDATE()
+					WHERE REG_DATE = #{REG_DATE}
+					AND SEQ = #{SEQ}
+					AND PROC_STATE IN (
+										SELECT
+											CMMN_DETAIL_CD
+										FROM COM_CMMN_CODE_DETAIL
+										WHERE CMMN_CD = 'PROC_STATE'
+										AND DIV1 = 'USER'
+										AND USE_YN = 'Y'
+									)
+					
+					SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+				END
+			ELSE
+				BEGIN
+					INSERT INTO T_GOODS_REG_MNG (
+						[REG_DATE]
+						,[SEQ]
+						,[ORGN_CD]
+						,[BCD_CD]
+						,[BCD_M_CD]
+						,[BCD_NM]
+						,[GOODS_NM]
+						,[GRUP_BOT_NM]
+						,[DIMEN_NM]
+						,[GOODS_EXP_CD]
+						,[MAT_TEMPER_INFO]
+						,[TAX_TYPE]
+						,[CUSTMR_NM]
+						,[PUR_PRICE]
+						,[SALE_PRICE]
+						,[GOODS_STATE]
+						,[GOODS_EXP_TYPE]
+						,[GOODS_PUR_CD]
+						,[GOODS_SALE_TYPE]
+						,[ITEM_TYPE]
+						,[POINT_SAVE_RATE]
+						,[MIN_PUR_QTY]
+						,[MIN_PUR_UNIT]
+						,[MIN_ORD_UNIT]
+						,[MIN_ORD_QTY]
+						,[MIN_UNIT_QTY]
+						,[RESP_USER]
+						,[PUR_DSCD_TYPE]
+						,[SALE_DSCD_TYPE]
+						,[DELI_DD_YN]
+						,[GOODS_TC_TYPE]
+						,[DELI_AREA_YN]
+						,[RESN]
+						,[PROC_STATE]
+						,[VALID_MSG]
+						,[CPROGRM]
+						,[CUSER]
+						,[CDATE]
+					) VALUES (
+						CONVERT(NVARCHAR(10),GETDATE(),120)
+						,@SEQ
+						,#{ORGN_CD}
+						,#{BCD_CD}
+						,#{BCD_M_CD}
+						,#{BCD_NM}
+						,#{GOODS_NM}
+						,#{GRUP_BOT_NM}
+						,#{DIMEN_NM}
+						,#{GOODS_EXP_CD}
+						,#{MAT_TEMPER_INFO}
+						,#{TAX_TYPE}
+						,#{CUSTMR_NM}
+						,#{PUR_PRICE}
+						,#{SALE_PRICE}
+						,#{GOODS_STATE}
+						,#{GOODS_EXP_TYPE}
+						,#{GOODS_PUR_CD}
+						,#{GOODS_SALE_TYPE}
+						,#{ITEM_TYPE}
+						,#{POINT_SAVE_RATE}
+						,#{MIN_PUR_QTY}
+						,#{MIN_PUR_UNIT}
+						,#{MIN_ORD_UNIT}
+						,#{MIN_ORD_QTY}
+						,#{MIN_UNIT_QTY}
+						,#{RESP_USER}
+						,#{PUR_DSCD_TYPE}
+						,#{SALE_DSCD_TYPE}
+						,#{DELI_DD_YN}
+						,#{GOODS_TC_TYPE}
+						,#{DELI_AREA_YN}
+						,#{RESN}
+						,#{PROC_STATE}
+						,#{VALID_MSG}
+						,#{PROGRM}
+						,#{EMP_NO}
+						,GETDATE()
+					)
+					
+					SELECT 'INS_SUCCESS' AS RESULT_MSG
+				END
+		</if>
+		<if test='CRUD != null and CRUD == "D"'>
+			DELETE FROM T_GOODS_REG_MNG
+			WHERE REG_DATE = #{REG_DATE}
+			AND SEQ = #{SEQ}
+			AND PROC_STATE IN (
+									SELECT
+										CMMN_DETAIL_CD
+									FROM COM_CMMN_CODE_DETAIL
+									WHERE CMMN_CD = 'PROC_STATE'
+									AND DIV1 = 'USER'
+									AND USE_YN = 'Y'
+								)
+			
+			SELECT 'DEL_SUCCESS' AS RESULT_MSG
+		</if>
+	</select>
+	
+	<update id="validGoodsRegistInformation">
+		/* validGoodsRegistInformation */
+		EXEC [dbo].[SP_VALID_GOODS_REG_INFORMATION]
+	</update>
+	
+	<select id="getGoodsRegistConfirmList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsRegistConfirmList */
+		SELECT
+			[REG_DATE]
+			,[SEQ]
+			,[ORGN_DIV_CD]
+			,[ORGN_CD]
+			,[ORGN_NM]
+			,[BCD_CD]
+			,[BCD_M_CD]
+			,[GOODS_NO]
+			,[BCD_NM]
+			,[GOODS_NM]
+			,[GRUP_CD]
+			,[GRUP_BOT_NM]
+			,[DIMEN_NM]
+			,[GOODS_EXP_CD]
+			,[MAT_TEMPER_INFO]
+			,[TAX_TYPE]
+			,[CUSTMR_CD]
+			,[CUSTMR_NM]
+			,[PUR_PRICE]
+			,[SALE_PRICE]
+			,[RESN]
+			,[VALID_MSG]
+			,[PROC_STATE]
+			,[GOODS_STATE]
+			,[GOODS_EXP_TYPE]
+			,[GOODS_PUR_CD]
+			,[GOODS_SALE_TYPE]
+			,[ITEM_TYPE]
+			,[POINT_SAVE_RATE]
+			,[MIN_PUR_QTY]
+			,[MIN_PUR_UNIT]
+			,[MIN_ORD_UNIT]
+			,[MIN_ORD_QTY]
+			,[MIN_UNIT_QTY]
+			,[RESP_USER]
+			,[PUR_DSCD_TYPE]
+			,[SALE_DSCD_TYPE]
+			,[DELI_DD_YN]
+			,[GOODS_TC_TYPE]
+			,[DELI_AREA_YN]
+			,[CPROGRM]
+			,[CUSER]
+			,CONVERT(NVARCHAR(19), [CDATE], 20) AS CDATE
+			,[MPROGRM]
+			,[MUSER]
+			,[MDATE]
+		FROM T_GOODS_REG_MNG
+		WHERE REG_DATE BETWEEN #{searchDateFrom} AND #{searchDateTo}
+		AND (ISNULL(#{orgn_cd},'') = '' OR ORGN_CD = #{orgn_cd})
+		AND (ISNULL(#{proc_state},'') = '' OR PROC_STATE = #{proc_state})
+		ORDER BY CDATE DESC, ORGN_CD
+	</select>
+	
+	<select id="updateGoodsConfirmApply" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateGoodsConfirmApply */
+		DECLARE @PROC_STATE NVARCHAR(5)
+		
+		SET @PROC_STATE = (
+			SELECT PROC_STATE
+			FROM T_GOODS_REG_MNG
+			WHERE REG_DATE = #{REG_DATE}
+			AND SEQ = #{SEQ}
+		)
+		
+		IF @PROC_STATE = '1'
+			BEGIN
+				SELECT 'DATA_APPLY' AS RESULT_MSG
+			END
+		ELSE IF @PROC_STATE = '8'
+			BEGIN
+				SELECT 'COMPLETE_APPLY' AS RESULT_MSG
+			END
+		ELSE IF @PROC_STATE = '9'
+			BEGIN
+				SELECT 'DATA_ERROR' AS RESULT_MSG
+			END
+		ELSE
+			BEGIN
+				UPDATE T_GOODS_REG_MNG
+				SET PROC_STATE = '7'
+					,MPROGRM = #{PROGRM}
+					,MUSER = #{EMP_NO}
+					,MDATE = GETDATE()
+				WHERE REG_DATE = #{REG_DATE}
+				AND SEQ = #{SEQ}
+				AND PROC_STATE IN (
+									SELECT
+										CMMN_DETAIL_CD
+									FROM COM_CMMN_CODE_DETAIL
+									WHERE CMMN_CD = 'PROC_STATE'
+									AND DIV2 = 'APPR'
+									AND USE_YN = 'Y'
+								)
+			
+				SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+			END
+	</select>
+	
+	<select id="updateGoodsConfirmReject" resultType="java.util.Map" parameterType="java.util.Map">
+		/* updateGoodsConfirmReject */
+		UPDATE T_GOODS_REG_MNG
+		SET PROC_STATE = '6'
+			,MPROGRM = #{PROGRM}
+			,MUSER = #{EMP_NO}
+			,MDATE = GETDATE()
+		WHERE REG_DATE = #{REG_DATE}
+		AND SEQ = #{SEQ}
+		AND PROC_STATE IN (
+							SELECT
+								CMMN_DETAIL_CD
+							FROM COM_CMMN_CODE_DETAIL
+							WHERE CMMN_CD = 'PROC_STATE'
+							AND DIV2 = 'APPR'
+							AND USE_YN = 'Y'
+						)
+		
+		SELECT 'SAVE_SUCCESS' AS RESULT_MSG
+	</select>
+	
+	<select id = "getGoodsBalanceList" resultType="java.util.Map" parameterType="java.util.Map">
+		/*getGoodsBalanceList*/	
+			SELECT TSSG.ORGN_CD
+					,TSSG.ORGN_DIV_CD
+					,TSSG.SCALE_CD
+					,TSSG.SCALE_NM
+					,CONVERT(NVARCHAR(16),TSSG.CDATE, 120) AS CDATE
+					,CONVERT(NVARCHAR(16),TSSG.MDATE, 120) AS MDATE
+					,TSSG.USE_YN
+			FROM T_STD_SCALE_GRUP AS TSSG
+			WHERE 1=1 
+			<if test = 'ORGN_CD != ""'>
+				AND TSSG.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test = 'ORGN_CD == ""'>
+				AND TSSG.ORGN_CD IS NOT NULL
+			</if>
+			ORDER BY TSSG.ORGN_CD,TSSG.SCALE_CD
+	</select>
+	
+	<select id = "getGoodsBalanceDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/*getGoodsBalanceDetailList*/
+			SELECT TD.BCD_CD,
+					TD.ORGN_CD,
+					TD.SCALE_CD,
+					TG.GOODS_NM,
+					TG.GOODS_NO,
+					TP.SALE_PRICE,
+					CONVERT(NVARCHAR(16),TD.CDATE, 120) AS CDATE,
+					CONVERT(NVARCHAR(16),TD.MDATE, 120) AS MDATE,
+					TD.USE_YN 
+			FROM T_STD_SCALE_GRUP_DETL AS TD
+			INNER JOIN T_STD_MAST_SALE_PRICE AS TP
+				ON TD.BCD_CD = TP.BCD_CD
+				AND TD.ORGN_CD = TP.ORGN_CD
+			INNER JOIN T_STD_MAST_GOODS AS TG
+				ON TP.GOODS_NO = TG.GOODS_NO
+			WHERE TD.SCALE_CD = #{SCALE_CD}
+				AND TD.ORGN_CD = #{ORGN_CD}
+			GROUP BY TD.BCD_CD,
+					TG.GOODS_NM,
+					TP.SALE_PRICE,
+					TD.CDATE,
+					TD.MDATE,
+					TD.USE_YN,
+					TD.ORGN_CD,
+					TD.SCALE_CD,
+					TG.GOODS_NO
+	</select>
+	
+	<select id = "getBalanceInfoCheck" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBalanceInfoCheck */
+		SELECT TOP 1 ORDR
+				, ORGN_CD
+				, ORGN_DIV_CD
+				, SCALE_CD
+				, SCALE_NM
+				, RESP_USER
+				, MUSER
+				, USE_YN
+		FROM T_STD_SCALE_GRUP
+		WHERE ORGN_CD = #{ORGN_CD}
+		ORDER BY SCALE_CD DESC
+	</select>
+	
+	<insert id = "addBalanceMaster" parameterType="java.util.Map">
+		/* addBalanceMaster */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+	
+		INSERT INTO T_STD_SCALE_GRUP
+			(ORGN_DIV_CD, ORGN_CD, SCALE_CD, SCALE_NM, ORDR, RESP_USER, USE_YN, CPROGRM, CUSER, CDATE) 
+		VALUES (@ORGN_DIV_CD, #{ORGN_CD}, CONCAT(0,#{SCALE_CD}), #{SCALE_NM}, (SELECT ISNULL(MAX(ORDR), 0) +1 FROM T_STD_SCALE_GRUP), #{RESP_USER}, #{USE_YN}, #{CPROGRM}, #{CUSER}, GETDATE())
+	</insert>
+	
+	<delete id = "deleteBalanceMaster"  parameterType="java.util.Map">
+		/* deleteBalanceMaster */
+		DELETE FROM T_STD_SCALE_GRUP 
+		WHERE SCALE_CD = #{SCALE_CD}
+		AND ORGN_CD = #{ORGN_CD}
+	</delete>
+	
+	<update id = "updateBalanceMaster" parameterType="java.util.Map">
+		/* updateBalanceMaster */
+		UPDATE T_STD_SCALE_GRUP 
+		SET SCALE_NM = #{SCALE_NM}
+			, USE_YN = #{USE_YN}
+			, MUSER = #{MUSER}
+			, MPROGRM = #{MPROGRM}
+			, MDATE = GETDATE()
+		WHERE SCALE_CD = #{SCALE_CD}
+			AND ORGN_CD = #{ORGN_CD}
+	</update>
+	
+	<select id = "getBalanceDetailList" parameterType="Map" resultType="CMap">
+		/* getBalanceDetailList */
+		<if test='list.size > 0'>
+		SELECT TSMB.BCD_NM,
+				TSMB.BCD_CD,
+				TSMB.GOODS_NO,
+				TSMSP.SALE_PRICE,
+				CONVERT(NVARCHAR(16),TSMSP.CDATE, 120) AS CDATE,
+				CONVERT(NVARCHAR(16),TSMSP.MDATE, 120) AS MDATE,
+				TSMSP.ORGN_CD,
+				TSMSP.ORGN_DIV_CD
+		FROM T_STD_MAST_BCD AS TSMB
+		INNER JOIN T_STD_MAST_SALE_PRICE AS TSMSP
+			ON TSMB.BCD_CD = TSMSP.BCD_CD
+		WHERE TSMB.BCD_CD IN 
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				#{item.BCD_CD}
+			</foreach>
+		AND TSMSP.ORGN_CD = #{list[0].ORGN_CD}
+		</if>
+	</select>
+	
+	<select id = "getBalanceDetailinfoCheck" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getBalanceDetailinfoCheck */
+		SELECT TOP 1 ORDR
+		FROM T_STD_SCALE_GRUP_DETL
+		WHERE ORGN_CD = #{ORGN_CD}
+		AND SCALE_CD = #{SCALE_CD}
+		ORDER BY ORDR DESC
+	</select>
+	
+	<insert id = "addBalanceDetailGoods" parameterType="java.util.Map">
+		/* addBalanceDetailGoods */
+		DECLARE @ORGN_DIV_CD NVARCHAR(10)
+				,@GOODS_NO NVARCHAR(10)
+		
+		SET @ORGN_DIV_CD = (
+			SELECT ORGN_DIV_CD
+			FROM COM_ORGN_INFO
+			WHERE ORGN_CD = #{ORGN_CD}
+		)
+		
+		SET @GOODS_NO = (
+			SELECT GOODS_NO
+			FROM T_STD_MAST_BCD
+			WHERE BCD_CD = #{BCD_CD}
+		)
+	
+		INSERT INTO T_STD_SCALE_GRUP_DETL
+			(ORGN_DIV_CD, ORGN_CD, SCALE_CD, BCD_CD, GOODS_NO, ORDR, USE_YN, CUSER, CDATE, CPROGRM)
+		VALUES (@ORGN_DIV_CD, #{ORGN_CD}, #{SCALE_CD}, #{BCD_CD}, @GOODS_NO, #{ORDR}, #{USE_YN}, #{CUSER}, GETDATE(), #{CPROGRM})
+	</insert>
+	
+	<delete id = "deleteBalanceDetailGoods"  parameterType="java.util.Map">
+		/* deleteBalanceDetailGoods */
+		DELETE FROM T_STD_SCALE_GRUP_DETL WHERE BCD_CD = #{BCD_CD}
+	</delete>
+
+	<update id = "updateBalanceDetailGoods" parameterType="java.util.Map">
+		/* updateBalanceDetailGoods */
+		UPDATE T_STD_SCALE_GRUP_DETL 
+		SET USE_YN = #{USE_YN}
+			, MUSER = #{MUSER}
+			, MPROGRM = #{MPROGRM}
+			, MDATE = GETDATE()
+		WHERE BCD_CD = #{BCD_CD}
+	</update>
+	
+	<select id = "getGoodsExitList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsExitList */
+		SELECT TB.BCD_CD
+				, TB.BCD_M_CD
+				, TG.GOODS_NM
+				, TB.DIMEN_NM
+				, TG.GOODS_STATE
+				, CONVERT(NVARCHAR(16),TG.CDATE,120) AS CDATE
+				, CONVERT(NVARCHAR(16),TG.MDATE,120) AS MDATE
+				, TG.MUSER
+		FROM T_STD_MAST_GOODS AS TG
+		INNER JOIN T_STD_MAST_BCD AS TB
+			ON TG.GOODS_NO = TB.GOODS_NO
+		WHERE 1=1
+			<choose>
+				<when test='GRUP_CD == "ALL"'>		<!-- 상품분류조건 -->
+					AND TG.GOODS_NO IS NOT NULL /*전체분류조회눌렀을때*/
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD == "0" and GRUP_BOT_CD == "0"'>
+					AND TG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TG.GRUP_MID_CD != '0' AND TG.GRUP_BOT_CD != '0' /*대분류눌렀을때*/ 
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD == "0"'>
+					AND TG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TG.GRUP_MID_CD = #{GRUP_MID_CD} AND TG.GRUP_BOT_CD != 0  /*중분류눌렀을때*/  
+				</when>
+				<when test='GRUP_TOP_CD != "0" and GRUP_MID_CD != "0" and GRUP_BOT_CD != "0"'>
+					AND TG.GRUP_TOP_CD = #{GRUP_TOP_CD} AND TG.GRUP_MID_CD = #{GRUP_MID_CD} AND TG.GRUP_BOT_CD = #{GRUP_BOT_CD} /*소분류눌렀을때*/
+				</when>
+			</choose>
+			<if test = 'TAX_YN != ""'>	<!-- 과세구분조건 -->
+				AND TG.TAX_TYPE = #{TAX_YN}
+			</if>
+			<if test = 'GOODS_STATE != ""'> 	<!-- 상품상태조건 -->
+				AND TG.GOODS_STATE = #{GOODS_STATE}
+			</if>
+			<choose>
+				<when test ='SEARCH_TYPE == "BCD"'> 		<!-- 바코드조건 -->
+					AND TB.BCD_CD LIKE '%'+#{KEY_WORD}+'%'
+				</when>
+				<when test ='SEARCH_TYPE == "WORD"'> 	<!-- 검색어조건 -->
+					AND TG.GOODS_NM LIKE '%'+#{KEY_WORD}+'%' 
+				</when>
+			</choose>
+	</select>
+	
+	<select id = "getGoodsExitListTMB" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getGoodsExitListTMB */
+		SELECT TSG.GRUP_TOP_CD /*대뷴류*/
+			,TSG.GRUP_MID_CD /*중분류*/
+			,TSG.GRUP_BOT_CD /*소분류*/
+		FROM T_STD_GOODSGRUP AS TSG
+		WHERE GRUP_CD = #{GRUP_CD}
+	</select>
+	
+	<update id = "updateGoodsExitList" parameterType="java.util.Map">
+		/* updateGoodsExitList */
+		UPDATE T_STD_MAST_GOODS
+		SET GOODS_STATE = #{GOODS_STATE}
+			, MUSER = #{MUSER}
+			, MPROGRM = #{MPROGRM}
+			, MDATE = GETDATE()
+		FROM T_STD_MAST_GOODS AS TG
+		INNER JOIN T_STD_MAST_BCD AS TB
+			ON TG.GOODS_NO = TB.GOODS_NO
+		WHERE TB.BCD_CD = #{BCD_CD}
+			AND TB.BCD_M_CD = #{BCD_M_CD}
+	</update>
+	
+	<select id = "getresbarcodeHeaderList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getresbarcodeHeaderList */
+		SELECT
+		RB.RES_BCD_12
+		,RB.RES_BCD_13
+		,RB.RES_BCD_BOX
+		,ISNULL(RB.BCD_STATE,'') BCD_STATE
+		,RB.BCD_MS_TYPE
+		,CONVERT(NVARCHAR(10), CONVERT(DATE,RB.STRT_DATE), 23) AS STRT_DATE
+		,CONVERT(NVARCHAR(10), CONVERT(DATE,RB.END_DATE), 23) AS END_DATE
+		,RB.GOODS_NM
+		,RB.DIMEN_NM
+		,RB.UNIT_QTY
+		,RB.CUSTMR_NM
+		,RB.GRUP_TYPE
+		,RB.REMK
+		,RB.CUSER
+		FROM
+			T_STD_RES_BCD RB
+		WHERE
+			1=1
+		<if test = 'BCD_WORD != ""'>
+			AND RB.RES_BCD_12 LIKE '%'+#{BCD_WORD}+'%'
+		</if>
+		<if test = 'CUSTMR_WORD != ""'>
+			AND RB.CUSTMR_NM LIKE '%'+#{CUSTMR_WORD}+'%'
+		</if>
+		<if test = 'GRUP_TYPE != ""'>
+			AND RB.GRUP_TYPE = #{GRUP_TYPE}
+		</if>
+		<if test = 'BCD_STATE != ""'>
+			AND RB.BCD_STATE = #{BCD_STATE}
+		</if>
+	</select>
+	
+	<select id = "getresbarcodeDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getresbarcodeDetailList */
+		SELECT 
+			RBD.RES_BCD_12
+			,RBD.RES_BCD_13
+			,RBD.RES_BCD_BOX
+			,RBD.BCD_MS_TYPE
+			,RBD.GOODS_NM
+			,RBD.DIMEN_NM
+			,RBD.UNIT_QTY
+			,RBD.CUSTMR_NM
+			,CONVERT(NVARCHAR(10), CONVERT(DATE,RBD.STRT_DATE), 23) AS STRT_DATE
+			,CONVERT(NVARCHAR(10), CONVERT(DATE,RBD.END_DATE), 23) AS END_DATE
+			,RBD.GRUP_TYPE
+			,RB.BCD_STATE
+		FROM
+			T_STD_RES_BCD_DETL RBD
+			INNER JOIN T_STD_RES_BCD RB
+			ON RBD.RES_BCD_12 = RB.RES_BCD_12
+		WHERE
+			RBD.RES_BCD_12 = #{RES_BCD_12}
+		ORDER BY STRT_DATE DESC
+	</select>
+	
+	<select id="getRESBCDInfo" parameterType="java.util.Map" resultType="CMap">
+		/* getRESBCDInfo */
+			SELECT
+				SRB.RES_BCD_12
+				,SRB.BCD_STATE
+			FROM
+				T_STD_RES_BCD SRB
+			WHERE
+				1=1
+				AND SRB.RES_BCD_12 IN
+				(SELECT VALUE FROM [STRING_SPLIT](#{RES_BCD_LIST_STRING}, ','))
+	</select>
+	<insert id = "insertRESBCDList" parameterType="java.util.Map">
+		/* addRESBCD */
+		INSERT INTO T_STD_RES_BCD
+				(RES_BCD_12
+				,BCD_STATE
+				,REMK
+				,CPROGRM
+				,CUSER
+				,CDATE)
+		VALUES (#{RES_BCD_12}
+				,'Y'
+				,#{REMK}
+				,#{CPROGRM}
+				,#{CUSER}
+				,GETDATE())
+	</insert>
+	<update id="updateRESBCDList" parameterType="java.util.Map">
+		UPDATE T_STD_RES_BCD
+		SET
+			REMK = #{REMK}
+			,MPROGRM = #{MPROGRM}
+			,MUSER = #{MUSER}
+			,MDATE = GETDATE()
+		WHERE
+			RES_BCD_12 = #{RES_BCD_12} AND BCD_STATE = #{BCD_STATE}
+	</update>
+	<update id="updateGoodsFileGrupNo" parameterType="java.util.Map">
+		UPDATE T_STD_MAST_BCD
+		SET
+			FILE_GRUP_NO = #{FILE_GRUP_NO}
+		WHERE BCD_CD = #{BCD_CD}
+	</update>
+</mapper>

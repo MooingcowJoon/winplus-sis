@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.market.dao.PaymentDao">
+	<select id="addTimeDeadlineList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* addTimeDeadlineList */
+		SELECT TC.TRML_CD
+				,EI.EMP_NM
+				,TC.EMP_CD
+				,TC.CLSE_CD
+				,CONVERT(NVARCHAR(16),TC.CLSE_REG_DATE, 21) AS CLSE_REG_DATE
+				,(TC.SALE_CASH_AMT + TC.SALE_CARD_AMT +TC. SALE_GIFT_AMT + TC.SALE_POINT_AMT + TC.TRUST_SALE_AMT) AS SALE_AMT--매출액
+				,TC.COMP_CONSM_AMT
+				,TC.SALE_CASH_AMT
+				,TC.SALE_CARD_AMT
+				,TC.SALE_GIFT_AMT
+				,TC.SALE_POINT_AMT
+				,TC.TRUST_SALE_AMT
+				,TC.RESV_AMT
+				,TC.MID_WIDW_AMT
+				,(TC.DEPO_GIFT - TC.COUP_FACE_PRICE) AS GIFT_CHNG--상품권거스름(상품권입금 - 입금할상품권)
+				,TC.CHNG_POINT
+				,(TC.TRUST_SALE_AMT  - TC.TRUST_RETN_AMT) AS TRUST_CASH --외상입금(현금)
+				,(TC.RESV_AMT + (TC.SALE_CASH_AMT  - TC.RETN_CASH_AMT)) AS CASH_FACE_PRICE --입금할현금(준비금 + 현금합계)
+				,TC.DEPO_CASH
+				,(TC.DEPO_CASH - (TC.RESV_AMT + (TC.SALE_CASH_AMT  - TC.RETN_CASH_AMT))) AS CASH_SHORT --현금과부족(입금한현금 - 입금할현금)
+				,TC.COUP_FACE_PRICE
+				,TC.DEPO_GIFT
+				,(TC.DEPO_GIFT - TC.COUP_FACE_PRICE) AS GIFT_SHORT --상품권과부족
+				,(TC.DEPO_CASH - (TC.RESV_AMT + (TC.SALE_CASH_AMT  - TC.RETN_CASH_AMT)) + (TC.DEPO_GIFT - TC.COUP_FACE_PRICE)) AS CHNG_AMT--과부족합계(현금과부족 + 상품권과부족)
+				,TC.SALE_CNT
+				,TC.RETN_CNT
+				,TC.RETN_CASH_AMT
+				,TC.RETN_CARD_AMT
+				,TC.RETN_POINT_AMT
+				,TC.RETN_GIFT_AMT
+				,(TC.RETN_CASH_AMT + TC.RETN_CARD_AMT +TC. RETN_POINT_AMT + TC.RETN_GIFT_AMT + TC.TRUST_RETN_AMT) AS RETN_AMT --반품액합계
+				,(TC.SALE_CASH_AMT  - TC.RETN_CASH_AMT) AS CASH_AMT --매출합계(현금)
+				,(TC.SALE_CARD_AMT  - TC.RETN_CARD_AMT) AS CARD_AMT --매출합계(카드)
+				,(TC.SALE_GIFT_AMT  - TC.RETN_GIFT_AMT) AS GIFT_AMT --매출합계(상품권)
+				,(TC.SALE_POINT_AMT  - TC.RETN_POINT_AMT) AS POINT_AMT --매출합계(포인트)
+				,(TC.TRUST_SALE_AMT  - TC.TRUST_RETN_AMT) AS TRUST_AMT --매출합계(외상)
+				,((TC.SALE_CASH_AMT + TC.SALE_CARD_AMT +TC. SALE_GIFT_AMT + TC.SALE_POINT_AMT + TC.TRUST_SALE_AMT) -
+					(TC.RETN_CASH_AMT + TC.RETN_CARD_AMT +TC. RETN_POINT_AMT + TC.RETN_GIFT_AMT + TC.TRUST_RETN_AMT)) AS SALES_AMT --매출액합계
+				,TC.COMP_CONSM_CNT
+				,TC.CUTO_AMT
+				,TC.COUP_DC_CNT
+				,TC.COUP_DC_AMT
+				,TC.POINT_SAVE
+				,TC.TRUST_RETN_AMT
+				,TC.CASH_CNT_01
+				,TC.CASH_CNT_02
+				,TC.CASH_CNT_03
+				,TC.CASH_CNT_04
+				,TC.CASH_CNT_05
+				,TC.CASH_CNT_06
+				,TC.CASH_CNT_07
+				,TC.CASH_CNT_08
+				,TC.CASH_CNT_09
+				,TC.ORGN_CD
+		FROM T_SALE_CLSE AS TC
+		INNER JOIN COM_EMP_INFO AS EI
+			ON TC.EMP_CD = EI.EMP_NO
+		WHERE TC.CLSE_REG_DATE BETWEEN DATEADD(DD,0, #{SEARCH_DATE_FROM}) AND DATEADD(SS,-1,DATEADD(DD,1,#{SEARCH_DATE_TO}))
+			<if test = 'ORGN_CD != "" and ORGN_CD != null'>
+				AND TC.ORGN_CD = #{ORGN_CD}
+			</if>
+			<if test= 'ORGN_DIV_CD != ""'>
+				AND TC.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			</if>
+			<if test ='EMP_NM != ""'>		<!--계산원조건 -->
+				AND EI.EMP_NM = #{EMP_NM}
+			</if>
+				<if test ='EMP_CD != ""'>		<!--계산원 코드 조건 -->
+				AND EI.EMP_NO = #{EMP_CD}
+			</if>
+			<if test = 'TRML_CD != "" and TRML_INVALID == "0"'> 	<!-- 단말조건 -->
+			  	AND TC.TRML_CD LIKE '%'+#{TRML_CD}+'%' 
+			</if> 
+			<if test = 'TRML_CD != "" and TRML_INVALID == "1"'>
+				AND TC.TRML_CD NOT LIKE '%'+#{TRML_CD}+'%' 
+			</if> 
+	</select>
+	<select id="getTrustSalesStatusList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getTrustSalesStatusList */
+		
+			-- 외상매출 메인 조회
+			DECLARE 
+					@DATE_FR			NVARCHAR(8)			= (REPLACE(CONVERT(NVARCHAR(10), #{DATE_FR}, 120 ),'-',''))
+					, @DATE_TO			NVARCHAR(8)			= (REPLACE(CONVERT(NVARCHAR(10), #{DATE_TO}, 120 ),'-',''))
+					, @ORGN_CD			NVARCHAR(10)		= #{ORGN_CD}
+					, @KEY_WORD			NVARCHAR(50)		= #{KEY_WORD}--'정희'
+					, @MEM_TYPE			NVARCHAR(3)			= #{MEM_TYPE}
+					, @MEM_ABC			NVARCHAR(3)			= #{MEM_ABC}
+					, @MEM_STATE		NVARCHAR(1)			= #{MEM_STATE}
+			
+			
+			-- 회원 정보 검색 후 저장 테이블
+			DECLARE @MEM_IN_TMP TABLE (
+				ORGN_CD						NVARCHAR(10)
+				, MEM_NO					NVARCHAR(20)
+				, MEM_NM					NVARCHAR(50)
+				, CORP_NM					NVARCHAR(50)
+			)
+			
+			INSERT INTO @MEM_IN_TMP
+			SELECT
+				ORGN_CD, MEM_NO, MEM_NM, CORP_NM
+			FROM T_STD_MAST_MEM
+			WHERE ORGN_CD = ISNULL(@ORGN_CD, ORGN_CD)
+			AND MEM_NM LIKE ('%'+ISNULL(@KEY_WORD, MEM_NM)+'%')
+			
+			<if test='MEM_TYPE != ""'>
+			AND MEM_TYPE = ISNULL(@MEM_TYPE, MEM_TYPE)
+			</if>
+			
+			<if test='MEM_ABC != ""'>
+			AND MEM_ABC = ISNULL(@MEM_ABC, MEM_ABC)
+			</if>
+			
+			AND MEM_STATE = ISNULL(@MEM_STATE, MEM_STATE)
+			
+			
+			SELECT DISTINCT
+				MAX(MC.LOAN_CD)							AS LOAN_CD
+				, ORGN_CD
+				, MEM_NO
+				, MEM_NM
+				, CASE
+					WHEN MIN(MM) = 1 AND LEFT(CONVERT(NVARCHAR, MIN(MC.CDATE), 112), 6) = LEFT(CONVERT(NVARCHAR, GETDATE(), 112), 6) THEN LOAN_AMT - BAL_AMT
+					ELSE 0
+				END										AS UPD_AMT
+				, CASE
+					WHEN LEFT(IO_TYPE, 1) IN ('D') THEN SUM(INDE_AMT)
+					ELSE 0
+				END										AS SUM_OUT
+				, CASE
+					WHEN LEFT(IO_TYPE, 1) IN ('I') THEN SUM(INDE_AMT)
+					ELSE 0
+				END										AS SUM_IN
+				, CASE
+					WHEN MIN(RM) = 1 THEN MAX(BAL_AMT)
+					ELSE 0
+				END										AS BAL_AMT
+				, CASE
+					WHEN MIN(RM) = 1 THEN LOAN_AMT
+					ELSE 0
+				END										AS LOAN_AMT
+				, CASE
+					WHEN MIN(RM) = 1 THEN TRUST_CNT
+					ELSE 0
+				END										AS TRUST_CNT
+				, CASE
+					WHEN MAX(MC.MDATE) IS NOT NULL THEN CONVERT(NVARCHAR, MAX(MC.MDATE), 23)
+					ELSE CONVERT(NVARCHAR, MAX(MC.CDATE), 23) END AS LAST_DATE
+			FROM (
+				SELECT * 
+					, RANK() OVER (PARTITION BY LOAN_CD ORDER BY LOAN_SEQ DESC) AS RM
+					, RANK() OVER (PARTITION BY LOAN_CD, LEFT(CONVERT(NVARCHAR, CDATE, 112), 6) ORDER BY LOAN_SEQ DESC) AS MM
+				FROM T_STD_MAST_CREDITLOAN
+				WHERE 1=1
+				AND (
+					CONVERT(NVARCHAR, CDATE, 112) BETWEEN @DATE_FR AND @DATE_TO
+					OR CONVERT(NVARCHAR, MDATE, 112) BETWEEN @DATE_FR AND @DATE_TO
+				)
+			) MC
+			--INNER JOIN (
+			--	SELECT  * FROM T_STD_MAST_CREDITLOAN_DETL WITH(NOLOCK)
+			--	WHERE OBJ_CD IN (
+			--		SELECT ORGN_CD +'_'+ MEM_NO
+			--		FROM @MEM_IN_TMP
+			--	)
+			--) MCD					ON MC.LOAN_CD = MCD.LOAN_CD
+			INNER JOIN T_STD_MAST_CREDITLOAN_DETL MCD		ON MC.LOAN_CD = MCD.LOAN_CD
+			INNER JOIN @MEM_IN_TMP M						ON ORGN_CD +'_'+ MEM_NO = MCD.OBJ_CD
+			GROUP BY ORGN_CD, MEM_NO, MEM_NM, IO_TYPE, MCD.USE_YN, LOAN_AMT, BAL_AMT, TRUST_CNT
+			
+/*
+			IO_TYPE	I01	POS입금	1	Y
+			IO_TYPE	I02	가상계좌입금	2	Y
+			IO_TYPE	I03	여신한도조정	3	Y
+			IO_TYPE	I04	임의조정	4	Y
+			IO_TYPE	D01	판매(매출)	5	Y
+			IO_TYPE	D02	여신한도조정	6	Y
+			IO_TYPE	D03	임의조정	7	Y
+			
+			
+			SELECT
+				RANK() OVER (PARTITION BY LOAN_CD ORDER BY LOAN_SEQ DESC) AS RM
+				, RANK() OVER (PARTITION BY LOAN_CD, LEFT(CONVERT(NVARCHAR, CDATE, 112), 6) ORDER BY LOAN_SEQ DESC) AS RM2
+				, *
+			FROM T_STD_MAST_CREDITLOAN
+			WHERE 1=1
+			AND (
+				CONVERT(NVARCHAR, CDATE, 112) BETWEEN '20191101' AND '20191120'
+				OR CONVERT(NVARCHAR, MDATE, 112) BETWEEN '20191101' AND '20191120'
+			)		
+*/
+	</select>
+	
+	<select id="getTrustSalesStatusDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getTrustSalesStatusDetailList */
+		DECLARE 
+			@ORGN_CD			NVARCHAR(10)			= #{ORGN_CD}
+			, @LOAN_CD			NVARCHAR(10)			= #{LOAN_CD}
+			, @MEM_NO			NVARCHAR(10)			= #{MEM_NO}
+
+		SELECT
+			C.LOAN_CD
+			, @ORGN_CD										AS ORGN_CD
+			, @MEM_NO										AS MEM_NO
+			, LOAN_SEQ
+			, INDE_AMT
+			, BAL_AMT
+			, LOAN_AMT
+			, TRUST_CNT
+			, TRUST_LIMIT
+			, CREDIT_AMT
+			, CASH_AMT
+			, GRNT_AMT
+			, DBO.FN_GET_CMMN_CD_NM('IO_TYPE', IO_TYPE)					AS IO_NM
+			, (REPLACE(CONVERT(NVARCHAR(10), C.CDATE, 120),'','-'))		AS CDATE
+		FROM T_STD_MAST_CREDITLOAN C
+		INNER JOIN T_STD_MAST_CREDITLOAN_DETL CD				ON C.LOAN_CD = CD.LOAN_CD
+		WHERE C.LOAN_CD = @LOAN_CD
+			AND OBJ_CD = @ORGN_CD +'_'+ @MEM_NO
+	
+	</select>
+	
+	<select id="getTrustPurchaseStatusList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getTrustPurchaseStatusList */
+		DECLARE
+				@ORGN_DIV_CD			NVARCHAR(10)		= 'C04'
+				, @ORGN_CD				NVARCHAR(10)		= '200011'
+				, @DATE_FR				NVARCHAR(8)			= REPLACE(#{DATE_FR},'-','')
+				, @DATE_TO				NVARCHAR(8)			= REPLACE(#{DATE_TO},'-','')
+				, @USE_YN				NVARCHAR(1)			= ''
+				, @TRUST_ZERO_YN		NVARCHAR(1)			= ''
+				, @PAY_STD_TYPE			NVARCHAR(5)
+				, @PAY_DATE_TYPE		NVARCHAR(5)
+		
+		
+		SELECT
+			PM.* 
+			, CUSTMR_NM
+		FROM (
+			SELECT
+				ORGN_DIV_CD
+				, M.ORGN_CD
+				, M.SUPR_CD
+				, LEFT(PUR_DATE,4)+'-'+SUBSTRING(PUR_DATE,5,2)+'-'+RIGHT(PUR_DATE,2) AS PUR_DATE
+				, SUM(UPDT_SUM_AMT)				AS UPDT_SUM_AMT
+				--, SUM(PUR_TAXA_AMT)			AS PUR_TAXA_AMT
+				--, SUM(PUR_FREE_AMT)			AS PUR_FREE_AMT
+				--, SUM(PAY_SUM_AMT)			AS PAY_SUM_AMT
+				, CASE
+					WHEN ISNULL(SEND_TYPE, 1) = 1 THEN SUM(PUR_TAXA_AMT)
+					ELSE 0
+				END								AS PAY_TAXA_UPDT
+				, CASE
+					WHEN ISNULL(SEND_TYPE, 0) = 1 THEN SUM(PUR_TAXA_AMT)
+					ELSE 0
+				END								AS PAY_TAXA_ERP
+				, CASE
+					WHEN ISNULL(SEND_TYPE, 1) = 1 THEN SUM(PUR_FREE_AMT)
+					ELSE 0
+				END								AS PAY_FREE_UPDT
+				, CASE
+					WHEN ISNULL(SEND_TYPE, 0) = 1 THEN SUM(PUR_FREE_AMT)
+					ELSE 0
+				END								AS PAY_FREE_ERP
+				, CASE
+					WHEN ISNULL(SEND_TYPE, 1) = 1 THEN SUM(PAY_SUM_AMT)
+					ELSE 0
+				END								AS PAY_SUM_UPDT
+				, CASE
+					WHEN ISNULL(SEND_TYPE, 0) = 1 THEN SUM(PAY_SUM_AMT)
+					ELSE 0
+				END								AS PAY_SUM_ERP
+			FROM (
+				SELECT * FROM T_PUR_MAST
+				WHERE ORGN_DIV_CD	= @ORGN_DIV_CD
+				AND ORGN_CD			= @ORGN_CD
+				AND PUR_DATE		BETWEEN @DATE_FR AND @DATE_TO
+				AND USE_YN = 'Y'
+			) M 
+			LEFT JOIN (
+				SELECT
+					ORGN_CD
+					, SUPR_CD
+					, SUM(PAY_SUM_AMT)			AS UPDT_SUM_AMT
+				FROM T_PUR_MAST
+				GROUP BY ORGN_DIV_CD, ORGN_CD, SUPR_CD, PUR_DATE, SEND_TYPE, USE_YN
+				HAVING ORGN_DIV_CD	= @ORGN_DIV_CD
+				AND ORGN_CD			= @ORGN_CD
+				AND PUR_DATE		= @DATE_FR
+				AND USE_YN = 'Y'
+				AND SEND_TYPE = '0'
+			) BM					ON M.ORGN_CD = BM.ORGN_CD AND M.SUPR_CD = BM.SUPR_CD --AND M.PUR_DATE = BM.PUR_DATE
+			GROUP BY M.ORGN_DIV_CD,M.ORGN_CD, M.SUPR_CD, M.PUR_DATE, SEND_TYPE
+		) PM
+		LEFT JOIN (
+			SELECT * FROM T_STD_MAST_CUSTMR
+			WHERE 1=1
+			AND PAY_STD = ISNULL(@PAY_STD_TYPE, PAY_STD)
+			AND PAY_DATE_TYPE = ISNULL(@PAY_DATE_TYPE, PAY_DATE_TYPE)
+		) MC			ON PM.SUPR_CD = MC.CUSTMR_CD
+
+			
+	</select>
+	<select id="getTrustPurchaseStatusDetailList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getTrustPurchaseStatusDetailList */
+		DECLARE @ORGN_DIV_CD			NVARCHAR(10)		= 'C04'
+			, @ORGN_CD				NVARCHAR(10)		= '200011'
+			, @CUSTMR_CD			NVARCHAR(8)			= 'DP00003132'
+		
+		SELECT
+			PM.ORGN_DIV_CD
+			,PM. ORGN_CD
+			, PM.PUR_SLIP_CD
+			, PM.SUPR_CD
+			, PM.RESP_USER
+			, DBO.FN_GET_CMMN_CD_NM('PUR_TYPE', PUR_TYPE)		AS PUR_TYPE_NM
+			, CONF_TYPE
+			, IN_WARE_CD
+			, PUR_DATE
+			, MEMO
+			, PUR_TAXA_AMT
+			, PUR_FREE_AMT
+			, PAY_VAT_YN
+			, PM.PAY_SUM_AMT
+			, CURRCY_TYPE
+			, PUR_KIND
+			, RESN_CD
+			, DBO.FN_GET_CMMN_CD_NM('SEND_TYPE', SEND_TYPE)		AS SEND_TYPE_NM
+			, PUR_SLIP_SEQ
+			, PD.BCD_CD
+			, PD.BCD_M_CD
+			, MB.BCD_NM
+			, PUR_QTY
+			, PUR_PRICE
+			, VAT
+			, SUPR_AMT
+			, DBO.FN_GET_CMMN_CD_NM('GOODS_MNG_TYPE', GOODS_SALETYPE)		AS GOODS_SALETYPE_NM
+			, PD.PAY_SUM_AMT												AS PAY_SUM_AMT_DETL
+			, GOODS_EVENT_YN
+			, GOODS_TAX_YN
+			, BF_PUD_EAGUARANTY
+			, BF_PUD_GUARANTY
+			, PUR_UNIT_CAPA
+			, DBO.FN_GET_CMMN_CD_NM('UNIT_CD', PD.UNIT_CD)		AS UNIT_CD_NM
+			, PUR_DC_AMT
+			, PD.CDATE
+		FROM T_PUR_MAST PM
+		INNER JOIN T_PUR_DETL PD					ON PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+		INNER JOIN T_STD_MAST_BCD MB				ON PD.BCD_CD = MB.BCD_CD
+		WHERE 1=1
+		AND PM.ORGN_DIV_CD		= ISNULL(@ORGN_DIV_CD, PM.ORGN_DIV_CD)
+		AND PM.ORGN_CD			= ISNULL(@ORGN_CD, PM.ORGN_CD)
+		AND PM.SUPR_CD			= ISNULL(@CUSTMR_CD, PM.SUPR_CD)
+	</select>
+</mapper>

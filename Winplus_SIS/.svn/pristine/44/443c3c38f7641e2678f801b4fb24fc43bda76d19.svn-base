@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.basic.dao.CustomerIODao">
+	
+	<select id="insertCustomer" parameterType="java.util.Map" resultType="java.util.Map">
+		/* insertCustomer */
+		DECLARE @SEQ INT
+		DECLARE @STR_SEQ NVARCHAR(10)
+		
+		<choose>
+			<when test='USE_SCREEN == "협력사"'>
+				<choose>
+					<when test='IS_WINPLUS == "Y"'>
+						SELECT @SEQ = NEXT VALUE FOR SEQ_T_STD_MAST_CUSTMR_IS_WINPLUS
+						SET @STR_SEQ = 'WP' + REPLICATE('0', 8 - LEN(@SEQ)) + CAST(@SEQ AS NVARCHAR)
+					</when>
+					<otherwise>
+						SELECT @SEQ = NEXT VALUE FOR SEQ_T_STD_MAST_CUSTMR_IS_NOT_WINPLUS
+						SET @STR_SEQ = 'DP' + REPLICATE('0', 8 - LEN(@SEQ)) + CAST(@SEQ AS NVARCHAR)
+					</otherwise>
+				</choose>
+			</when>
+			
+			<otherwise>
+				<choose>
+					<when test='IS_WINPLUS == "Y"'>
+						SELECT @SEQ = NEXT VALUE FOR SEQ_T_STD_MAST_CUSTMR_IS_WINPLUS
+						SET @STR_SEQ = 'WS' + REPLICATE('0', 8 - LEN(@SEQ)) + CAST(@SEQ AS NVARCHAR)
+					</when>
+					<otherwise>
+						SELECT @SEQ = NEXT VALUE FOR SEQ_T_STD_MAST_CUSTMR_IS_NOT_WINPLUS
+						SET @STR_SEQ = 'DS' + REPLICATE('0', 8 - LEN(@SEQ)) + CAST(@SEQ AS NVARCHAR)
+					</otherwise>
+				</choose>
+			</otherwise>
+		</choose>
+		
+		INSERT INTO T_STD_MAST_CUSTMR (
+		        CUSTMR_CD       	 	               /* 거래처코드                    */
+	           ,CUSTMR_NM      		                   /* 거래처명                      */
+	           ,CUSTMR_CEONM   		                   /* 대표자명                      */
+	           ,CORP_NO        		                   /* 사업자번호                    */
+	           ,TAXBILL_CD     		                   /* 세무신고거래처                */
+	           ,CORP_ORI_NO    		                   /* 종사업장번호                  */
+	           ,BUSI_COND      		                   /* 업태                          */
+	           ,BUSI_TYPE      		                   /* 업종                          */
+	           ,CEO_TEL        		                   /* 대표자휴대전화                */
+	           ,RESP_USER_NM   		                   /* 담당자명                      */
+	           ,ORD_RESP_USER  		                   /* 구매담당자                    */
+	           ,CENT_RESP_USER 		                   /* 센터담당자                    */
+	           ,TEL_NO         		                   /* 전화번호                      */
+	           ,FAX_NO         		                   /* 팩스번호                      */
+	           ,PHON_NO        		                   /* 담당자 휴대폰                 */
+	           ,EMAIL          		                   /* 이메일                        */
+	           ,SITEURL        		                   /* 홈페이지                      */
+	           ,CORP_ZIP_NO    		                   /* 우편번호(거래처사업소재지)    */
+	           ,CORP_ADDR      		                   /* 기본주소(거래처사업소재지)    */
+	           ,CORP_ADDR_DETL 		                   /* 상세주소(거래처사업소재지)    */
+	           ,ORD_ZIP_NO     		                   /* 우편번호(거래처우편물주소(DM))*/
+	           ,ORD_ADDR       		                   /* 상세주소(거래처우편물주소(DM))*/
+	           ,ORD_ADDR_DETL 		                   /* 기본주소(거래처우편물주소(DM))*/
+	           ,DELI_RESPUSER  		                   /* 배송담당자                    */
+	           ,PAY_TYPE       		                   /* 수금/지급구분                 */
+	           ,PAY_SCHD_1     		                   /* 수금/지급예정일 값1           */
+	           ,PAY_SCHD_2     		                   /* 수금/지급예정일 값2           */
+	           ,PAY_STD                                /* 결제기준                      */
+	           ,LOAN_YN					  			   /* 여신가능여부			*/
+	           ,ORD_SALE_TYPE  		                   /* 거래유형(영업)구분            */
+	           ,ORD_SALE_FEE   		                   /* 거래유형(영업)                */
+	           ,ORD_PUR_TYPE   		                   /* 거래유형(구매)구분            */
+	           ,ORD_PUR_FEE    		                   /* 거래유형(구매)                */
+	           ,KEYWD          		                   /* 검색창내용                    */
+	           ,MEMO           		                   /* 메모                          */
+	           ,EXC_VAT        		                   /* 부가세제외                    */
+	           ,PUR_SALE_TYPE                          /* 매입/매출처구분               */
+	           ,PUR_TYPE                               /* 매입유형                      */
+	           ,SUPR_GRUP_CD                           /* 공급사분류코드                */
+	           ,SUPR_TYPE                              /* 공급사유형                    */
+	           ,CUSTMR_GRUP                        	   /* 거래처유형                      */
+	           ,EVENT_YN       		                   /* 행사차단                      */
+	           ,GOODS_FEE      		                   /* 수수료율(신규상품)            */
+	           ,MK_INCEN_RATE  		                   /* 매장장려금요율                */
+	           ,CENT_INCEN_RATE		                   /* 센터장려금요율                */
+	           ,CLSE_TIME      		                   /* 주문마감시간                  */
+	           ,DELI_YOIL      		                   /* 배송 요일                     */
+	           ,DELI_DATE      		                   /* 배송 특정일                   */
+	           ,LEAD_TIME                              /* 리드타임                      */
+	           ,MIN_PUR_AMT    		                   /* 최저발주금액                  */
+	           ,HACCP_YN       		                   /* HACCP인증여부                 */
+	           ,SUPR_STATE     		                   /* 휴/폐업상태                   */
+	           ,CLSE_BUSI_DATE 		                   /* 휴/폐업일자                   */
+	           ,SUPR_ID        		                   /* 공급사 ID                     */
+	           ,SUPR_PWD       		                   /* 공급사 패스워드               */
+	           ,SALES_ID       		                   /* 매출처 ID                     */
+	           ,SALES_PWD      		                   /* 매출처 패스워드               */
+	           ,USE_YN                                 /* 거래상태(사용여부)            */
+	           ,FILE_YN								   /* 계약서 파일 사용여부*/
+	           ,CPROGRM        		                   /* 생성프로그램                  */
+	           ,CUSER          		                   /* 생성자                        */
+	           ,CDATE                                  /* 생성일시                      */
+				,CUSTMR_PRICE_GRUP						/*거래처기준가그룹		*/
+		) VALUES (
+				
+		        @STR_SEQ       	 	                                                                          	  /* 거래처코드                    */
+	           ,#{CUSTMR_NM}      	                                                                              /* 거래처명                      */
+	           ,#{CUSTMR_CEONM}   	                                                                              /* 대표자명                      */
+	           ,#{CORP_NO}       		                                                                          /* 사업자번호                    */
+	           ,#{TAXBILL_CD}     		                                                                          /* 세무신고거래처                */
+	           ,#{CORP_ORI_NO}    		                                                                          /* 종사업장번호                  */
+	           ,#{BUSI_COND}      		                                                                          /* 업태                          */
+	           ,#{BUSI_TYPE}      		                                                                          /* 업종                          */
+	           ,#{CEO_TEL}        		                                                                          /* 대표자휴대전화                */
+	           ,#{RESP_USER_NM}   		                                                                          /* 담당자명                      */
+	           ,#{ORD_RESP_USER}  		                                                                          /* 구매담당자                    */
+	           ,#{CENT_RESP_USER} 		                                                                          /* 센터담당자                    */
+	           ,#{TEL_NO}         		                                                                          /* 전화번호                      */
+	           ,#{FAX_NO}         		                                                                          /* 팩스번호                      */
+	           ,#{PHON_NO}        		                                                                          /* 담당자 휴대폰                 */
+	           ,#{EMAIL}          		                                                                          /* 이메일                        */
+	           ,#{SITEURL}        		                                                                          /* 홈페이지                      */
+	           ,#{CORP_ZIP_NO}    		                                                                          /* 우편번호(거래처사업소재지)    */
+	           ,#{CORP_ADDR}      		                                                                          /* 기본주소(거래처사업소재지)    */
+	           ,#{CORP_ADDR_DETL} 	                                                                              /* 상세주소(거래처사업소재지)    */
+	           ,#{ORD_ZIP_NO}     		                                                                          /* 우편번호(거래처우편물주소(DM))*/
+	           ,#{ORD_ADDR}       		                                                                          /* 상세주소(거래처우편물주소(DM))*/
+	           ,#{ORD_ADDR_DETL} 	                                                                              /* 상세주소(거래처우편물주소(DM))*/
+	           ,#{DELI_RESPUSER}  		                                                                          /* 배송담당자                    */
+	           ,#{PAY_TYPE}       		                                                                          /* 수금-지급구분                 */
+	           ,CONVERT(INT, CASE LEN(#{PAY_SCHD_1})   WHEN 0 THEN '0' ELSE #{PAY_SCHD_1} END )                   /* 수금/지급예정일 값1           */
+	           ,CONVERT(INT, CASE LEN(#{PAY_SCHD_2})   WHEN 0 THEN '0' ELSE #{PAY_SCHD_2} END )                   /* 수금/지급예정일 값2           */
+	           ,#{PAY_STD}                                                                                        /* 결제기준                      */
+	           ,#{LOAN_YN}		   								  												  /* 여신가능여부			*/
+	           ,#{ORD_SALE_TYPE}  		                                                                          /* 거래유형(영업)구분            */
+	           ,#{ORD_SALE_FEE}   		                                                                          /* 거래유형(영업)                */
+	           ,#{ORD_PUR_TYPE}   		                                                                          /* 거래유형(구매)구분            */
+	           ,#{ORD_PUR_FEE}    		                                                                          /* 거래유형(구매)                */
+	           ,#{KEYWD}          		                                                                          /* 검색창내용                    */
+	           ,#{MEMO}           		                                                                          /* 메모                          */
+	           ,#{EXC_VAT}        		                                                                          /* 부가세제외                    */
+	           ,#{PUR_SALE_TYPE}                                                                                  /* 매입/매출처구분               */
+	           ,#{PUR_TYPE}                                                                                       /* 매입유형                      */
+	           ,#{SUPR_GRUP_CD}                                                                                   /* 공급사분류코드                */
+	           ,#{SUPR_TYPE}                                                                                      /* 공급사유형                    */
+	           ,#{CUSTMR_GRUP}                                                                                	  /* 거래처유형                      */
+	           ,#{EVENT_YN}       		                                                                          /* 행사차단                      */
+	           ,CONVERT(DECIMAL(15,2), CASE LEN(#{GOODS_FEE}      ) WHEN 0 THEN '0' ELSE #{GOODS_FEE} END )       /* 수수료율(신규상품)  */
+	           ,CONVERT(DECIMAL(15,2), CASE LEN(#{MK_INCEN_RATE}  ) WHEN 0 THEN '0' ELSE #{MK_INCEN_RATE} END )   /* 매장장려금요율  */
+	           ,CONVERT(DECIMAL(15,2), CASE LEN(#{CENT_INCEN_RATE}) WHEN 0 THEN '0' ELSE #{CENT_INCEN_RATE} END ) /* 센터장려금요율  */
+	           ,#{CLSE_TIME}      		                                                                          /* 주문마감시간                  */
+	           ,#{DELI_YOIL}      		                                                                          /* 배송 요일                     */
+	           ,#{DELI_DATE}      		                                                                          /* 배송 특정일                   */
+	           ,#{LEAD_TIME}                                                                                      /* 리드타임                      */
+	           ,CONVERT(INT, CASE LEN(#{MIN_PUR_AMT}) WHEN 0 THEN '0' ELSE #{MIN_PUR_AMT} END )                   /* 최저발주금액  */
+	           ,#{HACCP_YN}       		                                                                          /* HACCP인증여부                 */
+	           ,#{SUPR_STATE}     		                                                                          /* 휴/폐업상태                   */
+	           ,#{CLSE_BUSI_DATE} 		                                                                          /* 휴/폐업일자                   */
+	           ,#{SUPR_ID}        		                                                                          /* 공급사 ID                     */
+	           ,#{SUPR_PWD}       		                                                                          /* 공급사 패스워드               */
+	           ,#{SALES_ID}       		                                                                          /* 매출처 ID                     */
+	           ,#{SALES_PWD}      		                                                                          /* 매출처 패스워드               */
+	           ,#{USE_YN}                                                                                         /* 거래상태(사용여부)            */
+	           ,'N'																								  /* 계약서 파일 사용여부*/
+	           ,#{CPROGRM}        		                                                                          /* 생성프로그램                  */
+	           ,#{CUSER}          		                                                                          /* 생성자                        */
+	           ,GETDATE()                                                                                         /* 생성일시                      */		
+				,#{CUSTMR_PRICE_GRUP}																				/* 거래처기준가그룹		*/
+		)
+		
+		SELECT @STR_SEQ CUSTMR_CD
+	</select>
+
+	<select id="updateCustomer" parameterType="java.util.Map" resultType="java.util.Map">
+		/* updateCustomer */
+		UPDATE T_STD_MAST_CUSTMR SET
+	            CUSTMR_NM      		  =   #{CUSTMR_NM}      	                              /* 거래처명                      */
+	           ,CUSTMR_CEONM   		  =   #{CUSTMR_CEONM}   	                              /* 대표자명                      */
+	           ,CORP_NO        		  =   #{CORP_NO}       	                                  /* 사업자번호                    */
+	           ,TAXBILL_CD     		  =   #{TAXBILL_CD}     	                              /* 세무신고거래처                */
+	           ,CORP_ORI_NO    		  =   #{CORP_ORI_NO}    	                              /* 종사업장번호                  */
+	           ,BUSI_COND      		  =   #{BUSI_COND}      	                              /* 업태                          */
+	           ,BUSI_TYPE      		  =   #{BUSI_TYPE}      	                              /* 업종                          */
+	           ,CEO_TEL        		  =   #{CEO_TEL}        	                              /* 대표자휴대전화                */
+	           ,RESP_USER_NM   		  =   #{RESP_USER_NM}   	                              /* 담당자명                      */
+	           ,ORD_RESP_USER  		  =   #{ORD_RESP_USER}  	                              /* 구매담당자                    */
+	           ,CENT_RESP_USER 		  =   #{CENT_RESP_USER} 	                              /* 센터담당자                    */
+	           ,TEL_NO         		  =   #{TEL_NO}         	                              /* 전화번호                      */
+	           ,FAX_NO         		  =   #{FAX_NO}         	                              /* 팩스번호                      */
+	           ,PHON_NO        		  =   #{PHON_NO}        	                              /* 담당자 휴대폰                 */
+	           ,EMAIL          		  =   #{EMAIL}          	                              /* 이메일                        */
+	           ,SITEURL        		  =   #{SITEURL}        	                              /* 홈페이지                      */
+	           ,CORP_ZIP_NO    		  =   #{CORP_ZIP_NO}    	                              /* 우편번호(거래처사업소재지)    */
+	           ,CORP_ADDR      		  =   #{CORP_ADDR}      	                              /* 상세주소(거래처사업소재지)    */
+	           ,CORP_ADDR_DETL 		  =   #{CORP_ADDR_DETL}                                   /* 상세주소(거래처사업소재지)    */
+	           ,ORD_ZIP_NO     		  =   #{ORD_ZIP_NO}     	                              /* 우편번호(거래처우편물주소(DM))*/
+	           ,ORD_ADDR       		  =   #{ORD_ADDR}       	                              /* 상세주소(거래처우편물주소(DM))*/
+	           ,ORD_ADDR_DETL 		  =   #{ORD_ADDR_DETL}                                    /* 상세주소(거래처우편물주소(DM))*/
+	           ,DELI_RESPUSER  		  =   #{DELI_RESPUSER}  	                              /* 배송담당자                    */
+	           ,PAY_TYPE       		  =   #{PAY_TYPE}       	                              /* 수금/지급구분                 */
+	           ,PAY_SCHD_1     		  =   CONVERT(INT, CASE LEN(#{PAY_SCHD_1})   WHEN 0 THEN '0' ELSE #{PAY_SCHD_1} END )      /* 수금/지급예정일 값1           */
+	           ,PAY_SCHD_2     		  =   CONVERT(INT, CASE LEN(#{PAY_SCHD_2})   WHEN 0 THEN '0' ELSE #{PAY_SCHD_2} END )      /* 수금/지급예정일 값2           */
+	           ,PAY_STD               =   #{PAY_STD}                                                                           /* 결제기준                      */
+	           ,LOAN_YN				  =   #{LOAN_YN}		   								  /* 여신가능여부			*/
+	           ,ORD_SALE_TYPE  		  =   #{ORD_SALE_TYPE}  	                              /* 거래유형(영업)구분            */
+	           ,ORD_SALE_FEE   		  =   #{ORD_SALE_FEE}   	                              /* 거래유형(영업)                */
+	           ,ORD_PUR_TYPE   		  =   #{ORD_PUR_TYPE}   	                              /* 거래유형(구매)구분            */
+	           ,ORD_PUR_FEE    		  =   #{ORD_PUR_FEE}    	                              /* 거래유형(구매)                */
+	           ,KEYWD          		  =   #{KEYWD}          	                              /* 검색창내용                    */
+	           ,MEMO           		  =   #{MEMO}           	                              /* 메모                          */
+	           ,EXC_VAT        		  =   #{EXC_VAT}        	                              /* 부가세제외                    */
+	           ,PUR_SALE_TYPE         =   #{PUR_SALE_TYPE}                                    /* 매입/매출처구분               */
+	           ,PUR_TYPE              =   #{PUR_TYPE}                                         /* 매입유형                      */
+	           ,SUPR_GRUP_CD          =   #{SUPR_GRUP_CD}                                     /* 공급사분류코드                */
+	           ,SUPR_TYPE             =   #{SUPR_TYPE}                                        /* 공급사유형                    */
+	           ,CUSTMR_GRUP       	  =   #{CUSTMR_GRUP}                                  	  /* 거래처유형                      */
+	           ,EVENT_YN       		  =   #{EVENT_YN}       	                              /* 행사차단                      */
+	           ,GOODS_FEE      		  =   CONVERT(DECIMAL(15,2), CASE LEN(#{GOODS_FEE}      ) WHEN 0 THEN '0' ELSE #{GOODS_FEE} END )       /* 수수료율(신규상품)            */
+	           ,MK_INCEN_RATE  		  =   CONVERT(DECIMAL(15,2), CASE LEN(#{MK_INCEN_RATE}  ) WHEN 0 THEN '0' ELSE #{MK_INCEN_RATE} END )   /* 매장장려금요율                */
+	           ,CENT_INCEN_RATE		  =   CONVERT(DECIMAL(15,2), CASE LEN(#{CENT_INCEN_RATE}) WHEN 0 THEN '0' ELSE #{CENT_INCEN_RATE} END ) /* 센터장려금요율                */
+	           ,CLSE_TIME      		  =   #{CLSE_TIME}      	                              /* 주문마감시간                  */
+	           ,DELI_YOIL      		  =   #{DELI_YOIL}      	                              /* 배송 요일                     */
+	           ,DELI_DATE      		  =   #{DELI_DATE}      	                              /* 배송 특정일                   */
+               ,LEAD_TIME             =   #{LEAD_TIME}	                                      /* 리드타임 */
+	           ,MIN_PUR_AMT    		  =   CONVERT(INT, CASE LEN(#{MIN_PUR_AMT}) WHEN 0 THEN '0' ELSE #{MIN_PUR_AMT} END )        /* 최저발주금액                  */
+	           ,HACCP_YN       		  =   #{HACCP_YN}       	                              /* HACCP인증여부                 */
+	           ,SUPR_STATE     		  =   #{SUPR_STATE}     	                              /* 휴/폐업상태                   */
+	           ,CLSE_BUSI_DATE 		  =   #{CLSE_BUSI_DATE} 	                              /* 휴/폐업일자                   */
+	           ,SUPR_ID        		  =   #{SUPR_ID}        	                              /* 공급사 ID                     */
+	           ,SUPR_PWD       		  =   #{SUPR_PWD}       	                              /* 공급사 패스워드               */
+	           ,SALES_ID       		  =   #{SALES_ID}       	                              /* 매출처 ID                     */
+	           ,SALES_PWD      		  =   #{SALES_PWD}      	                              /* 매출처 패스워드               */
+               ,USE_YN                =   #{USE_YN}                                           /* 거래상태(사용여부)	           */           
+	           ,MPROGRM        		  =   #{MPROGRM}        	                              /* 생성프로그램                  */
+	           ,MUSER          		  =   #{MUSER}          	                              /* 생성자                        */
+	           ,MDATE                 =   GETDATE()                                           /* 생성일시                      */
+				,CUSTMR_PRICE_GRUP	  =   #{CUSTMR_PRICE_GRUP}									/* 거래처기준가그룹		*/
+		WHERE 	CUSTMR_CD             =   #{CUSTMR_CD}
+		
+		SELECT #{CUSTMR_CD} CUSTMR_CD
+	</select>
+
+	<select id="getCustomer" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getCustomer */
+		SELECT  aa.CUSTMR_CD       	 	               /* 거래처코드                    */
+	           ,CUSTMR_NM      		                   /* 거래처명                      */
+	           ,CUSTMR_CEONM   		                   /* 대표자명                      */
+	           ,CORP_NO        		                   /* 사업자번호                    */
+	           ,TAXBILL_CD     		                   /* 세무신고거래처                */
+	           ,CORP_ORI_NO    		                   /* 종사업장번호                  */
+	           ,BUSI_COND      		                   /* 업태                          */
+	           ,BUSI_TYPE      		                   /* 업종                          */
+	           ,CEO_TEL        		                   /* 대표자휴대전화                */
+	           ,RESP_USER_NM   		                   /* 담당자명                      */
+	           ,ORD_RESP_USER  		                   /* 구매담당자                    */
+	           ,CENT_RESP_USER 		                   /* 센터담당자                    */
+	           ,TEL_NO         		                   /* 전화번호                      */
+	           ,FAX_NO         		                   /* 팩스번호                      */
+	           ,PHON_NO        		                   /* 담당자 휴대폰                 */
+	           ,EMAIL          		                   /* 이메일                        */
+	           ,SITEURL        		                   /* 홈페이지                      */
+	           ,CORP_ZIP_NO    		                   /* 우편번호(거래처사업소재지)    */
+	           ,CORP_ADDR      		                   /* 기본주소(거래처사업소재지)    */
+	           ,CORP_ADDR_DETL 		                   /* 상세주소(거래처사업소재지)    */
+	           ,ORD_ZIP_NO     		                   /* 우편번호(거래처우편물주소(DM))*/
+	           ,ORD_ADDR       		                   /* 상세주소(거래처우편물주소(DM))*/
+	           ,ORD_ADDR_DETL 		                   /* 기본주소(거래처우편물주소(DM))*/
+	           ,DELI_RESPUSER  		                   /* 배송담당자                    */
+	           ,PAY_TYPE       		                   /* 수금/지급구분                 */
+	           ,PAY_SCHD_1     		                   /* 수금/지급예정일 값1           */
+	           ,PAY_SCHD_2     		                   /* 수금/지급예정일 값2           */
+	           ,PAY_STD                                /* 결제기준                      */
+	           ,LOAN_YN								   /* 여신가능여부			*/
+	           ,L.LOAN_CD    	   					   /* 여신코드                      */
+	           ,L.LOAN_SEQ    	   					   /* 여신순번                      */
+	           ,L.LOAN_AMT    	   					   /* 여신한도                      */
+	           ,L.BAL_AMT							   /* 잔액				*/
+           	   ,L.CASH_AMT     	   				   /* 현금보증                      */
+           	   ,L.GRNT_AMT     	   				   /* 보증증권                      */
+           	   ,L.CREDIT_AMT					       /* 신용보증                          */
+	           ,ORD_SALE_TYPE  		                   /* 거래유형(영업)구분            */
+	           ,ORD_SALE_FEE   		                   /* 거래유형(영업)                */
+	           ,ORD_PUR_TYPE   		                   /* 거래유형(구매)구분            */
+	           ,ORD_PUR_FEE    		                   /* 거래유형(구매)                */
+	           ,KEYWD          		                   /* 검색창내용                    */
+	           ,MEMO           		                   /* 메모                          */
+	           ,EXC_VAT        		                   /* 부가세제외                    */
+	           ,PUR_SALE_TYPE                          /* 매입/매출처구분               */
+	           ,PUR_TYPE                               /* 매입유형                      */
+	           ,SUPR_GRUP_CD                           /* 공급사분류코드                */
+	           ,SUPR_TYPE                              /* 공급사유형                    */
+	           ,CUSTMR_GRUP                        	   /* 거래처유형                      */
+	           ,EVENT_YN       		                   /* 행사차단                      */
+	           ,GOODS_FEE      		                   /* 수수료율(신규상품)            */
+	           ,MK_INCEN_RATE  		                   /* 매장장려금요율                */
+	           ,CENT_INCEN_RATE		                   /* 센터장려금요율                */
+	           ,CLSE_TIME      		                   /* 주문마감시간                  */
+			   ,SUBSTRING(CLSE_TIME,1,2) CletimeHour   /* 주문마감시간(hour)            */
+			   ,SUBSTRING(CLSE_TIME,3,2) CletimeMin    /* 주문마감시간(min)             */
+	           ,DELI_YOIL      		                   /* 배송 요일                     */
+	           ,DELI_DATE      		                   /* 배송 특정일                   */
+	           ,LEAD_TIME                              /* 리드타임                      */
+	           ,MIN_PUR_AMT    		                   /* 최저발주금액                  */
+	           ,HACCP_YN       		                   /* HACCP인증여부                 */
+	           ,SUPR_STATE     		                   /* 휴/폐업상태                   */
+	           ,CLSE_BUSI_DATE 		                   /* 휴/폐업일자                   */
+	           ,SUPR_ID        		                   /* 공급사 ID                     */
+	           ,SUPR_PWD       		                   /* 공급사 패스워드               */
+	           ,SALES_ID       		                   /* 매출처 ID                     */
+	           ,SALES_PWD      		                   /* 매출처 패스워드               */
+	           ,aa.USE_YN                                 /* 거래상태(사용여부)            */
+	           ,aa.FILE_GRUP_NO
+	           ,ISNULL(BB.ACNT_NO,'') AS ACNT_NO		/* 계좌정보 */
+	           ,ISNULL(BB.BANK_CD,'') AS BANK_CD
+	           ,ISNULL(CC.VRT_ACNT,'') AS VRT_ACNT		/* 가상계좌정보 */
+	           ,aa.CUSTMR_PRICE_GRUP
+	    FROM   T_STD_MAST_CUSTMR aa
+	   		LEFT JOIN (SELECT TOP 1 ACNT_NO
+								, CUSTMR_CD
+								, BANK_CD 
+						FROM T_STD_CUSTMR_ACNT
+						WHERE CUSTMR_CD = #{CUSTMR_CD}
+						ORDER BY CDATE DESC) AS BB
+			ON aa.CUSTMR_CD = BB.CUSTMR_CD
+			LEFT JOIN T_STD_MAST_VRT_ACNT AS CC
+			ON aa.CUSTMR_CD = CC.OBJ_CD
+			LEFT JOIN (
+					SELECT
+						L2.LOAN_CD	
+						,L2.LOAN_SEQ	
+						,L2.INDE_AMT	
+						,L2.BAL_AMT	
+						,L2.LOAN_AMT	
+						,L2.TRUST_CNT	
+						,L2.TRUST_LIMIT	
+						,L2.CREDIT_AMT	
+						,L2.CASH_AMT	
+						,L2.GRNT_AMT	
+						,L2.IO_TYPE	
+						,L2.LOAN_APPLY_TYPE	
+						,L2.EVI_FILE_NM	
+						,L2.EVI_FILE_PATH	
+						,L2.USE_YN	
+						,L2.LOCK_FLAG	
+						,L2.RESN_KEY	
+						,L2.REMK
+						,L1.OBJ_CD
+						,RANK() OVER (PARTITION BY L1.LOAN_CD, OBJ_CD ORDER BY LOAN_SEQ DESC) AS RM
+               		FROM T_STD_MAST_CREDITLOAN_DETL L1
+               			 INNER JOIN T_STD_MAST_CREDITLOAN L2
+               			 ON L1.LOAN_CD = L2.LOAN_CD
+               		WHERE L1.OBJ_CD = #{CUSTMR_CD}
+               ) L
+               ON aa.CUSTMR_CD = L.OBJ_CD
+               AND L.RM = 1
+	    WHERE aa.CUSTMR_CD = #{CUSTMR_CD}
+	</select>
+
+
+	<select id="getCorpNoCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+		/* getCorpNoCount */
+		SELECT  COUNT(CUSTMR_CD) CORP_CNT 
+	      FROM  T_STD_MAST_CUSTMR
+	     WHERE  CORP_NO =  #{CORP_NO}
+	       AND  CUSTMR_CD != #{CUSTMR_CD}
+	</select>
+	
+	<update id="updateCustomerFileGrupNo" parameterType="java.util.Map">
+		/* updateCustomerFileGrupNo */
+		UPDATE T_STD_MAST_CUSTMR
+		SET FILE_GRUP_NO = #{FILE_GRUP_NO}
+		WHERE CUSTMR_CD = #{CUSTMR_CD}
+	</update>
+
+	<update id="saveAcntInfo" parameterType="java.util.Map">
+		/* saveAcntInfo */
+		UPDATE T_STD_CUSTMR_ACNT
+		SET ACNT_NO = #{ACNT_NO}
+			,BANK_CD = #{BANK_CD}
+			,MPROGRM = #{MPROGRM}
+			,MUSER = #{MUSER}
+			,MDATE = GETDATE()
+		WHERE CUSTMR_CD = #{CUSTMR_CD}
+	</update> 
+</mapper>

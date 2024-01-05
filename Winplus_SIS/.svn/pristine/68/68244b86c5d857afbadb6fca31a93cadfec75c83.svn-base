@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.samyang.winplus.sis.report.dao.PurchaseManagementDao">
+	<select id="getDebtByCustmrList" resultType="java.util.Map" parameterType="java.util.Map">
+		
+	</select>
+	
+	<select id="getPurchaseStatusHeaderSearch" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getPurchaseStatusHeaderSearch */
+		SELECT 
+			PM.ORGN_DIV_CD
+			,PM.ORGN_CD
+			,CONVERT(NVARCHAR(10),CONVERT(DATETIME2,PM.PUR_DATE,120)) AS DATE
+			,CASE
+				WHEN COUNT(PD.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD)),' 외 ',(COUNT(PD.BCD_CD)-1),'건')
+				ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD))
+				END AS TOT_GOODS_NM
+			,SUM(PD.PAY_SUM_AMT) AS TOT_AMT
+		FROM T_PUR_MAST PM
+		INNER JOIN T_PUR_DETL PD
+			ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD
+				AND PM.ORGN_CD = PD.ORGN_CD
+				AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+		WHERE 1=1
+			AND PM.PUR_DATE BETWEEN #{searchDateFrom} AND #{searchDateTo}
+			AND PM.ORGN_DIV_CD = #{ORGN_DIV_CD}
+		<if test='ORGN_CD != ""'>
+			AND PM.ORGN_CD = #{ORGN_CD}
+		</if>
+		<if test='PUR_TYPE != ""'>
+			AND PM.PUR_TYPE = #{PUR_TYPE}
+		</if>
+		GROUP BY PM.ORGN_DIV_CD,PM.ORGN_CD,PM.PUR_DATE
+		ORDER BY DATE DESC
+	</select>
+	
+	<select id="getPurchaseStatusDetailSearch" resultType="java.util.Map" parameterType="java.util.Map">
+	/* getPurchaseStatusDetailSearch */
+		SELECT
+			T2.BCD_NM
+			,T2.PUR_PRICE
+			,T2.PUR_QTY
+			,T2.PAY_SUM_AMT
+			,(T2.PAY_SUM_AMT) AS FIX_AMT
+			,T1.SUPR_CD
+			,T1.CUSTMR_NM
+		FROM (
+				SELECT
+					PM.*
+					,SMC.CUSTMR_NM
+				FROM T_PUR_MAST PM
+				INNER JOIN T_STD_MAST_CUSTMR SMC
+					ON PM.SUPR_CD = SMC.CUSTMR_CD
+			) T1
+		INNER JOIN
+			(
+				SELECT 
+					PD.*
+					,SMB.BCD_NM
+				FROM T_PUR_DETL PD
+				INNER JOIN T_STD_MAST_BCD SMB
+					ON PD.BCD_CD = SMB.BCD_CD
+			) T2
+		ON T1.ORGN_DIV_CD = T2.ORGN_DIV_CD
+			AND T1.ORGN_CD = T2.ORGN_CD
+			AND T1.PUR_SLIP_CD = T2.PUR_SLIP_CD
+		WHERE 1=1
+			AND T1.ORGN_CD = #{ORGN_CD}
+			AND T1.PUR_DATE = #{PUR_DATE}
+	</select>
+	
+	<select id ="getPurchaseAmtAdjustment" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPurchaseAmtAdjustment */
+		SELECT
+			PM.ORGN_DIV_CD
+			,PM.ORGN_CD
+			,(SUBSTRING(PM.PUR_DATE,1,4) + '-' + SUBSTRING(PM.PUR_DATE,5,2) + '-' + SUBSTRING(PM.PUR_DATE,7,2)) AS DATE
+			,CASE
+		WHEN COUNT(PD.BCD_CD) > 1 THEN CONCAT((SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD)),' 외 ',(COUNT(PD.BCD_CD)-1),'건')
+			ELSE (SELECT BCD_NM FROM T_STD_MAST_BCD WHERE BCD_CD = MAX(PD.BCD_CD))
+			END AS TOT_GOODS_NM
+			,SUM(PD.PAY_SUM_AMT) AS TOT_AMT
+			,SUM(PD.CONF_AMT) AS CONF_AMT
+			,TC.CUSTMR_NM
+			,PM.PUR_SLIP_CD
+		FROM T_PUR_MAST PM
+		INNER JOIN T_PUR_DETL PD
+			ON PM.ORGN_DIV_CD = PD.ORGN_DIV_CD
+			AND PM.ORGN_CD = PD.ORGN_CD
+			AND PM.PUR_SLIP_CD = PD.PUR_SLIP_CD
+		LEFT OUTER JOIN T_STD_MAST_CUSTMR AS TC
+			ON PM.SUPR_CD = TC.CUSTMR_CD
+		WHERE PM.ORGN_CD = #{orgnCd}
+			AND PM.PUR_DATE BETWEEN #{searchDateFrom} AND #{searchDateTo}
+			<if test = 'CUSTMR_CD != null and CUSTMR_CD != ""'>
+			AND TC.CUSTMR_CD = #{CUSTMR_CD}
+			</if>
+			<if test = 'SLIP_TYPE != null and SLIP_TYPE != ""'>
+			AND PM.PUR_TYPE = #{SLIP_TYPE}
+			</if>
+		GROUP BY PM.ORGN_DIV_CD,PM.ORGN_CD,PM.PUR_DATE,TC.CUSTMR_NM,PM.PUR_SLIP_CD, PM.PAY_SUM_AMT
+		ORDER BY DATE
+	</select>
+	
+	<select id ="getPurchaseAmtDetailAdjustment" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getPurchaseAmtDetailAdjustment */
+			SELECT TB.BCD_NM 
+					,TPD.BCD_CD
+					,TPD.PUR_PRICE
+					,TPD.PUR_QTY
+					,(TPD.PAY_SUM_AMT) AS PAY_SUM_AMT
+					,TPD.CONF_AMT AS CONF_AMT_DETL
+					,TB.DIMEN_NM
+					,TPD.PUR_SLIP_CD
+					,TPD.ORGN_CD
+					,TPD.ORGN_DIV_CD
+					,TM.PUR_TYPE
+			FROM T_PUR_DETL AS TPD
+			INNER JOIN T_STD_MAST_BCD AS TB
+			ON TB.BCD_CD = TPD.BCD_CD
+			INNER JOIN T_PUR_MAST AS TM
+			ON TPD.PUR_SLIP_CD = TM.PUR_SLIP_CD
+			AND TPD.ORGN_CD = TM.ORGN_CD
+			AND TPD.ORGN_DIV_CD = TM.ORGN_DIV_CD
+			WHERE TPD.ORGN_CD = #{ORGN_CD}
+			AND TPD.ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND TPD.PUR_SLIP_CD = #{PUR_SLIP_CD}
+	</select>
+	
+	<update id="savePurchaseAmtAdjustment" parameterType="java.util.Map">
+		/* savePurchaseAmtAdjustment */
+		UPDATE T_PUR_DETL
+		SET CONF_AMT = #{CONF_AMT_DETL}
+			, MPROGRM = #{MPROGM}
+			, MUSER = #{MUSER}
+			, MDATE = GETDATE()
+		WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+			AND BCD_CD = #{BCD_CD}
+	</update>
+	
+	<update id="updatePurchaseAmtAdjustment" parameterType="java.util.Map">
+		/* updatePurchaseAmtAdjustment */
+		DECLARE @CONF_AMT DECIMAL(19,6)
+		
+		SET @CONF_AMT = (SELECT SUM(CONF_AMT) AS CONF_AMT
+						FROM T_PUR_DETL
+						WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+							AND ORGN_CD = #{ORGN_CD}
+							AND ORGN_DIV_CD = #{ORGN_DIV_CD})
+		
+		UPDATE T_PUR_MAST
+		SET CONF_AMT = @CONF_AMT
+			, MPROGRM = #{MPROGM}
+			, MUSER = #{MUSER}
+			, MDATE = GETDATE()
+		WHERE PUR_SLIP_CD = #{PUR_SLIP_CD}
+			AND ORGN_CD = #{ORGN_CD}
+			AND ORGN_DIV_CD = #{ORGN_DIV_CD}
+	</update>
+</mapper>

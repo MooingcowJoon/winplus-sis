@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/context
+						http://www.springframework.org/schema/context/spring-context.xsd
+						http://www.springframework.org/schema/tx
+						http://www.springframework.org/schema/tx/spring-tx.xsd
+						http://www.springframework.org/schema/aop
+						http://www.springframework.org/schema/aop/spring-aop.xsd"
+	default-autowire="byName">
+
+	<!-- Autowired -->
+	<context:annotation-config />
+
+	<bean
+		class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer" />
+
+	<bean
+		class="com.samyang.winplus.common.system.config.HttpSessionConfiguration" />
+
+	<bean id="restTemplate"
+		class="org.springframework.web.client.RestTemplate" />
+
+	<!-- DEBUG For SQL Query / log4j.properties 도 같이 확인 -->
+	<bean id="proxyDataSource"
+		class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
+		<constructor-arg ref="mssql_dataSource" />
+		<property name="logFormatter">
+			<bean class="net.sf.log4jdbc.tools.Log4JdbcCustomFormatter">
+				<property name="loggingType" value="MULTI_LINE" />
+				<property name="sqlPrefix"
+					value="■ SQL Query DAO Method : " />
+			</bean>
+		</property>
+	</bean>
+
+	<!-- HikariCP configuration -->
+	<bean id="mssql_dataSource"
+		class="com.zaxxer.hikari.HikariDataSource"><!-- destroy-method="shutdown" -->
+		<constructor-arg>
+			<bean class="com.zaxxer.hikari.HikariConfig">
+				<constructor-arg>
+					<props>
+						<prop key="jdbcUrl">${datasource.url}</prop>
+						<prop key="username">${datasource.username}</prop>
+						<prop key="password">${datasource.password}</prop>
+					</props>
+				</constructor-arg>
+				<property name="driverClassName"
+					value="${datasource.driverClassName}" />
+				<!-- <property name="minimumIdle" value="5" /> -->
+				<property name="maximumPoolSize" value="30" />
+				<property name="connectionTestQuery" value="SELECT 1" />
+				<property name="connectionTimeout" value="300000" />
+			</bean>
+		</constructor-arg>
+	</bean>
+
+	<!-- SqlSessionFactory -->
+	<bean id="mssql_sqlSessionFactory"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="proxyDataSource" />
+		<property name="configLocation"
+			value="/WEB-INF/spring/mybatis-config/mssql-mybatis-config.xml" />
+		<property name="mapperLocations">
+			<list>
+				<value>classpath:com/samyang/winplus/**/sqlmap/*.xml</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- SqlSession -->
+	<bean id="mssqlSession"
+		class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0"
+			ref="mssql_sqlSessionFactory" />
+	</bean>
+
+	<!-- Transaction -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="proxyDataSource" />
+	</bean>
+
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.samyang.winplus.*" />
+		<property name="sqlSessionFactoryBeanName"
+			value="mssql_sqlSessionFactory" />
+	</bean>
+	
+	<!-- ********************************************************************* -->
+	<!-- ********************************************************************* -->
+	<!-- ********************************************************************* -->
+	<!-- <bean id="mssql_dataSource" class="org.springframework.jndi.JndiObjectFactoryBean"> 
+		<property name="jndiName" value="java:/comp/env/jdbc/TestDB" /> <property 
+		name="jndiTemplate" ref="jnditemplate" /> </bean> -->
+	<!-- <bean id="mssql_dataSource" class="org.springframework.jndi.JndiObjectFactoryBean"> 
+		<property name="jndiName" value="java:/comp/env/dbsource.erp" /> <property 
+		name="jndiTemplate" ref="jnditemplate" /> </bean> -->
+	<bean id="jnditemplate"
+		class="org.springframework.jndi.JndiTemplate">
+		<property name="environment">
+			<props>
+				<prop key="java.naming.factory.initial">org.apache.naming.java.javaURLContextFactory</prop>
+				<!-- <prop key="java.naming.factory.url.pkgs">org.apache.catalina.util.naming</prop> -->
+			</props>
+		</property>
+	</bean>
+	
+	<!-- ********************************************************************* -->
+	<!-- ********************************************************************* -->
+	<!-- ********************************************************************* -->
+
+
+</beans>
