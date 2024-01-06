@@ -17,6 +17,9 @@
 </style>
 <script type="text/javascript">
 	<%--
+		커밋 테스트
+	--%>
+	<%--
 		※ 전역 변수 선언부 
 		□ 변수명 : Type / Description
 		■ erpLayout : Object / 페이지 Layout DhtmlXLayout
