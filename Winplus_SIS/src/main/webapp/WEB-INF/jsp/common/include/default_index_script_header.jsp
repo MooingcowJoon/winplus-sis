@@ -4,6 +4,7 @@
 
 <script type="text/javascript">
 	<%@ include file="/WEB-INF/jsp/common/include/default_common_header.jsp" %>
+	<%-- 레이아웃 생성 %-->
 	<%-- DOM Ready 완료 시 호출 Function --%>
 	<%-- erp_header.js도 같이 참조 --%>
 	$(document).ready(function(){
