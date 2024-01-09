@@ -76,4 +76,27 @@ public interface SystemMenuService {
 	  * @exception Exception
 	  */
 	int saveMenuByScreenList(List<Map<String, Object>> paramMapList) throws SQLException, Exception;
+	
+	
+	
+	/**
+	  * getScreenListTest - 화면 목록 조회
+	  * @author 서준호
+	  * @param paramMap
+	  * @return List<Map<String, Object>>
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	List<Map<String, Object>> getScreenListTest(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * saveScreenListTest - 화면 목록 저장
+	  * @author 서준호
+	  * @param paramMapList
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int saveScreenListTest(List<Map<String, Object>> paramMapList) throws SQLException, Exception;
+	
 }

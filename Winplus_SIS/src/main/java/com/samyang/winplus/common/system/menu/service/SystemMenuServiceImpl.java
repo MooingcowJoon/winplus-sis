@@ -237,4 +237,55 @@ public class SystemMenuServiceImpl implements SystemMenuService {
 		
 		return resultInt;
 	}
+	
+	
+	
+	
+	
+	
+	
+	
+	/**
+	  * getScreenListTest - 화면 목록 조회
+	  * @author 서준호
+	  * @param paramMap
+	  * @return List<Map<String, Object>>
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	@Override
+	public List<Map<String, Object>> getScreenListTest(Map<String, Object> paramMap)
+			throws SQLException, Exception {
+		return systemMenuDao.getScreenListTest(paramMap);
+	}
+
+	/**
+	  * saveScreenListTest - 화면 목록 저장
+	  * @author 서준호
+	  * @param paramMapList
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	@Override
+	public int saveScreenListTest(List<Map<String, Object>> paramMapList) throws SQLException, Exception {
+		int resultInt = 0;		
+		for(Map<String, Object> paramMap : paramMapList){
+			Object crud = paramMap.get("CRUD");
+			if(crud != null) {
+				if("C".equals(crud)){
+					paramMap.put("REG_PROGRM", "insertScreen");
+					resultInt += systemMenuDao.insertScreenTest(paramMap);
+				} else if ("U".equals(crud)){
+					paramMap.put("REG_PROGRM", "updateScreen");
+					resultInt += systemMenuDao.updateScreenTest(paramMap);
+				} else if ("D".equals(crud)){
+					resultInt += systemMenuDao.deleteScrinSecondTest(paramMap);
+				}
+			}
+		}
+		
+		return resultInt;
+	}	
+	
 }

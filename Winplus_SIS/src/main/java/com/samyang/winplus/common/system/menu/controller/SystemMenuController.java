@@ -241,7 +241,33 @@ public class SystemMenuController extends BaseController {
 		}
 		return resultMap;
 	}
-	
+	/**
+	  * screenManagementR1 - 화면관리 - 화면 목록 조회
+	  * @author 서준호
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="screenManagementTestR1.do", method=RequestMethod.POST)
+	public Map<String, Object> screenManagementTestR1(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		String scrin_cd = request.getParameter("SCRIN_CD");
+		String use_yn = request.getParameter("USE_YN");
+		String cmmn_yn = request.getParameter("CMMN_YN");			
+		if(scrin_cd != null && scrin_cd.length() > 50){
+			String errMessage = messageSource.getMessage("error.common.system.menu.scrin_nm.length50Over", new Object[1], commonUtil.getDefaultLocale());
+			String errCode = "1001";
+			resultMap = commonUtil.getErrorMap(errMessage, errCode);
+		} else {
+			Map<String, Object> paramMap = new HashMap<String, Object>();
+			paramMap.put("SCRIN_CD", scrin_cd);
+			paramMap.put("USE_YN", use_yn);
+			paramMap.put("CMMN_YN", cmmn_yn);
+			
+			List<Map<String, Object>> screenList = systemMenuService.getScreenListTest(paramMap);				
+			resultMap.put("gridDataList", screenList);
+		}
+		return resultMap;
+	}	
 	
 	/**
 	  * screenManagementCUD1 - 화면관리 - 화면 목록 저장
@@ -259,6 +285,27 @@ public class SystemMenuController extends BaseController {
 			dhtmlxParamMap.put("REG_ID", emp_no);
 		}
 		int resultRowCnt = systemMenuService.saveScreenList(dhtmlxParamMapList);
+		resultMap.put("resultRowCnt", resultRowCnt);
+		return resultMap;
+	}
+	
+	
+	/**
+	  * screenManagementTestCUD1 - 화면관리 - 화면 목록 저장
+	  * @author 서준호
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="screenManagementTestCUD1.do", method=RequestMethod.POST)
+	public Map<String, Object> screenManagementTestCUD1(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);
+		String emp_no = empSessionDto.getEmp_no();
+		List<Map<String, Object>> dhtmlxParamMapList = commonUtil.getDhtmlXParamMapList(request);
+		for(Map<String, Object> dhtmlxParamMap : dhtmlxParamMapList){
+			dhtmlxParamMap.put("REG_ID", emp_no);
+		}
+		int resultRowCnt = systemMenuService.saveScreenListTest(dhtmlxParamMapList);
 		resultMap.put("resultRowCnt", resultRowCnt);
 		return resultMap;
 	}

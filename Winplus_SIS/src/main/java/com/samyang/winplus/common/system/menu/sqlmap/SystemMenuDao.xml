@@ -161,7 +161,7 @@
 			</if>
 		</trim>
 	</select>
-	
+
 	<insert id="insertScreen" parameterType="java.util.Map">
 		<selectKey keyProperty="SCRIN_CD" resultType="String" order="BEFORE">
 			SELECT LPAD('', 5 - LENGTH(MAX(SCRIN_CD)+1),  '0') + CAST(MAX(CAST(SCRIN_CD AS INTEGER))+1 AS CHAR) MENU_CD
@@ -188,7 +188,6 @@
 			, NOW()
 		)
 	</insert>
-	
 	<update id="updateScreen" parameterType="java.util.Map">
 		/* updateScreen */
 		UPDATE COM_SCRIN
@@ -201,7 +200,6 @@
 				, UPD_DT		= NOW()
 		WHERE 	  SCRIN_CD		= #{SCRIN_CD}		
 	</update>
-	
 	<delete id="deleteScrinFirst" parameterType="java.util.Map">
 		/* deleteScrinFirst */
 		DELETE 	FROM COM_MENU_BY_SCRIN 
@@ -214,6 +212,83 @@
 		DELETE 	FROM COM_SCRIN 
 		WHERE 	SCRIN_CD=#{SCRIN_CD}		
 	</delete>
+	<select id="getScreenListTest" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getScreenList */
+		SELECT A.SCRIN_CD
+				, A.SCRIN_NM
+				, A.SCRIN_PATH
+				, A.USE_YN
+				, A.CMMN_YN
+				, A.REG_PROGRM
+				, A.REG_ID
+				, DATE_FORMAT(A.REG_DT, '%Y-%m-%d %T') AS REG_DT
+				, A.UPD_PROGRM
+				, A.UPD_ID
+				, DATE_FORMAT(A.UPD_DT, '%Y-%m-%d %T') AS UPD_DT
+		FROM COM_SCRIN_TEST A
+		<trim prefix="WHERE" prefixOverrides="AND |OR ">				
+			<if test="SCRIN_CD != null and SCRIN_CD != ''">
+				(A.SCRIN_CD LIKE CONCAT('%',#{SCRIN_CD},'%') OR A.SCRIN_NM LIKE CONCAT('%',#{SCRIN_CD},'%'))
+			</if>
+			<if test="USE_YN != null and USE_YN != ''">
+				 AND A.USE_YN LIKE  CONCAT(#{USE_YN},'%')
+			</if>		
+			<if test="CMMN_YN != null and CMMN_YN != ''">		
+				 AND A.CMMN_YN LIKE  CONCAT(#{CMMN_YN},'%')
+			</if>
+		</trim>
+	</select>
+	<insert id="insertScreenTest" parameterType="java.util.Map">
+		<selectKey keyProperty="SCRIN_CD" resultType="String" order="BEFORE">
+			SELECT LPAD('', 5 - LENGTH(MAX(SCRIN_CD)+1),  '0') + CAST(MAX(CAST(SCRIN_CD AS INTEGER))+1 AS CHAR) MENU_CD
+  			  FROM COM_SCRIN_TEST
+		</selectKey>
+		/* insertScreen */
+		INSERT INTO COM_SCRIN_TEST (
+			SCRIN_CD
+			, SCRIN_NM
+			, SCRIN_PATH
+			, USE_YN
+			, CMMN_YN
+			, REG_PROGRM
+			, REG_ID
+			, REG_DT
+		 ) VALUES (
+			  #{SCRIN_CD} 
+			, #{SCRIN_NM}
+			, #{SCRIN_PATH}
+			, #{USE_YN}
+			, #{CMMN_YN}
+			, #{REG_PROGRM}
+			, #{REG_ID}
+			, NOW()
+		)
+	</insert>
+	<update id="updateScreenTest" parameterType="java.util.Map">
+		/* updateScreen */
+		UPDATE COM_SCRIN_TEST
+		SET 	  SCRIN_NM		= #{SCRIN_NM}
+				, SCRIN_PATH	= #{SCRIN_PATH}
+				, USE_YN		= #{USE_YN}
+				, CMMN_YN		= #{CMMN_YN}
+				, UPD_PROGRM	= #{REG_PROGRM}
+				, UPD_ID		= #{REG_ID}
+				, UPD_DT		= NOW()
+		WHERE 	  SCRIN_CD		= #{SCRIN_CD}		
+	</update>
+	<delete id="deleteScrinFirstTest" parameterType="java.util.Map">
+		/* deleteScrinFirst */
+		DELETE 	FROM COM_MENU_BY_SCRIN_TEST
+		WHERE 	SCRIN_CD=#{SCRIN_CD}
+		
+	</delete>
+	
+	<delete id="deleteScrinSecondTest" parameterType="java.util.Map">
+		/* deleteScrinSecond */		
+		DELETE 	FROM COM_SCRIN_TEST
+		WHERE 	SCRIN_CD=#{SCRIN_CD}		
+	</delete>	
+
 	
 	<select id="getMenuByScreenList"  resultType="java.util.Map" parameterType="java.util.Map">
 		/* getMenuByScreenList */

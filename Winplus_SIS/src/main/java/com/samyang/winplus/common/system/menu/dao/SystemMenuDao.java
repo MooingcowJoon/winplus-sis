@@ -185,4 +185,69 @@ public interface SystemMenuDao {
 	  * @exception Exception
 	  */
 	public int deleteMenuByScreen(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	/**
+	  * getScreenListTest - 화면 목록 조회
+	  * @author 김종훈
+	  * @param paramMap
+	  * @return List<Map<String, Object>>
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public List<Map<String, Object>> getScreenListTest(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * insertScreenTest - 화면 등록
+	  * @author 김종훈
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public int insertScreenTest(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * updateScreenTest - 화면 수정
+	  * @author 김종훈
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public int updateScreenTest(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	
+	/**
+	  * deleteScrinFirstTest - 화면 삭제1
+	  * @author 정인선
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public int deleteScrinFirstTest(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * deleteScrinFirstTest - 화면 삭제2
+	  * @author 정인선
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public int deleteScrinSecondTest(Map<String, Object> paramMap) throws SQLException, Exception;
+
+	
+	
+	
 }

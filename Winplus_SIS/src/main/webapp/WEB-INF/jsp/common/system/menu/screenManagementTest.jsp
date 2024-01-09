@@ -173,7 +173,7 @@
 		var cmmn_yn = cmbCMMN_YN.getSelectedValue();
 		
 		$.ajax({
-			url : "/common/system/menu/screenManagementR1.do"
+			url : "/common/system/menu/screenManagementTestR1.do"
 			,data : {
 				"SCRIN_CD" : scrin_cd
 				, "USE_YN" : use_yn
@@ -268,7 +268,7 @@
 		erpLayout.progressOn();
 		var paramData = $erp.serializeDhtmlXGridData(erpGrid);		
 		$.ajax({
-			url : "/common/system/menu/screenManagementCUD1.do"
+			url : "/common/system/menu/screenManagementTestCUD1.do"
 			,data : paramData
 			,method : "POST"
 			,dataType : "JSON"
