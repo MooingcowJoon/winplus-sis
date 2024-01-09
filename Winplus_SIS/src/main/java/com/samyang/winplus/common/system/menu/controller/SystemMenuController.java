@@ -201,7 +201,19 @@ public class SystemMenuController extends BaseController {
 		mav.setViewName(DEFAULT_PATH + "/" + "screenManagement");
 		return mav;
 	}
-	
+
+	/**
+	  * screenManagementTest - 화면관리테스트 - 화면 조회
+	  * @author 서준호
+	  * @param request
+	  * @return ModelAndView
+	  */
+	@RequestMapping(value="screenManagementTest.sis", method=RequestMethod.POST)
+	public ModelAndView screenManagementTest(HttpServletRequest request) throws SQLException, Exception {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "screenManagementTest");
+		return mav;
+	}
 	/**
 	  * screenManagementR1 - 화면관리 - 화면 목록 조회
 	  * @author 김종훈
