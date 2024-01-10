@@ -496,4 +496,21 @@ public class SystemAuthorityController extends BaseController {
 		return resultMap;
 	}
 	
+
+	/**
+	 * 
+	 * @author 서준호
+	 * @date Jan 10, 2024
+	 * @param reqeust
+	 * @return
+	 * @throws SQLException
+	 * @throws Exception
+	 */
+	@RequestMapping(value="empManagementTest.sis", method=RequestMethod.POST)
+	public ModelAndView empManagementTest(HttpServletRequest reqeust) throws SQLException, Exception {
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName(DEFAULT_PATH + "/" + "empManagementTest");
+		return mav;
+	}
+	
 }
