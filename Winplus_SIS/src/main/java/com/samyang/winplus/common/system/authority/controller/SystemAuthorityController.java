@@ -513,4 +513,30 @@ public class SystemAuthorityController extends BaseController {
 		return mav;
 	}
 	
+	
+	@RequestMapping(value="empManagementTestR1.do", method=RequestMethod.POST)
+	public Map<String,Object> empManagementTestR1(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		String memb_no = request.getParameter("MEMB_NO");
+		String memb_cont_cd = request.getParameter("MEMB_CONT_CD");
+		String memb_join_yymmdd_fr = request.getParameter("MEMB_JOIN_YYMMDD_FR");			
+		String memb_join_yymmdd_to = request.getParameter("MEMB_JOIN_YYMMDD_TO");			
+		if(memb_no != null && memb_no.length() > 50){
+			String errMessage = messageSource.getMessage("error.common.system.authority.memb_no.length50Over", new Object[1], commonUtil.getDefaultLocale());
+			String errCode = "1001";
+			resultMap = commonUtil.getErrorMap(errMessage, errCode);
+		} else {
+			Map<String, Object> paramMap = new HashMap<String, Object>();
+			paramMap.put("MEMB_NO", memb_no);
+			paramMap.put("MEMB_CONT_CD", memb_cont_cd);
+			paramMap.put("MEMB_JOIN_YYMMDD_FR", memb_join_yymmdd_fr);
+			paramMap.put("MEMB_JOIN_YYMMDD_TO", memb_join_yymmdd_to);
+			
+			List<Map<String, Object>> empList = systemAuthorityService.getEmpList(paramMap);				
+			resultMap.put("gridDataList", empList);
+		}
+		return resultMap;
+	}
+	
+	
 }

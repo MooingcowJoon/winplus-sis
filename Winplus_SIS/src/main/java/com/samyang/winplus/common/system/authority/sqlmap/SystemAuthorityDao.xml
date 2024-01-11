@@ -407,4 +407,66 @@
 		WHERE REG_DT BETWEEN DATE_ADD(#{searchDateFrom}, INTERVAL 0 DAY) AND 
 		                     DATE_ADD(DATE_ADD(#{searchDateFrom}, INTERVAL 23 HOUR), INTERVAL 59 MINUTE)
 	</select>
+	
+	<select id="getEmpList" resultType="java.util.Map" parameterType="java.util.Map">
+		/* getEmpList  */
+SELECT   MEMB_NO                /* 사원번호   */
+    , MEMB_NM                /* 사원이름   */
+    , MEMB_ENG_NM            /* 영문이름   */
+    , MEMB_POSI              /* 직급     */
+    , CASE WHEN MEMB_RMK = '11' THEN '초급초' 
+           WHEN MEMB_RMK = '12' THEN '초급중' 
+           WHEN MEMB_RMK = '13' THEN '초급고' 
+           WHEN MEMB_RMK = '21' THEN '중급초' 
+           WHEN MEMB_RMK = '22' THEN '중급중' 
+           WHEN MEMB_RMK = '23' THEN '중급고' 
+           WHEN MEMB_RMK = '31' THEN '고급초' 
+           WHEN MEMB_RMK = '32' THEN '고급중' 
+           WHEN MEMB_RMK = '33' THEN '고급고' 
+           WHEN MEMB_RMK = '40' THEN '특급' 
+              ELSE '' 
+          END AS MEMB_RMK
+    , MEMB_TEL_NO            /* 전화번호   */
+    , MEMB_JOIN_YYMMDD       /* 입사일자   */
+    , MEMB_CLOS_YYMMDD       /* 퇴사일자   */
+    , CASE WHEN MEMB_CONT_CD = 'AC' THEN '계약중' 
+           WHEN MEMB_CONT_CD = 'DL' THEN '대기중' 
+           WHEN MEMB_CONT_CD = 'PR' THEN '진행증' 
+           WHEN MEMB_CONT_CD = 'TG' THEN '퇴사' 
+              ELSE '' 
+          END AS MEMB_CONT_CD
+    , MEMB_EMAIL             /* 이메일    */
+    , MEMB_INTR              /* 소개자    */
+    , MEMB_POST_NO           /* 우편번호   */
+    , MEMB_ADDR              /* 주소     */
+    , MEMB_CATE              /* 분류(1 3.3, 2 정규직, 3 프리랜스, 4 자사반정규직 , 5 타사반정규직)   */
+    , CASE WHEN MEMB_CATE = '1' THEN '정규직' 
+           WHEN MEMB_CATE = '2' THEN '계약직' 
+           WHEN MEMB_CATE = '3' THEN '자사반정규' 
+           WHEN MEMB_CATE = '4' THEN '타사반정규' 
+              ELSE '' 
+          END AS MEMB_CATE
+    , MEMB_REGS_NO           /* 등록번호   */
+    , MEMB_AREA              /* 업무영역   */
+    , MEMB_SKILL             /* 스킬     */
+    , MEMB_BANK              /* 은행     */
+    , MEMB_ACCT_NM           /* 예금주    */
+    , MEMB_ACCT_NO           /* 계좌번호   */
+    , MEMB_PAY_DAY           /* 지급일자   */
+    , REG_ID                 /* 처리자ID  */
+    , REG_DT                 /* 처리시각   */
+FROM    KOREA_SIS.MEMER_MST
+<trim prefix="WHERE" prefixOverrides="AND |OR ">				
+			<if test="MEMB_NO != null and MEMB_NO != ''">
+				(MEMB_NO LIKE CONCAT('%',#{MEMB_NO},'%') OR MEMB_NM LIKE CONCAT('%',#{MEMB_NO},'%'))
+			</if>
+			<if test="MEMB_CONT_CD != null and MEMB_CONT_CD != ''">
+				 AND MEMB_CONT_CD LIKE CONCAT(#{MEMB_CONT_CD},'%')
+			</if>		
+			<if test="MEMB_JOIN_YYMMDD_FR != null and MEMB_JOIN_YYMMDD_TO != ''">		
+				 AND MEMB_JOIN_YYMMDD BETWEEN TO_DATE(#{MEMB_JOIN_YYMMDD_FR}) AND TO_DATE(#{MEMB_JOIN_YYMMDD_TO})
+			</if>
+		</trim>
+				
+	</select>
 </mapper>

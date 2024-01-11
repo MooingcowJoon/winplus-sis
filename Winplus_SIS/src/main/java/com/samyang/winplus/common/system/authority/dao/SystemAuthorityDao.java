@@ -180,4 +180,16 @@ public interface SystemAuthorityDao {
 	  * @exception Exception
 	  */
 	public List<Map<String, Object>> getEmpAccessLogList(Map<String, Object> paramMap);
+	
+	
+	/**
+	  * getEmpList - 사원조회 - 조회
+	  * @author 서준호
+	  * @param paramMap
+	  * @return List<Map<String, Object>>
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public List<Map<String, Object>> getEmpList(Map<String, Object> paramMap);
+	
 }
