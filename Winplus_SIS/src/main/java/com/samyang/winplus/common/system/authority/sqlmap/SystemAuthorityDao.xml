@@ -456,17 +456,17 @@ SELECT   MEMB_NO                /* 사원번호   */
     , REG_ID                 /* 처리자ID  */
     , REG_DT                 /* 처리시각   */
 FROM    KOREA_SIS.MEMER_MST
-<trim prefix="WHERE" prefixOverrides="AND |OR ">				
-			<if test="MEMB_NO != null and MEMB_NO != ''">
-				(MEMB_NO LIKE CONCAT('%',#{MEMB_NO},'%') OR MEMB_NM LIKE CONCAT('%',#{MEMB_NO},'%'))
-			</if>
-			<if test="MEMB_CONT_CD != null and MEMB_CONT_CD != ''">
-				 AND MEMB_CONT_CD LIKE CONCAT(#{MEMB_CONT_CD},'%')
-			</if>		
-			<if test="MEMB_JOIN_YYMMDD_FR != null and MEMB_JOIN_YYMMDD_TO != ''">		
-				 AND MEMB_JOIN_YYMMDD BETWEEN TO_DATE(#{MEMB_JOIN_YYMMDD_FR}) AND TO_DATE(#{MEMB_JOIN_YYMMDD_TO})
-			</if>
-		</trim>
+    <trim prefix="WHERE" prefixOverrides="AND |OR ">
+        <if test="MEMB_NO != null and MEMB_NO != ''">
+            (MEMB_NO LIKE CONCAT('%',#{MEMB_NO},'%') OR MEMB_NM LIKE CONCAT('%',#{MEMB_NO},'%'))
+        </if>
+        <if test="MEMB_CONT_CD != null and MEMB_CONT_CD != ''">
+            AND MEMB_CONT_CD LIKE CONCAT(#{MEMB_CONT_CD},'%')
+        </if>
+        <if test="MEMB_JOIN_YYMMDD_FR != null and MEMB_JOIN_YYMMDD_TO != ''">
+            AND MEMB_JOIN_YYMMDD BETWEEN STR_TO_DATE(#{MEMB_JOIN_YYMMDD_FR}, '%Y-%m-%d') AND STR_TO_DATE(#{MEMB_JOIN_YYMMDD_TO}, '%Y-%m-%d')
+        </if>
+    </trim>
 				
 	</select>
 </mapper>

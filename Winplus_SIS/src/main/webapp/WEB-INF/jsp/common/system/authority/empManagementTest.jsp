@@ -182,7 +182,7 @@
 		var memb_join_yymmdd_to = document.getElementById("txtDATE_TO_JOIN").value;
 		
 		$.ajax({
-			url : "/common/system/menu/empManagementTestR1.do"
+			url : "/common/system/authority/empManagementTestR1.do"
 			,data : {
 				"MEMB_NO" : memb_no
 				, "MEMB_CONT_CD" : memb_cont_cd
