@@ -8,6 +8,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +21,7 @@ import com.samyang.winplus.common.system.authority.service.SystemAuthorityServic
 import com.samyang.winplus.common.system.base.controller.BaseController;
 import com.samyang.winplus.common.system.model.EmpSessionDto;
 import com.samyang.winplus.common.system.model.ScreenDto;
+
 
 /** 
  * 시스템관리 - 권한관리 컨트롤러  
@@ -34,7 +37,7 @@ import com.samyang.winplus.common.system.model.ScreenDto;
 @RequestMapping("/common/system/authority")
 @RestController
 public class SystemAuthorityController extends BaseController {
-	
+	private final Logger subLogger = LoggerFactory.getLogger(getClass());
 	@Autowired
 	private MessageSource messageSource;
 	
@@ -535,6 +538,27 @@ public class SystemAuthorityController extends BaseController {
 			List<Map<String, Object>> empList = systemAuthorityService.getEmpList(paramMap);				
 			resultMap.put("gridDataList", empList);
 		}
+		return resultMap;
+	}
+	
+	/**
+	  * empManagementTestCUD1 - 사원 조회 - 사원 목록 저장 
+	  * @author 서준호
+	  * @param request
+	  * @return Map<String, Object>
+	  */
+	@RequestMapping(value="empManagementTestCUD1.do", method=RequestMethod.POST)
+	public Map<String, Object> empManagementTestCUD1(HttpServletRequest request) throws SQLException, Exception {
+		subLogger.info("Received AJAX request with body: {}", request.getParameterMap().toString()); // 서브로거 객체로 info 타입 로그 출력 ( 요청 파라미터맵 딕셔너리형태 문자열로 출력)
+		Map<String, Object> resultMap = new HashMap<String, Object>();		// ajax json 응답을 위한 딕셔너리 자료형(맵객체) 초기화
+		EmpSessionDto empSessionDto = commonUtil.getEmpSessionDto(request);	// request의 세션 정보 활용하여 세션의 유저정보 dto로 받음
+		String emp_no = empSessionDto.getEmp_no();		// 받은 유저세션dto에서 사원번호 빼냄(CUD작업 수행한 직원번호 db저장)
+		List<Map<String, Object>> dhtmlxParamMapList = commonUtil.getDhtmlXParamMapList(request);  // 각 컬럼 수정정보. request 에 직렬화되어 저장된 리퀘스트바디 파라미터 맵객체에 담아 반환
+		for(Map<String, Object> dhtmlxParamMap : dhtmlxParamMapList){			// 각 컬럼 수정정보에 수정한 직원번호 엔트리 추가
+			dhtmlxParamMap.put("REG_ID", emp_no);
+		}
+		int resultRowCnt = systemAuthorityService.saveEmpList(dhtmlxParamMapList);		// 서비스객체 CUD메소드 호출
+		resultMap.put("resultRowCnt", resultRowCnt);
 		return resultMap;
 	}
 	

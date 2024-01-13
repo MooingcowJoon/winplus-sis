@@ -416,6 +416,30 @@ public class SystemAuthorityServiceImpl implements SystemAuthorityService {
 	}
 	
 	
-	
+	/**
+	  * saveEmpList - 사원조회 - 추가 - 저장
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public int saveEmpList(List<Map<String, Object>> paramMapList) throws SQLException, Exception{
+		int resultInt = 0;		
+		for(Map<String, Object> paramMap : paramMapList){
+			Object crud = paramMap.get("CRUD");
+			if(crud != null) {
+				if("C".equals(crud)){
+					resultInt += systemAuthorityDao.insertEmp(paramMap);
+				} else if ("U".equals(crud)){
+					resultInt += systemAuthorityDao.updateEmp(paramMap);
+				} else if ("D".equals(crud)){
+					resultInt += systemAuthorityDao.deleteEmp(paramMap);
+				}
+			}
+		}
+		
+		return resultInt;
+	}
 	
 }

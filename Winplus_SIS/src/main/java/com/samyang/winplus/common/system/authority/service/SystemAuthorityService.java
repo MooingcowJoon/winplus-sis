@@ -136,7 +136,7 @@ public interface SystemAuthorityService {
 	  * @exception SQLException
 	  * @exception Exception
 	  */
-	List<Map<String, Object>> getEmpAccessLogList(Map<String, Object> paramMap);
+	List<Map<String, Object>> getEmpAccessLogList(Map<String, Object> paramMap) throws SQLException, Exception;
 	
 	/**
 	  * getEmpList - 직원조회 - 조회
@@ -146,6 +146,18 @@ public interface SystemAuthorityService {
 	  * @exception SQLException
 	  * @exception Exception
 	  */
-	List<Map<String, Object>> getEmpList(Map<String, Object> paramMap);
+	List<Map<String, Object>> getEmpList(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	
+	/**
+	  * insertEmp - 사원조회 - 추가 - 저장
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int saveEmpList(List<Map<String, Object>> paramMap) throws SQLException, Exception;
+	
 	
 }

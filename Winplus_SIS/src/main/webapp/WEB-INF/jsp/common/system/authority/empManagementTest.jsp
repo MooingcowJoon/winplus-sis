@@ -103,20 +103,20 @@
 	<%-- erpGrid 초기화 Function --%>	
 	function initErpGrid(){
 		erpGridColumns = [
-			  {id : "MEMB_NO",         label:["사원번호", "#text_filter"], type: "ed", width: "100", sort : "int", align : "center", isHidden : false, isEssential : false}
+			  {id : "MEMB_NO",         label:["사원번호", "#text_filter"], type: "ro", width: "100", sort : "int", align : "center", isHidden : false, isEssential : false}
 			, {id : "MEMB_NM",      label:["성명(국문)", "#text_filter"], type: "ed", width: "40", sort : "str", align : "center", isHidden : false, isEssential : false, isDataColumn : false}
 			, {id : "MEMB_ENG_NM",      label:["성명(영문)", "#text_filter"], type: "ed", width: "40", sort : "str", align : "center", isHidden : false, isEssential : false, isDataColumn : false}
 			, {id : "MEMB_POSI",   label:["직급", "#text_filter"], type: "ed", width: "60", sort : "str", align : "center", isHidden : false, isEssential : false}
-			, {id : "MEMB_RMK",   label:["등급", "#text_filter"], type: "ed", width: "120", sort : "str", align : "left", isHidden : false, isEssential : true}
+			, {id : "MEMB_RMK",   label:["등급", "#select_filter"], type: "combo", width: "120", sort : "str", align : "left", isHidden : false, isEssential : true,commonCode : ["MEMB_RMK","MR"]}
 			, {id : "MEMB_TEL_NO", label:["전화번호", "#text_filter"], type: "ed", width: "300", sort : "str", align : "left", isHidden : false, isEssential : true}
-			, {id : "MEMB_JOIN_YYMMDD",     label:["입사일자", "#select_filter"], type: "combo", width: "80", sort : "str", align : "center", isHidden : false, isEssential : true}
-			, {id : "MEMB_CLOS_YYMMDD",    label:["퇴사일자", "#select_filter"], type: "combo", width: "80", sort : "str", align : "center", isHidden : false, isEssential : true}
-			, {id : "MEMB_CONT_CD", label:["계약상태", "#select_filter"],    type: "ed", width: "130", sort : "str", align : "left", isHidden : false, isEssential : false, commonCode : ["MEMB_CONT_CD","MCC"]}
+			, {id : "MEMB_JOIN_YYMMDD",     label:["입사일자", "#select_filter"], type: "dhxCalendarA", width: "80", sort : "str", align : "center", isHidden : false, isEssential : true}
+			, {id : "MEMB_CLOS_YYMMDD",    label:["퇴사일자", "#select_filter"], type: "dhxCalendarA", width: "80", sort : "str", align : "center", isHidden : false, isEssential : true}
+			, {id : "MEMB_CONT_CD", label:["계약상태", "#select_filter"],    type: "combo", width: "130", sort : "str", align : "left", isHidden : false, isEssential : false, commonCode : ["MEMB_CONT_CD","MCC"]}
 			, {id : "MEMB_EMAIL",     label:["이메일", "#text_filter"],        type: "ed", width: "100", sort : "str", align : "center", isHidden : false, isEssential : false}
 			, {id : "MEMB_INTR",     label:["소개자", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}
 			, {id : "MEMB_POST_NO", label:["우편번호", "#text_filter"],    type: "ed", width: "130", sort : "str", align : "left", isHidden : false, isEssential : false}
 			, {id : "MEMB_ADDR",     label:["주소", "#text_filter"],        type: "ed", width: "100", sort : "str", align : "center", isHidden : false, isEssential : false}
-			, {id : "MEMB_CATE",     label:["구분", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}
+			, {id : "MEMB_CATE",     label:["구분", "#text_filter"],       type: "combo", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false , commonCode : ["MEMB_CATE","MC"]}
 			, {id : "MEMB_REGS_NO",     label:["등록번호", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}
 			, {id : "MEMB_AREA",     label:["업무영역", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}
 			, {id : "MEMB_SKILL",     label:["스킬", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}

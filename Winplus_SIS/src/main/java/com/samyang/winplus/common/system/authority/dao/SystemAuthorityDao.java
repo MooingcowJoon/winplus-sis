@@ -179,7 +179,7 @@ public interface SystemAuthorityDao {
 	  * @exception SQLException
 	  * @exception Exception
 	  */
-	public List<Map<String, Object>> getEmpAccessLogList(Map<String, Object> paramMap);
+	List<Map<String, Object>> getEmpAccessLogList(Map<String, Object> paramMap);
 	
 	
 	/**
@@ -190,6 +190,35 @@ public interface SystemAuthorityDao {
 	  * @exception SQLException
 	  * @exception Exception
 	  */
-	public List<Map<String, Object>> getEmpList(Map<String, Object> paramMap);
+	List<Map<String, Object>> getEmpList(Map<String, Object> paramMap);
 	
+	/**
+	  * insertEmp - 사원조회 - 추가 - 저장
+ 	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int insertEmp(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * updateEmp - 사원조회 - 추가 - 저장
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int updateEmp(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * deleteEmp - 사원조회 - 추가 - 저장
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int deleteEmp(Map<String, Object> paramMap) throws SQLException, Exception;
 }
