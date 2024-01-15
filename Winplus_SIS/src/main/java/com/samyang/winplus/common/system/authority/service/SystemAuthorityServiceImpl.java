@@ -15,7 +15,7 @@ import com.samyang.winplus.common.system.model.ScreenDto;
 
 @Service("SystemAuthorityService")
 public class SystemAuthorityServiceImpl implements SystemAuthorityService {
-	// test commit
+	// test commit 2
 	@Autowired
 	SystemAuthorityDao systemAuthorityDao;
 		
