@@ -150,7 +150,7 @@ public interface SystemAuthorityService {
 	
 	
 	/**
-	  * insertEmp - 사원조회 - 추가 - 저장
+	  * saveEmpList - 사원조회 - 추가 - 저장
 	  * @author 서준호
 	  * @param paramMap
 	  * @return Integer

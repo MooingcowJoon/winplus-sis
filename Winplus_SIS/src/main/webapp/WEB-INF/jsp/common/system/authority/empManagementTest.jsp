@@ -103,9 +103,9 @@
 	<%-- erpGrid 초기화 Function --%>	
 	function initErpGrid(){
 		erpGridColumns = [
-			  {id : "MEMB_NO",         label:["사원번호", "#text_filter"], type: "ro", width: "100", sort : "int", align : "center", isHidden : false, isEssential : false}
-			, {id : "MEMB_NM",      label:["성명(국문)", "#text_filter"], type: "ed", width: "40", sort : "str", align : "center", isHidden : false, isEssential : false, isDataColumn : false}
-			, {id : "MEMB_ENG_NM",      label:["성명(영문)", "#text_filter"], type: "ed", width: "40", sort : "str", align : "center", isHidden : false, isEssential : false, isDataColumn : false}
+			  {id : "MEMB_NO",         label:["사원번호", "#text_filter"], type: "ed", width: "100", sort : "int", align : "center", isHidden : false, isEssential : true}
+			, {id : "MEMB_NM",      label:["성명(국문)", "#text_filter"], type: "ed", width: "40", sort : "str", align : "center", isHidden : false, isEssential : true}
+			, {id : "MEMB_ENG_NM",      label:["성명(영문)", "#text_filter"], type: "ed", width: "40", sort : "str", align : "center", isHidden : false, isEssential : false}
 			, {id : "MEMB_POSI",   label:["직급", "#text_filter"], type: "ed", width: "60", sort : "str", align : "center", isHidden : false, isEssential : false}
 			, {id : "MEMB_RMK",   label:["등급", "#select_filter"], type: "combo", width: "120", sort : "str", align : "left", isHidden : false, isEssential : true,commonCode : ["MEMB_RMK","MR"]}
 			, {id : "MEMB_TEL_NO", label:["전화번호", "#text_filter"], type: "ed", width: "300", sort : "str", align : "left", isHidden : false, isEssential : true}
@@ -278,7 +278,7 @@
 		erpLayout.progressOn();
 		var paramData = $erp.serializeDhtmlXGridData(erpGrid);		
 		$.ajax({
-			url : "/common/system/menu/screenManagementTestCUD1.do"
+			url : "/common/system/authority/empManagementTestCUD1.do"
 			,data : paramData
 			,method : "POST"
 			,dataType : "JSON"
