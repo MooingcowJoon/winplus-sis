@@ -40,6 +40,9 @@
 		initErpRibbon();
 		initDhtmlXCombo();
 		initErpGrid();
+		initErpSubDetailLayout();
+		initErpDetailRibbon();
+		initErpDetailGrid();
 	});
 	
 	<%-- ■ erpLayout 관련 Function 시작 --%>
