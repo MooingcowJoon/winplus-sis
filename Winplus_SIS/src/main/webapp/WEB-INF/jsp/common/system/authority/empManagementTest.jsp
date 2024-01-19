@@ -563,6 +563,111 @@
 		});
 	}
 	
+	<%-- erpGrid 삭제 Function --%>
+	function deleteErpEmpGrid(){
+		var gridRowCount = erpEmpGrid.getRowsNum();
+		var isChecked = false;
+		
+		var deleteRowIdArray = [];
+		for(var i = 0; i < gridRowCount; i++){
+			var rId = erpEmpGrid.getRowId(i);
+			var check = erpEmpGrid.cells(rId, erpEmpGrid.getColIndexById("CHECK")).getValue();
+			if(check == "1"){
+				deleteRowIdArray.push(rId);
+			}
+		}
+		
+		if(deleteRowIdArray.length == 0){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noSelectedRow"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return;
+		}
+		
+		for(var i = 0; i < deleteRowIdArray.length; i++){
+			erpEmpGrid.deleteRow(deleteRowIdArray[i]);
+		}
+		
+		$erp.setDhtmlXGridFooterRowCount(erpGrid);
+	}
+	
+	
+	<%-- erpPjtGrid 삭제 Function --%>
+	function deleteErpPjtGrid(){
+		var gridRowCount = erpPjtGrid.getRowsNum();
+		var isChecked = false;
+		
+		var deleteRowIdArray = [];
+		for(var i = 0; i < gridRowCount; i++){
+			var rId = erpPjtGrid.getRowId(i);
+			var check = erpPjtGrid.cells(rId, erpPjtGrid.getColIndexById("CHECK")).getValue();
+			if(check == "1"){
+				deleteRowIdArray.push(rId);
+			}
+		}
+		
+		if(deleteRowIdArray.length == 0){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noSelectedRow"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return;
+		}
+		
+		for(var i = 0; i < deleteRowIdArray.length; i++){
+			erpPjtGrid.deleteRow(deleteRowIdArray[i]);
+		}
+		
+		$erp.setDhtmlXGridFooterRowCount(erpGrid);
+	}
+	
+	
+	<%-- erpPjtGrid 저장 Function --%>
+	function saveErpPjtGrid(){
+		if(erpPjtGridDataProcessor.getSyncState()){
+			$erp.alertMessage({
+				"alertMessage" : "error.common.noChanged"
+				, "alertCode" : null
+				, "alertType" : "error"
+			});
+			return false;
+		}
+		
+		var validResultMap = $erp.validDhtmlXGridEssentialData(erpPjtGrid);
+		if(validResultMap.isError){
+			$erp.alertMessage({
+				"alertMessage" : validResultMap.errMessage
+				, "alertCode" : validResultMap.errCode
+				, "alertType" : "error"
+				, "alertMessageParam" : validResultMap.errMessageParam
+			});
+			return false;
+		}
+		
+		erpLayout.progressOn();
+		var paramData = $erp.serializeDhtmlXGridData(erpGrid);		
+		$.ajax({
+			url : "/common/system/authority/EmpManagementTestCUD2.do"
+			,data : paramData
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				erpLayout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					$erp.alertSuccessMesage(onAfterSaveErpGrid);
+				}
+			}, error : function(jqXHR, textStatus, errorThrown){
+				erpLayout.progressOff();
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
 	<%-- erpGrid 저장 후 Function --%>
 	function onAfterSaveErpGrid(){
 		searchErpGrid();

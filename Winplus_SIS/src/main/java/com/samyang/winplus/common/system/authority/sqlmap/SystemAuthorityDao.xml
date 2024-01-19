@@ -685,6 +685,12 @@ UPDATE  KOREA_SIS.MEMER_DTL SET
 	</update>
 	
 	
+	<select id="chkChildPjt" resultType="java.lang.Integer" parameterType="java.util.Map">
+				/* chkChildPjt */
+		SELECT COUNT(*) 
+		FROM KOREA_SIS.MEMER_DTL
+		WHERE MEMB_NO = #{MEMB_NO}
 	
+	</select>
 	
 </mapper>

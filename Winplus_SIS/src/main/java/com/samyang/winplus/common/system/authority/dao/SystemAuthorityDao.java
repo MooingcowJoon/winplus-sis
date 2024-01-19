@@ -269,4 +269,13 @@ public interface SystemAuthorityDao {
 	int deletePjt(Map<String, Object> paramMap) throws SQLException, Exception;
 	
 	
+	/**
+	  * 사원id 넣어서 투입된 프로젝트 갯수 반환
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int chkChildPjt(Map<String, Object> paramMap) throws SQLException, Exception;
 }

@@ -434,7 +434,20 @@ public class SystemAuthorityServiceImpl implements SystemAuthorityService {
 				} else if ("U".equals(crud)){
 					resultInt += systemAuthorityDao.updateEmp(paramMap);
 				} else if ("D".equals(crud)){
-					resultInt += systemAuthorityDao.deleteEmp(paramMap);
+					
+					
+					//하위 메뉴 존재여부 체크
+					int chkChildPjtInt = systemAuthorityDao.chkChildPjt(paramMap);
+					
+					
+					//하위메뉴 존재 시 메뉴 삭제 안됨
+					if(chkChildPjtInt != 0){
+						chkChildPjtInt = 9999;
+						return chkChildPjtInt;
+					}else{
+						resultInt += systemAuthorityDao.deleteEmp(paramMap);
+					}
+				
 				}
 			}
 		}
@@ -477,6 +490,7 @@ public class SystemAuthorityServiceImpl implements SystemAuthorityService {
 				} else if ("U".equals(crud)){
 					resultInt += systemAuthorityDao.updatePjt(paramMap);
 				} else if ("D".equals(crud)){
+					
 					resultInt += systemAuthorityDao.deletePjt(paramMap);
 				}
 			}
