@@ -557,4 +557,134 @@ VALUES ( #{MEMB_NO}
 		WHERE   MEMB_NO           = #{MEMB_NO}
 		
 	</update>
+	
+	<insert id="insertPjt" parameterType="java.util.Map">
+	INSERT INTO KOREA_SIS.MEMER_DTL 
+      (  MEMB_NO             /* 사원번호   */
+       , PROJECT_ID          /* 프로젝트ID */
+       , MEMB_CONT_CORP      /* 계약회사명  */
+       , MEMB_INV_DAY        /* 청구일     */
+       , MEMB_RCV_MMM        /* 수령월(1당월,2익월)*/
+       , MEMB_RCV_DAY        /* 수령일     */
+       , MEMB_RCV_CHK        /* 구분(1 휴일이전일, 2휴일도래일)*/
+       , MEMB_CONT_AMT       /* 계약금액   */
+       , MEMB_REGU_YN        /* 반정규여부  */
+       , MEMB_REGU_AMT       /* 반정규금액  */
+       , MEMB_ORGR_AMT       /* 실계약금액  */
+       , MEMB_CONT_YYMMDD    /* 계약일자   */
+       , MEMB_CONT_NM        /* 담당자명   */
+       , MEMB_TEL_NO         /* 전화번호   */
+       , MEMB_CONT_FILE_NAME /* 계약서파일명 */
+       , MEMB_CONT_FILE_METH /* 경로      */
+       , MEMB_PROM_YYMMDD    /* 계약일자    */
+       , MEMB_PROM_FILE_NAME /* 계약서파일명 */
+       , REG_ID              /* 처리자ID   */
+       , REG_DT              /* 처리시각    */
+    )   
+VALUES ( #{MEMB_NO}
+    , #{PROJECT_ID}
+    , #{MEMB_CONT_CORP}
+    , #{MEMB_INV_DAY}
+    , #{MEMB_RCV_MMM}
+    , #{MEMB_RCV_DAY}
+    , #{MEMB_RCV_CHK}
+    , #{MEMB_CONT_AMT}
+    , #{MEMB_REGU_YN}
+    , #{MEMB_REGU_AMT}
+    , #{MEMB_ORGR_AMT}
+    , #{MEMB_CONT_YYMMDD}
+    , #{MEMB_CONT_NM}
+    , #{MEMB_TEL_NO}
+    , #{MEMB_CONT_FILE_NAME}
+    , #{MEMB_CONT_FILE_METH}
+    , #{MEMB_PROM_YYMMDD}
+    , #{MEMB_PROM_FILE_NAME}
+    , #{REG_ID}
+    , NOW()
+    )
+	</insert>
+	
+	
+		<select id="getPjtList" resultType="java.util.Map" parameterType="java.util.Map">
+		
+		
+
+SELECT  CPI.PROJECT_ID         /* 프로젝트ID   */
+      , CPI.PROJECT_NM         /* 프로젝트명   */
+      , CASE  WHEN CPI.DIV_CL = '1' THEN 'SI' 
+           WHEN CPI.DIV_CL = '2' THEN 'SM' 
+              ELSE '' 
+          END AS DIV_CL
+      , CPI.START_DT           /* 시작일자     */
+      , CPI.END_DT             /* 종료일자     */
+      , CPI.MAIN_CLIENT        /* 원청(고객사) */
+      , CPI.CONDUCT_CLIENT     /* 수행사       */
+      , MD.MEMB_CONT_CORP      /* 계약회사명   */
+      , MD.MEMB_INV_DAY        /* 청구일   */
+      , CASE  WHEN MD.MEMB_RCV_MMM = '1' THEN '당월' 
+           WHEN MD.MEMB_RCV_MMM = '2' THEN '익월' 
+              ELSE '' 
+        END   AS MEMB_RCV_MMM
+      , MD.MEMB_RCV_DAY        /* 수령일   */
+      , CASE  WHEN MD.MEMB_RCV_MMM = '1' THEN '이전영업일' 
+           WHEN MD.MEMB_RCV_MMM = '2' THEN '이후영업일' 
+              ELSE '' 
+        END   AS MEMB_RCV_CHK
+      , MD.MEMB_CONT_AMT        /* 계약금액   */
+      , MD.MEMB_REGU_YN         /* 반정규여부 */
+      , MD.MEMB_REGU_AMT        /* 반정규금액 */
+      , MD.MEMB_ORGR_AMT        /* 실계약금액 */
+      , MD.MEMB_CONT_YYMMDD     /* 계약일자 */
+      , MD.MEMB_CONT_NM         /* 담당자명 */
+      , MD.MEMB_TEL_NO          /* 전화번호 */
+      , MD.MEMB_CONT_FILE_NAME  /* 계약서파일명 */
+      , MD.MEMB_CONT_FILE_PATH  /* 경로 */
+      , MD.MEMB_PROM_YYMMDD     /* 계약일자 */
+      , MD.MEMB_PROM_FILE_NAME  /* 계약서파일명 */
+      , MD.REG_ID               /* 계약서파일명 */      
+  FROM  KOREA_SIS.MEMER_DTL MD
+        LEFT OUTER JOIN KOREA_SIS.COM_PROJECT_INFO CPI ON MD.PROJECT_ID  = CPI.PROJECT_ID
+ WHERE  MEMB_NO = #{MEMB_NO}
+		
+		</select>
+	
+	
+		<delete id="deletePjt" parameterType="java.util.Map">
+		/* deletePjt */
+
+DELETE 
+  FROM  KOREA_SIS.MEMER_DTL
+ WHERE  MEMB_NO    = #{MEMB_NO}
+   AND  PROJECT_ID = #{PROJECT_ID}
+	</delete>
+	
+	<update id="updatePjt" parameterType="java.util.Map">
+	/* updatePjt */
+UPDATE  KOREA_SIS.MEMER_DTL SET
+      , MEMB_CONT_CORP      = #{MEMB_CONT_CORP}      /* 계약회사명  */
+      , MEMB_INV_DAY        = #{MEMB_INV_DAY}        /* 청구일     */
+      , MEMB_RCV_MMM        = #{MEMB_RCV_MMM}        /* 수령월(1당월,2익월)*/
+      , MEMB_RCV_DAY        = #{MEMB_RCV_DAY}        /* 수령일     */
+      , MEMB_RCV_CHK        = #{MEMB_RCV_CHK}        /* 구분(1 휴일이전일, 2휴일도래일)*/
+      , MEMB_CONT_AMT       = #{MEMB_CONT_AMT}       /* 계약금액   */
+      , MEMB_REGU_YN        = #{MEMB_REGU_YN}        /* 반정규여부  */
+      , MEMB_REGU_AMT       = #{MEMB_REGU_AMT}       /* 반정규금액  */
+      , MEMB_ORGR_AMT       = #{MEMB_ORGR_AMT}       /* 실계약금액  */
+      , MEMB_CONT_YYMMDD    = #{MEMB_CONT_YYMMDD}    /* 계약일자   */
+      , MEMB_CONT_NM        = #{MEMB_CONT_NM}        /* 담당자명   */
+      , MEMB_TEL_NO         = #{MEMB_TEL_NO}         /* 전화번호   */
+      , MEMB_CONT_FILE_NAME = #{MEMB_CONT_FILE_NAME} /* 계약서파일명 */
+      , MEMB_CONT_FILE_METH = #{MEMB_CONT_FILE_METH} /* 경로      */
+      , MEMB_PROM_YYMMDD    = #{MEMB_PROM_YYMMDD}    /* 계약일자    */
+      , MEMB_PROM_FILE_NAME = #{MEMB_PROM_FILE_NAME} /* 계약서파일명 */
+      , REG_ID              = #{REG_ID}              /* 처리자ID   */
+      , REG_DT              = NOW()                  /* 처리시각    */
+ WHERE  MEMB_NO             = #{MEMB_NO}
+   AND  PROJECT_ID          = #{PROJECT_ID}
+		
+	</update>
+	
+	
+	
+	
 </mapper>

@@ -221,4 +221,52 @@ public interface SystemAuthorityDao {
 	  * @exception Exception
 	  */
 	int deleteEmp(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	
+	
+	
+	
+	
+	
+	/**
+	  * getPjtList - 사원조회 - 조회
+	  * @author 서준호
+	  * @param paramMap
+	  * @return List<Map<String, Object>>
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	List<Map<String, Object>> getPjtList(Map<String, Object> paramMap);
+	
+	/**
+	  * insertPjt - 사원조회 - 추가 - 저장
+ 	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int insertPjt(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * updatePjt - 사원조회 - 추가 - 저장
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int updatePjt(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	/**
+	  * deletePjt - 사원조회 - 추가 - 저장
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	int deletePjt(Map<String, Object> paramMap) throws SQLException, Exception;
+	
+	
 }

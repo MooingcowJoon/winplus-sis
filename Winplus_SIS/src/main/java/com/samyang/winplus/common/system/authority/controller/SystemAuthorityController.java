@@ -562,5 +562,22 @@ public class SystemAuthorityController extends BaseController {
 		return resultMap;
 	}
 	
+	@RequestMapping(value="empManagementTestR2.do", method=RequestMethod.POST)
+	public Map<String,Object> empManagementTestR2(HttpServletRequest request) throws SQLException, Exception {
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		String memb_no = request.getParameter("MEMB_NO");
+		if(memb_no != null && memb_no.length() > 50){
+			String errMessage = messageSource.getMessage("error.common.system.authority.memb_no.length50Over", new Object[1], commonUtil.getDefaultLocale());
+			String errCode = "1001";
+			resultMap = commonUtil.getErrorMap(errMessage, errCode);
+		} else {
+			Map<String, Object> paramMap = new HashMap<String, Object>();
+			paramMap.put("MEMB_NO", memb_no);
+			List<Map<String, Object>> empList = systemAuthorityService.getPjtList(paramMap);				
+			resultMap.put("gridDataList", empList);
+		}
+		return resultMap;
+	}
+	
 	
 }

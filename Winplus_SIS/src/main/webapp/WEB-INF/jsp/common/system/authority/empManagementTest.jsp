@@ -23,7 +23,8 @@
 
 	var cmbMEMB_CONT_CD;
 	var calMEMB_JOIN_YYMMDD;
-	
+	var erpEmpGridSelectedMEMB_NO;
+
 	
 	// 사원조회 레이아웃
 	var erpEmpLayout;
@@ -245,6 +246,13 @@
 		erpEmpGridDataProcessor.init(erpEmpGrid);
 		erpEmpGridDataProcessor.setUpdateMode("off");
 		$erp.initGridDataColumns(erpEmpGrid);
+		
+		
+		erpEmpGrid.attachEvent("onRowSelect", function(rId, cInd){
+			erpEmpGridSelectedMEMB_NO = this.cells(rId, this.getColIndexById("MEMB_NO")).getValue();
+			searchErpPjtGrid();
+		});
+		
 	}
 	
 	<%-- erpSubPjtGrid 초기화 Function --%>	
@@ -363,6 +371,75 @@
 			}
 		});
 	}
+	
+	<%-- erpGrid 조회 유효성 검사 Function --%>
+	function isSearchPjtValidate(){
+		var isValidated = true;
+		var memb_no = document.getElementById("txtMEMB_NO").value;
+		var alertMessage = "";
+		var alertCode = "";
+		var alertType = "error";
+		
+		if($erp.isLengthOver(memb_no, 50)){
+			isValidated = false;
+			alertMessage = "error.common.system.authority.memb_no.length50Over";
+			alertCode = "-1";
+		} 		
+		
+		if(!isValidated){
+			$erp.alertMessage({
+				"alertMessage" : alertMessage
+				, "alertCode" : alertCode
+				, "alertType" : alertType
+			});
+		}
+		
+		return isValidated;
+	}
+	
+	<%-- erpPjtGrid 조회 Function --%>
+	function searchErpPjtGrid(){
+		if(!isSearchPjtValidate()){
+			return;
+		}
+		
+		erpLayout.progressOn();
+		
+		var memb_no = erpEmpGridSelectedMEMB_NO
+		
+		$.ajax({
+			url : "/common/system/authority/empManagementTestR2.do"
+			,data : {
+				"MEMB_NO" : memb_no
+			}
+			,method : "POST"
+			,dataType : "JSON"
+			,success : function(data){
+				erpLayout.progressOff();
+				if(data.isError){
+					$erp.ajaxErrorMessage(data);
+				} else {
+					erpEmpGridSelectedMEMB_NO = null;
+					$erp.clearDhtmlXGrid(erpPjtGrid);
+					$erp.clearDhtmlXGrid(erpPjtGrid);
+					var gridDataList = data.gridDataList;
+					if($erp.isEmpty(gridDataList)){
+						$erp.addDhtmlXGridNoDataPrintRow(
+							erpPjtGrid
+							, '<spring:message code="grid.noSearchData" />'
+						);
+					} else {
+						erpPjtGrid.parse(gridDataList, 'js');	
+					}
+				}
+				$erp.setDhtmlXGridFooterRowCount(erpPjtGrid);
+			}, error : function(jqXHR, textStatus, errorThrown){
+				erpLayout.progressOff();
+				$erp.ajaxErrorHandler(jqXHR, textStatus, errorThrown);
+			}
+		});
+	}
+	
 	
 	<%-- erpGrid 추가 Function --%>
 	function addErpEmpGrid(){

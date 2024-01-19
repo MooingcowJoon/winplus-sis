@@ -442,4 +442,47 @@ public class SystemAuthorityServiceImpl implements SystemAuthorityService {
 		return resultInt;
 	}
 	
+	
+	/**
+	  * getPjtList - 사원조회 - 조회
+	  * @author 서준호
+	  * @param paramMap
+	  * @return List<Map<String, Object>>
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	@Override
+	public List<Map<String, Object>> getPjtList(Map<String, Object> paramMap) {
+		return systemAuthorityDao.getPjtList(paramMap);
+	}
+	
+	
+	
+	
+	/**
+	  * savePjtList - 사원조회 - 추가 - 저장
+	  * @author 서준호
+	  * @param paramMap
+	  * @return Integer
+	  * @exception SQLException
+	  * @exception Exception
+	  */
+	public int savePjtList(List<Map<String, Object>> paramMapList) throws SQLException, Exception{
+		int resultInt = 0;		
+		for(Map<String, Object> paramMap : paramMapList){
+			Object crud = paramMap.get("CRUD");
+			if(crud != null) {
+				if("C".equals(crud)){
+					resultInt += systemAuthorityDao.insertPjt(paramMap);
+				} else if ("U".equals(crud)){
+					resultInt += systemAuthorityDao.updatePjt(paramMap);
+				} else if ("D".equals(crud)){
+					resultInt += systemAuthorityDao.deletePjt(paramMap);
+				}
+			}
+		}
+		
+		return resultInt;
+	}
+	
 }
