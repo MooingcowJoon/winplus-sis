@@ -297,8 +297,6 @@
 		erpPjtGridDataProcessor.setUpdateMode("off");
 		$erp.initGridDataColumns(erpPjtGrid);
 		
-		
-			
 			erpPjtGrid.attachEvent("onCellClick", function(cell, event){
 		        // Your custom logic here
 		        alert("Cell clicked! Value: " + cell.getValue());
