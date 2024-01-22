@@ -5597,6 +5597,7 @@ $erp.openGoodsGroupGridPopup = function(useGoodsGrup) {
  * @author 손경락
  */
 $erp.searchProjectPopup = function(onRowSelect) {
+	alert('팝업함수 테스트')
 	var params = {
 	}
 	var url = "/common/popup/openSearchProjectGridPopup.sis";
@@ -5612,7 +5613,9 @@ $erp.searchProjectPopup = function(onRowSelect) {
                 popWin.erpPopupCustmrOnRowSelect = onRowSelect;    
             }
         }
-        
+        popWin.erpPopupCustmrOnRowSelect=function(){
+			alert(('그냥아무것도아님'))
+		}
         this.progressOff();
     }
 	

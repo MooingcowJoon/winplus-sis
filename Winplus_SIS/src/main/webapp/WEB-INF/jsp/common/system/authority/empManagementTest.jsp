@@ -40,7 +40,11 @@
 	var erpPjtGridDataProcessor;
 	
 	
+	// 팝업 레이아웃
+	var erpPopupLayout;
+	
 	$(document).ready(function(){		
+		initErpPopupLayout();
 		initErpLayout();
 		initErpEmpLayout();
 		initErpEmpGrid();
@@ -51,6 +55,26 @@
 		initErpPjtGrid();
 		initErpPjtRibbon(); 
 	});
+	
+	function initErpLayout(){
+		erpPopupLayout = new dhtmlXLayoutObject({
+			parent : document.body
+			, skin : ERP_LAYOUT_CURRENT_SKINS
+			, pattern : "1E"
+			, cells : [
+				{id: "a", text: "프로젝트 조회", header : false, fix_size:[true, true]}
+			]
+		});
+		
+		erpPopupLeftLayout.cells("a").attachObject("div_erp_emp_layout");
+		erpPopupLeftLayout.cells("a").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		
+		$erp.setEventResizeDhtmlXLayout(erpPopupLayout, function(names){
+			//erpCustmrGrid.setSizes();
+		});
+	}
+	
+	
 	
 	<%-- ■ erpLayout 관련 Function 시작 --%>
 	<%-- erpLayout 초기화 Function --%>
@@ -297,9 +321,13 @@
 		erpPjtGridDataProcessor.setUpdateMode("off");
 		$erp.initGridDataColumns(erpPjtGrid);
 		
-			erpPjtGrid.attachEvent("onCellClick", function(cell, event){
+			erpPjtGrid.attachEvent("onRowAdded", function(rId){
 		        // Your custom logic here
-		        alert("Cell clicked! Value: " + cell.getValue());
+		        cell = erpPjtGrid.cells(rId,0);
+		        $erp.searchProjectPopup();
+		        
+		        
+		        cell.setValue("newValue");
 		      });
 			
 		
