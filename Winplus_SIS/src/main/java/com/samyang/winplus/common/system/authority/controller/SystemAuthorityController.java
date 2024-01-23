@@ -8,12 +8,15 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -601,5 +604,24 @@ public class SystemAuthorityController extends BaseController {
 		return resultMap;
 	}
 	
+	
+	
+	/**
+	 * @author 서준호
+	 * @param request
+	 * @param paramMap
+	 * @return
+	 * @throws SQLException
+	 * @throws Exception
+	 * @description 게시글 팝업 열기
+	 */
+	@RequestMapping(value="searchProjectGridPopup.sis", method=RequestMethod.POST)
+	public ModelAndView openBoardPopup(HttpServletRequest request, @RequestParam Map<String, String> paramMap) throws SQLException, Exception{
+		ModelAndView mav = new ModelAndView();
+		mav.setViewName("common/popup" +"/"+ "openSearchProjectGridPopup");
+		return mav;
+	}
+
+
 	
 }

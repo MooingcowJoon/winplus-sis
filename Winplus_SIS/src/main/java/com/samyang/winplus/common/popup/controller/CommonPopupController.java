@@ -2606,7 +2606,8 @@ public class CommonPopupController extends BaseController {
 	 * @description 회원명으로 회원 검색 팝업 열기 
 	 */
 	@RequestMapping(value="openSearchProjectGridPopup.sis", method=RequestMethod.POST)
-	public ModelAndView openSearchProjectGridPopup(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+	public ModelAndView openSearchProjectGridPopup(HttpServletRequest request, @RequestParam Map<String, String> paramMap) throws SQLException, Exception {
+		ModelAndView mav = new ModelAndView();
 		mav.setViewName(DEFAULT_PATH + "/" + "openSearchProjectGridPopup");
 		return mav;
 	}
@@ -2874,7 +2875,8 @@ public class CommonPopupController extends BaseController {
 	 * @description 회원명으로 회원 검색 팝업 열기 
 	 */
 	@RequestMapping(value="openOrderInputGridPopup.sis", method=RequestMethod.POST)
-	public ModelAndView openOrderInputGridPopup(HttpServletRequest request, @RequestParam Map<String, String> paramMap, ModelAndView mav) throws SQLException, Exception {
+	public ModelAndView openOrderInputGridPopup(HttpServletRequest request, @RequestParam Map<String, String> paramMap) throws SQLException, Exception {
+		ModelAndView mav = new ModelAndView();
 		mav.setViewName(DEFAULT_PATH + "/" + "openOrderInputGridPopup");
 		return mav;
 	}

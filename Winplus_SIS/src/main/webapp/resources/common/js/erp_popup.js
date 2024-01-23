@@ -5592,17 +5592,18 @@ $erp.openGoodsGroupGridPopup = function(useGoodsGrup) {
 
 /** 
  * Description 
- * @function searchProjectPopup
+ * @function searchProjectGridPopup
  * @function_Description 프로젝트 조회 팝업
  * @author 손경락
  */
-$erp.searchProjectPopup = function(onRowSelect) {
+$erp.searchProjectGridPopup = function(onRowSelect) {
 	alert('팝업함수 테스트')
 	var params = {
 	}
-	var url = "/common/popup/openSearchProjectGridPopup.sis";
+	var url = "/common/system/authority/searchProjectGridPopup.sis";
 	var option = {
-			"width" : 400
+			"win_id" : "searchProjectGridPopup"
+			,"width" : 400
 			,"height" :700
 	}
 	

@@ -56,18 +56,18 @@
 		initErpPjtRibbon(); 
 	});
 	
-	function initErpLayout(){
+	function initErpPopupLayout(){
 		erpPopupLayout = new dhtmlXLayoutObject({
 			parent : document.body
 			, skin : ERP_LAYOUT_CURRENT_SKINS
-			, pattern : "1E"
+			, pattern : "1C"
 			, cells : [
 				{id: "a", text: "프로젝트 조회", header : false, fix_size:[true, true]}
 			]
 		});
 		
-		erpPopupLeftLayout.cells("a").attachObject("div_erp_emp_layout");
-		erpPopupLeftLayout.cells("a").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
+		erpPopupLayout.cells("a").attachObject("div_erp_emp_layout");
+		erpPopupLayout.cells("a").setHeight(ERP_LAYOUT_RIBBON_HEIGHT);
 		
 		$erp.setEventResizeDhtmlXLayout(erpPopupLayout, function(names){
 			//erpCustmrGrid.setSizes();
@@ -324,7 +324,7 @@
 			erpPjtGrid.attachEvent("onRowAdded", function(rId){
 		        // Your custom logic here
 		        cell = erpPjtGrid.cells(rId,0);
-		        $erp.searchProjectPopup();
+		        openSearchProjectGridPopup();
 		        
 		        
 		        cell.setValue("newValue");
@@ -332,6 +332,23 @@
 			
 		
 		
+			
+	}
+	function openSearchProjectGridPopup(){
+		
+		var onRowSelect = function(id, ind) {
+			console.log(this.cells(id, this.getColIndexById("PROJECT_ID")).getValue());
+			
+			var uid = erpPjtGrid.uid();
+			erpPjtGrid.addRow(uid);
+			erpPjtGrid.selectRow(erpCustmrGrid.getRowIndex(uid));
+			//erpPjtGrid.cells(uid, erpPjtGrid.getColIndexById("PROJECT_ID")).setValue(this.getColIndexById("PROJECT_ID")).getValue());
+			$erp.setDhtmlXGridFooterRowCount(erpPjtGrid);
+			
+			$erp.closePopup2("searchProjectGridPopup");
+		}
+		
+		$erp.searchProjectGridPopup(onRowSelect);
 	}
 	
 	

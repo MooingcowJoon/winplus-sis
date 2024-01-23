@@ -456,6 +456,7 @@ function initErpPopupWindows(){
 	    image_path : ERP_WINDOWS_CURRENT_IMAGE_PATH
 	    , skin : ERP_WINDOWS_CURRENT_SKINS
 	});
+	console.log('팝업윈도우초기훼')
 	erpPopupWindows.attachViewportTo(document.body);
 }
 
