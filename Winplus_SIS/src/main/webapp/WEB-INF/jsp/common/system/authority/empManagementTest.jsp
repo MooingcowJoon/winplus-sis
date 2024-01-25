@@ -330,8 +330,6 @@
 		        cell.setValue("newValue");
 		      });
 			
-		
-		
 			
 	}
 	function openSearchProjectGridPopup(){
