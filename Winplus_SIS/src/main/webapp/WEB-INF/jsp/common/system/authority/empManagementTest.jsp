@@ -325,11 +325,8 @@
 		        // Your custom logic here
 		        cell = erpPjtGrid.cells(rId,0);
 		        openSearchProjectGridPopup();
-		        
-		        
 		        cell.setValue("newValue");
 		      });
-			
 			
 	}
 	function openSearchProjectGridPopup(){
