@@ -327,7 +327,6 @@
 		        openSearchProjectGridPopup();
 		        cell.setValue("newValue");
 		      });
-			
 	}
 	function openSearchProjectGridPopup(){
 		
