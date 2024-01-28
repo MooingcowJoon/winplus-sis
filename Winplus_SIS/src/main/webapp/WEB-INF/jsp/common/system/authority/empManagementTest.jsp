@@ -338,7 +338,6 @@
 			erpPjtGrid.selectRow(erpCustmrGrid.getRowIndex(uid));
 			//erpPjtGrid.cells(uid, erpPjtGrid.getColIndexById("PROJECT_ID")).setValue(this.getColIndexById("PROJECT_ID")).getValue());
 			$erp.setDhtmlXGridFooterRowCount(erpPjtGrid);
-			
 			$erp.closePopup2("searchProjectGridPopup");
 		}
 		
