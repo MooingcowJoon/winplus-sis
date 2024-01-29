@@ -304,7 +304,9 @@
 			, {id : "MEMB_CONT_FILE_METH",     label:["경로", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}
 			, {id : "MEMB_PROM_YYMMDD",     label:["계약일자", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}
 			, {id : "MEMB_PROM_FILE_NAME",     label:["계약서", "#text_filter"],       type: "ed", width: "140", sort : "str", align : "left", isHidden : false, isEssential : false}
-		];
+		
+			
+			];
 		
 		erpPjtGrid = new dhtmlXGridObject({
 			parent: "div_erp_pjt_grid"			
