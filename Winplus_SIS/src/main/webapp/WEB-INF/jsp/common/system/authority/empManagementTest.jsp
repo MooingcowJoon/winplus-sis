@@ -407,8 +407,6 @@
 							erpEmpGrid
 							, '<spring:message code="grid.noSearchData" />'
 							
-							
-							
 						);
 					} else {
 						erpEmpGrid.parse(gridDataList, 'js');	
