@@ -20,12 +20,9 @@
 		■ cmbCMMN_YN : Object / 공통여부 DhtmlXCombo  (CODE : 'YN_CD' / 빈 칸 : 전체) 		 
 	--%>
 	var erpLayout;
-
 	var cmbMEMB_CONT_CD;
 	var calMEMB_JOIN_YYMMDD;
 	var erpEmpGridSelectedMEMB_NO;
-
-	
 	// 사원조회 레이아웃
 	var erpEmpLayout;
 	var erpEmpRibbon;	
