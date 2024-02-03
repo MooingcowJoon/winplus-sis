@@ -23,7 +23,6 @@
 	var cmbMEMB_CONT_CD;
 	var calMEMB_JOIN_YYMMDD;
 	
-	
 	var erpEmpGridSelectedMEMB_NO;
 	// 사원조회 레이아웃
 	var erpEmpLayout;
